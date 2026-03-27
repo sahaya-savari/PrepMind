@@ -97,7 +97,7 @@ function tokenizeForRetrieval(input) {
     .filter(t => t.length > 2 && !RAG_STOPWORDS.has(t));
 }
 
-function chunkText(text, chunkSize = 700, overlap = 120) {
+function chunkText(text, chunkSize = 500, overlap = 120) {
   const safeText = (text || '').replace(/\r\n?/g, '\n').trim();
   if (!safeText) return [];
 

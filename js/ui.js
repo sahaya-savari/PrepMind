@@ -519,6 +519,74 @@ function rebuildNotesChunks() {
   STATE.notesMeta.totalChars = STATE.notesText.length;
 }
 
+function chunkTextBasic(text, size = 500) {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += size) {
+    chunks.push(text.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function extractPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  let text = '';
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(' ') + '\n';
+  }
+
+  return { text, pages: pdf.numPages };
+}
+
+async function handlePdfUpload(e) {
+  const file = e.target.files?.[0];
+  const statusEl = document.getElementById('pdfStatus');
+  if (!file) return;
+
+  if (statusEl) statusEl.textContent = 'Loading PDF…';
+
+  try {
+    if (typeof pdfjsLib === 'undefined') {
+      throw new Error('PDF engine not loaded yet. Please retry in a second.');
+    }
+
+    if (pdfjsLib.GlobalWorkerOptions) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    const { text, pages } = await extractPDF(file);
+    const cleaned = text.trim();
+
+    localStorage.setItem('prepmind_notes', cleaned);
+    localStorage.setItem('prepmind_notes_chunks', JSON.stringify(chunkTextBasic(cleaned)));
+
+    STATE.notesText = cleaned;
+    STATE.notesMeta.chunkSize = 500;
+    STATE.notesMeta.overlap = 0;
+    rebuildNotesChunks();
+    saveState();
+    refreshNotesStats();
+
+    const notesInput = document.getElementById('notesInput');
+    if (notesInput) notesInput.value = cleaned;
+
+    setRagStatus(`📄 PDF loaded successfully (${pages} pages). Retrieval ready with ${STATE.notesChunks.length} chunk(s).`);
+    if (statusEl) statusEl.textContent = `📄 PDF loaded successfully (${pages} pages)`;
+    alert(`PDF converted to notes successfully! (${pages} pages)`);
+  } catch (err) {
+    console.error('PDF upload failed', err);
+    setRagStatus('Failed to parse PDF. Please try another file.');
+    if (statusEl) statusEl.textContent = 'Failed to parse PDF. Try again.';
+    alert('Error reading PDF: ' + err.message);
+  } finally {
+    e.target.value = '';
+  }
+}
+
 function saveNotesFromUI() {
   const input = document.getElementById('notesInput');
   if (!input) return;
@@ -568,6 +636,15 @@ function initNotesUI() {
   const input = document.getElementById('notesInput');
   const toggle = document.getElementById('ragToggle');
   if (!input || !toggle) return;
+
+   const storedPdfNotes = localStorage.getItem('prepmind_notes');
+   if (!STATE.notesText && storedPdfNotes) {
+     STATE.notesText = storedPdfNotes;
+     STATE.notesMeta.chunkSize = 500;
+     STATE.notesMeta.overlap = 0;
+     rebuildNotesChunks();
+     saveState();
+   }
 
   input.value = STATE.notesText || '';
   toggle.checked = !!STATE.rag.enabled;
@@ -802,6 +879,7 @@ function initInteractions() {
   const startBtn = document.querySelector('.exam-submit-btn');
   const genBtn = document.getElementById('genBtn');
   const chatBtn = document.getElementById('chatSendBtn');
+  const pdfInput = document.getElementById('pdfUpload');
 
   if (examInput) {
     examInput.addEventListener('keydown', e => {
@@ -822,6 +900,10 @@ function initInteractions() {
 
   if (chatBtn) {
     chatBtn.addEventListener('click', sendChat);
+  }
+
+  if (pdfInput) {
+    pdfInput.addEventListener('change', handlePdfUpload);
   }
 }
 
