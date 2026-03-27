@@ -1,43 +1,81 @@
 # PrepMind AI 🧠
 
-PrepMind AI is your smart, AI-powered exam preparation companion. Get personalised practice questions, smart tutoring, and real-time progress analytics for any competitive exam (e.g., TCS NQT, CAT, GATE) directly in your browser.
+PrepMind AI is a production-ready, server-backed exam preparation companion. It builds a personalised dashboard with overview, practice MCQs, teaching notes, chat tutoring, and progress analytics for any exam (e.g., CAT, GATE, UPSC, JEE). No frontend keys, no prompts—works out of the box via a secure Vercel function proxying Gemini.
 
 ## Features
-- **Smart Practice**: Automatically generates topic-specific MCQ questions powered by AI.
-- **AI Tutor**: "Teach Me" section provides theory, formulas, shortcuts, and common mistakes.
-- **Ask Doubts**: Chat interface for quick clarification on concepts and exam strategies.
-- **Real-Time Analytics**: Dashboard that tracks your accuracy and topic-wise progress.
+- **Instant Exam Dashboard**: Auto-generates overview, syllabus chips, strategy, and study plan.
+- **Smart Practice MCQs**: Topic + difficulty based MCQs with explanations and quick tricks.
+- **Teach Me Mode**: Topic-wise theory, formulas, examples, traps, and shortcuts.
+- **Notes-based Q&A (RAG-lite)**: Paste notes, get contextual answers with lightweight retrieval.
+- **Chat Tutor**: Conversational Q&A tailored to the chosen exam.
+- **Progress Analytics**: Accuracy ring, topic-wise stats, attempts tracking.
+
+## Tech Stack
+- HTML5, CSS3 (glassmorphism, responsive, dark theme)
+- Vanilla JavaScript (state management, API orchestration)
+- Vercel Serverless Functions (Node) as secure AI proxy
+- Gemini OpenAI-compatible endpoint (no frontend key exposure)
+
+## Live Demo
+- **Vercel**: _add your deployed URL here_
+
+## Screenshots
+- `./screenshots/landing.png`
+- `./screenshots/dashboard.png`
+(Add images after capturing.)
+
+## Project Structure
+```
+PrepMind/
+├─ index.html
+├─ css/
+│  └─ styles.css
+├─ js/
+│  ├─ state.js
+│  ├─ api.js
+│  └─ ui.js
+└─ api/
+   └─ ai.js
+```
 
 ## How It Works
-PrepMind AI is built with HTML, CSS, and Vanilla JavaScript. It uses **GitHub Models (OpenAI API)** to access advanced LLMs (like `gpt-4o`) directly from the browser payload, leveraging a public CORS proxy (`corsproxy.io`) to handle cross-origin requests.
+- Frontend sends all AI requests to `/api/ai` (no Authorization header client-side).
+- The Vercel function `/api/ai.js` reads `process.env.GEMINI_API_KEY`, forwards to `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`, and returns JSON.
+- State and caching are handled in-browser; no secrets are stored or requested from users.
 
-## Setup & Running Locally
-
-1. **Clone the repository:**
+## Installation (Local)
+1. Clone the repo:
    ```bash
    git clone https://github.com/sahaya-savari/PrepMind.git
    cd PrepMind
    ```
+2. Run locally (simple static serve):
+   ```bash
+   npx serve .
+   # or any static server; ensure /api is deployed or mocked if needed
+   ```
+   For full functionality, deploy to Vercel so the serverless function is available.
 
-2. **Open the App:**
-   Just double-click on `index.html` to open it in any modern browser.
+## Environment Variables
+- `GEMINI_API_KEY` (required) — set in Vercel Project Settings → Environment Variables (Production + Preview).
 
-3. **Provide your API Token:**
-   Upon the first interaction (or page load), the app will prompt you for an API token. 
-   - Get a free **GitHub Personal Access Token** at [GitHub Developer Settings](https://github.com/settings/tokens).
-   - The token requires **NO SCOPES** (leave all checkboxes empty).
-   - Enter it into the browser prompt. It will be securely stored in your browser's Local Storage for future visits.
+## Deployment (Vercel)
+1. Push the repo to GitHub.
+2. Import the project in Vercel.
+3. Set `GEMINI_API_KEY` in Vercel (Production + Preview).
+4. Deploy. The site will serve `/index.html` and the serverless proxy at `/api/ai`.
 
-## Hosting
-This project is a static web page and can be hosted fully free on:
-- [GitHub Pages](https://pages.github.com/)
-- [Vercel](https://vercel.com/)
-- [Netlify](https://netlify.com/)
+## Development Notes
+- No API key is ever requested or stored on the client.
+- All scripts and styles load from absolute paths: `/js/state.js`, `/js/api.js`, `/js/ui.js`, `/css/styles.css`.
+- Caching: lightweight response cache in `localStorage` for AI replies to reduce duplicate calls.
+- Logging: frontend logs when major actions fire; backend logs model/message counts and upstream errors.
 
-**Note:** Since the API key is provided individually by the user at runtime, you can safely host this repository publicly without leaking any secrets!
+## Future Improvements
+- Add offline/local fallback tips if the model API is unreachable.
+- Add richer progress charts and streaks.
+- Add i18n for non-English locales.
+- Add rate-limit guardrails and user quotas if multi-tenant.
 
-## Technologies Used
-- HTML5 / CSS3 (Custom responsive design with modern glassmorphism)
-- Vanilla JavaScript (ES6+)
-- GitHub Models API (OpenAI compatibility)
-- LocalStorage for token management
+## License
+MIT

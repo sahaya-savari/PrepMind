@@ -71,6 +71,23 @@
     position: relative;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Centering shell so landing is perfectly aligned while allowing full-width sections inside */
+  #landing, #loader, #dashboard {
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 1100px;
+    padding: 24px;
+    margin: 0 auto;
+    text-align: center;
   }
 
   button:focus-visible, input:focus-visible, textarea:focus-visible {
@@ -109,7 +126,6 @@
     z-index: 1;
     min-height: 100vh;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 40px 20px;
@@ -160,6 +176,13 @@
     animation: pulse 2s infinite;
   }
 
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
   @keyframes pulse {
     0%,100% { opacity:1; transform:scale(1); box-shadow: 0 0 8px var(--accent); }
     50% { opacity:0.5; transform:scale(0.8); box-shadow: 0 0 2px var(--accent); }
@@ -167,13 +190,15 @@
 
   .hero-title {
     font-family: var(--font-display);
-    font-size: clamp(44px, 8vw, 84px);
+    font-size: clamp(32px, 6vw, 64px);
     font-weight: 700;
     text-align: center;
-    line-height: 1.05;
+    line-height: 1.1;
     letter-spacing: -0.03em;
     animation: fadeSlideUp 0.6s 0.1s ease both;
-    max-width: 720px;
+    max-width: 820px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .hero-title .accent-word {
@@ -209,22 +234,27 @@
     to { transform: scaleX(1); }
   }
 
-  .hero-sub {
+  .hero-subtitle {
     margin-top: 18px;
     color: var(--text2);
-    font-size: 17px;
     text-align: center;
-    max-width: 500px;
-    line-height: 1.7;
+    max-width: 650px;
+    line-height: 1.6;
     animation: fadeSlideUp 0.6s 0.2s ease both;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: clamp(14px, 2.5vw, 18px);
+    opacity: 0.8;
   }
 
   .exam-input-wrap {
     margin-top: 48px;
     width: 100%;
-    max-width: 520px;
+    max-width: 700px;
     animation: fadeSlideUp 0.6s 0.3s ease both;
     position: relative;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .exam-input-label {
@@ -236,27 +266,40 @@
     margin-bottom: 10px;
   }
 
+  .input-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    max-width: 700px;
+    margin: 20px auto;
+  }
+
   .exam-input-box {
     position: relative;
     display: flex;
     align-items: center;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 20px;
+    border-radius: 14px;
+    padding: 12px 14px 12px 10px;
     cursor: pointer;
-    background: var(--card);
-    transition: background 0.2s;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
     -webkit-user-select: none;
     user-select: none;
+    flex: 1;
+    height: 56px;
   }
   .exam-input-box:focus-within {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow), 0 0 40px rgba(212,255,42,0.06);
+    box-shadow: 0 10px 40px rgba(156,107,255,0.16), 0 0 0 3px var(--accent-soft);
   }
 
+  .section { margin-top: 40px; }
+
   .exam-input-icon {
-    padding: 0 16px;
+    padding: 0 10px 0 14px;
     color: var(--text3);
     font-size: 20px;
     flex-shrink: 0;
@@ -270,52 +313,58 @@
     color: var(--text);
     font-family: var(--font-body);
     font-size: 17px;
-    padding: 18px 0;
+    padding: 0;
+    min-height: 24px;
   }
 
   #examInput::placeholder { color: var(--text3); }
 
   .exam-submit-btn {
-    margin: 6px;
+    margin: 2px;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     color: #050508;
     border: none;
-    border-radius: 12px;
-    padding: 12px 22px;
+    border-radius: 14px;
+    padding: 0 24px;
+    height: 56px;
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;
     white-space: nowrap;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
     letter-spacing: 0.01em;
-    display: flex; align-items: center; gap: 6px;
-    box-shadow: 0 2px 12px rgba(212,255,42,0.2);
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 6px 22px rgba(156,107,255,0.26);
   }
 
-  .exam-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(212,255,42,0.3); }
-  .exam-submit-btn:active { transform: scale(0.97); }
+  .exam-submit-btn:hover { transform: translateY(-1px) scale(1.01); box-shadow: 0 10px 28px rgba(156,107,255,0.32); filter: brightness(1.02); }
+  .exam-submit-btn:active { transform: scale(0.985); }
 
   .exam-chips {
     margin-top: 20px;
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    justify-content: center;
+    gap: 10px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
     animation: fadeSlideUp 0.6s 0.4s ease both;
   }
 
-  .exam-chips span {
+  .exam-chip {
     background: var(--bg3);
     border: 1px solid var(--border);
-    border-radius: 100px;
-    padding: 7px 16px;
-    font-size: 13px;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 14px;
     color: var(--text2);
     cursor: pointer;
     transition: all 0.25s;
   }
 
-  .exam-chips span:hover {
+  .exam-chip:hover {
     border-color: var(--accent);
     color: var(--accent);
     background: var(--accent-dim);
@@ -324,12 +373,14 @@
   }
 
   .landing-features {
-    margin-top: 64px;
+    margin-top: 56px;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 14px;
-    max-width: 660px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    max-width: 820px;
     width: 100%;
+    margin-left: auto;
+    margin-right: auto;
     animation: fadeSlideUp 0.6s 0.5s ease both;
   }
 
@@ -602,8 +653,8 @@
 
   /* CONTENT */
   .content {
-    padding: 28px 24px;
-    max-width: 900px;
+    padding: 32px 24px;
+    max-width: 980px;
     margin: 0 auto;
     width: 100%;
   }
@@ -1390,3 +1441,20 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .container { padding: 16px; }
+    .hero-title { font-size: 32px; }
+    .hero-subtitle { font-size: 14px; }
+    .input-group { flex-direction: column; gap: 10px; max-width: 100%; }
+    .exam-input-box { width: 100%; }
+    .exam-submit-btn { width: 100%; justify-content: center; }
+    .exam-chips { gap: 8px; }
+  }
+
+  @media (max-width: 480px) {
+    .hero-title { font-size: 26px; }
+    .hero-subtitle { font-size: 13px; }
+    .exam-chip { font-size: 12px; padding: 6px 10px; }
+  }

@@ -18,38 +18,42 @@
 <!-- ============ LANDING ============ -->
 <div id="landing">
   <div class="landing-glow"></div>
-  <div class="badge"><span class="badge-dot"></span> AI-Powered Exam Prep</div>
+  <div class="container landing-container hero">
+    <div class="badge"><span class="badge-dot"></span> AI-Powered Exam Prep</div>
 
-  <h1 class="hero-title">Ace Any Exam with <span class="accent-word">PrepMind AI</span></h1>
-  <p class="hero-sub">Enter any exam name and get an instant personalised prep dashboard with practice questions, explanations, and smart tutoring.</p>
+    <h1 class="hero-title">Ace Any Exam with <span class="accent-word">PrepMind AI</span></h1>
+    <p class="hero-sub hero-subtitle">Enter any exam name and get an instant personalised prep dashboard with practice questions, explanations, and smart tutoring.</p>
 
-  <div class="exam-input-wrap">
-    <div class="exam-input-label">Which exam are you preparing for?</div>
-    <div class="exam-input-box">
-      <div class="exam-input-icon">🎯</div>
-      <input id="examInput" type="text" placeholder="e.g. GATE CSE, CAT, SBI PO, TCS NQT…" autocomplete="off" />
-      <button class="exam-submit-btn">
-        <span>Start Prep</span> <span>→</span>
-      </button>
+    <div class="exam-input-wrap section">
+      <div class="exam-input-label">Which exam are you preparing for?</div>
+      <div class="input-group">
+        <div class="exam-input-box">
+          <div class="exam-input-icon">🎯</div>
+          <input id="examInput" type="text" placeholder="e.g. GATE CSE, CAT, SBI PO, TCS NQT…" autocomplete="off" />
+        </div>
+        <button class="exam-submit-btn">
+          <span>Start Prep</span> <span>→</span>
+        </button>
+      </div>
+
+      <div class="exam-chips">
+        <span class="exam-chip" onclick="fillExam('TCS NQT')">TCS NQT</span>
+        <span class="exam-chip" onclick="fillExam('CAT 2025')">CAT 2025</span>
+        <span class="exam-chip" onclick="fillExam('GATE CSE')">GATE CSE</span>
+        <span class="exam-chip" onclick="fillExam('SBI PO')">SBI PO</span>
+        <span class="exam-chip" onclick="fillExam('UPSC CSE')">UPSC CSE</span>
+        <span class="exam-chip" onclick="fillExam('JEE Advanced')">JEE Advanced</span>
+        <span class="exam-chip" onclick="fillExam('NEET UG')">NEET UG</span>
+        <span class="exam-chip" onclick="fillExam('SSC CGL')">SSC CGL</span>
+      </div>
     </div>
 
-    <div class="exam-chips">
-      <span onclick="fillExam('TCS NQT')">TCS NQT</span>
-      <span onclick="fillExam('CAT 2025')">CAT 2025</span>
-      <span onclick="fillExam('GATE CSE')">GATE CSE</span>
-      <span onclick="fillExam('SBI PO')">SBI PO</span>
-      <span onclick="fillExam('UPSC CSE')">UPSC CSE</span>
-      <span onclick="fillExam('JEE Advanced')">JEE Advanced</span>
-      <span onclick="fillExam('NEET UG')">NEET UG</span>
-      <span onclick="fillExam('SSC CGL')">SSC CGL</span>
+    <div class="landing-features">
+      <div class="feat-card"><div class="feat-icon">🧠</div><div class="feat-title">Smart Practice</div><div class="feat-desc">MCQs with AI explanations</div></div>
+      <div class="feat-card"><div class="feat-icon">📖</div><div class="feat-title">AI Tutor</div><div class="feat-desc">Topic-wise learning</div></div>
+      <div class="feat-card"><div class="feat-icon">💬</div><div class="feat-title">Ask Doubts</div><div class="feat-desc">Chat with exam AI</div></div>
+      <div class="feat-card"><div class="feat-icon">📊</div><div class="feat-title">Track Progress</div><div class="feat-desc">Real-time analytics</div></div>
     </div>
-  </div>
-
-  <div class="landing-features">
-    <div class="feat-card"><div class="feat-icon">🧠</div><div class="feat-title">Smart Practice</div><div class="feat-desc">MCQs with AI explanations</div></div>
-    <div class="feat-card"><div class="feat-icon">📖</div><div class="feat-title">AI Tutor</div><div class="feat-desc">Topic-wise learning</div></div>
-    <div class="feat-card"><div class="feat-icon">💬</div><div class="feat-title">Ask Doubts</div><div class="feat-desc">Chat with exam AI</div></div>
-    <div class="feat-card"><div class="feat-icon">📊</div><div class="feat-title">Track Progress</div><div class="feat-desc">Real-time analytics</div></div>
   </div>
 </div>
 
