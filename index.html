@@ -1467,24 +1467,16 @@ const STATE = {
   generatingTeach: {}
 };
 
-const API_BASE = 'https://models.github.ai/inference/chat/completions';
+const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 const CORS_PROXIES = [
   'https://corsproxy.io/?url=',
   'https://api.allorigins.win/raw?url='
 ];
 let currentProxy = 0;
 
-let API_KEY = localStorage.getItem('prepmind_api_key');
-if (!API_KEY) {
-  API_KEY = prompt('Please enter your GitHub Personal Access Token (ghp_...) to use PrepMind AI free via GitHub Models:');
-  if (API_KEY) {
-    localStorage.setItem('prepmind_api_key', API_KEY);
-  } else {
-    alert('API Key is required to generate questions and explanations.');
-  }
-}
+let API_KEY = localStorage.getItem('prepmind_api_key') || 'AIzaSyD6FP729Huateu4hDLvCYytT3NPWHrxNuY';
 
-const MODEL = 'openai/gpt-4o';
+const MODEL = 'gemini-2.5-flash';
 
 /* ============================================================
    HELPERS
@@ -1524,33 +1516,6 @@ async function aiAPI(messages, systemPrompt = '', maxTokens = 1200) {
     top_p: 1
   };
 
-  let lastErr;
-  for (let i = 0; i < CORS_PROXIES.length; i++) {
-    const proxyIdx = (currentProxy + i) % CORS_PROXIES.length;
-    const url = CORS_PROXIES[proxyIdx] + encodeURIComponent(API_BASE);
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`
-        },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error?.message || `API error (${res.status})`);
-      }
-      const data = await res.json();
-      currentProxy = proxyIdx; // remember working proxy
-      return data.choices[0].message.content;
-    } catch(e) {
-      lastErr = e;
-      console.warn(`Proxy ${proxyIdx} failed:`, e.message);
-    }
-  }
-
-  // Try direct (no proxy) as last resort
   try {
     const res = await fetch(API_BASE, {
       method: 'POST',
@@ -1567,7 +1532,7 @@ async function aiAPI(messages, systemPrompt = '', maxTokens = 1200) {
     const data = await res.json();
     return data.choices[0].message.content;
   } catch(e) {
-    throw new Error(lastErr?.message || e.message || 'Failed to connect to AI API. Check your connection and token.');
+    throw new Error(e.message || 'Failed to connect to AI API. Check your connection and token.');
   }
 }
 
