@@ -302,6 +302,10 @@ function renderQuestions(qs) {
 
 function buildMCQCard(q, idx, diff) {
   const letters = ['A', 'B', 'C', 'D'];
+  const question = escapeHtml(q.question || '');
+  const opts = (q.options || []).map(o => escapeHtml(o || ''));
+  const expl = escapeHtml(q.explanation || '');
+  const trick = escapeHtml(q.trick || '');
   return `
   <div class="mcq-card" id="mcq-${idx}">
     <div class="mcq-meta">
@@ -309,9 +313,9 @@ function buildMCQCard(q, idx, diff) {
       <span style="background:var(--accent-dim);border:1px solid rgba(232,255,90,0.15);border-radius:100px;padding:2px 10px;font-size:11px;color:var(--accent);font-weight:600">${STATE.selectedTopic}</span>
       <span class="mcq-num">Q${idx + 1}</span>
     </div>
-    <div class="mcq-q">${q.question}</div>
+    <div class="mcq-q">${question}</div>
     <div class="options-grid">
-      ${q.options.map((opt, oi) => `
+      ${opts.map((opt, oi) => `
         <button class="option-btn" id="opt-${idx}-${oi}" onclick="selectOption(${idx}, ${oi})">
           <span class="opt-letter">${letters[oi]}</span>
           <span>${opt}</span>
@@ -319,8 +323,8 @@ function buildMCQCard(q, idx, diff) {
       `).join('')}
     </div>
     <div id="expl-${idx}" style="display:none">
-      <div class="explanation-box">📚 ${q.explanation}</div>
-      <div class="trick-box"><div class="trick-label">⚡ Quick Trick</div>${q.trick}</div>
+      <div class="explanation-box">📚 ${expl}</div>
+      <div class="trick-box"><div class="trick-label">⚡ Quick Trick</div>${trick}</div>
       <button class="next-q-btn" onclick="nextQuestion(${idx})">Next Question →</button>
     </div>
   </div>`;
@@ -481,6 +485,100 @@ function sendQuickQ(btn) {
   sendChat();
 }
 
+function refreshNotesStats() {
+  const statsEl = document.getElementById('notesStats');
+  if (!statsEl) return;
+
+  const chars = STATE.notesText.length;
+  const chunks = STATE.notesChunks.length;
+  if (!chars) {
+    statsEl.textContent = 'No notes added yet.';
+    return;
+  }
+
+  statsEl.textContent = `${chars.toLocaleString()} chars • ${chunks} chunks`;
+}
+
+function setRagStatus(text) {
+  const el = document.getElementById('ragStatus');
+  if (el) el.textContent = text;
+}
+
+function rebuildNotesChunks() {
+  STATE.notesChunks = chunkText(STATE.notesText, STATE.notesMeta.chunkSize, STATE.notesMeta.overlap);
+  STATE.notesMeta.lastUpdated = new Date().toISOString();
+  STATE.notesMeta.totalChars = STATE.notesText.length;
+}
+
+function saveNotesFromUI() {
+  const input = document.getElementById('notesInput');
+  if (!input) return;
+
+  STATE.notesText = input.value.trim();
+  rebuildNotesChunks();
+  saveState();
+  refreshNotesStats();
+
+  if (!STATE.notesText) {
+    setRagStatus('Notes are empty. Chat will use regular tutor mode.');
+    return;
+  }
+
+  setRagStatus(`Notes saved. Retrieval ready with ${STATE.notesChunks.length} chunk(s).`);
+}
+
+function clearNotesFromUI() {
+  STATE.notesText = '';
+  STATE.notesChunks = [];
+  STATE.notesMeta.lastUpdated = new Date().toISOString();
+  STATE.notesMeta.totalChars = 0;
+  STATE.lastRetrieval = { query: '', matches: 0, topScore: 0 };
+
+  const input = document.getElementById('notesInput');
+  if (input) input.value = '';
+
+  saveState();
+  refreshNotesStats();
+  setRagStatus('Notes cleared. Chat will use regular tutor mode.');
+}
+
+function toggleRag(enabled) {
+  STATE.rag.enabled = !!enabled;
+  saveState();
+
+  if (!STATE.rag.enabled) {
+    setRagStatus('Notes retrieval is turned off.');
+  } else if (!STATE.notesChunks.length) {
+    setRagStatus('RAG is on. Add notes to enable retrieval.');
+  } else {
+    setRagStatus(`RAG is on. ${STATE.notesChunks.length} chunk(s) available.`);
+  }
+}
+
+function initNotesUI() {
+  const input = document.getElementById('notesInput');
+  const toggle = document.getElementById('ragToggle');
+  if (!input || !toggle) return;
+
+  input.value = STATE.notesText || '';
+  toggle.checked = !!STATE.rag.enabled;
+
+  if (STATE.notesText && (!STATE.notesChunks || STATE.notesChunks.length === 0)) {
+    rebuildNotesChunks();
+    saveState();
+  }
+
+  refreshNotesStats();
+
+  if (!STATE.rag.enabled) {
+    setRagStatus('Notes retrieval is turned off.');
+  } else if (!STATE.notesChunks.length) {
+    setRagStatus('RAG is on. Add notes to enable retrieval.');
+  } else {
+    setRagStatus(`RAG is on. ${STATE.notesChunks.length} chunk(s) available.`);
+  }
+}
+
 async function sendChat() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
@@ -506,10 +604,32 @@ async function sendChat() {
   scrollChat();
 
   try {
+    const ragResult = buildRagContext(msg);
+    STATE.lastRetrieval = {
+      query: msg,
+      matches: ragResult.matches.length,
+      topScore: ragResult.topScore || 0
+    };
+    saveState();
+
+    if (!STATE.rag.enabled) {
+      setRagStatus('Notes retrieval is turned off.');
+    } else if (!STATE.notesChunks.length) {
+      setRagStatus('No notes found. Add notes to enable context retrieval.');
+    } else if (!ragResult.matches.length) {
+      setRagStatus('No strong note match found for this question. Used normal tutor reasoning.');
+    } else {
+      setRagStatus(`Used ${ragResult.matches.length} note chunk(s), top score ${ragResult.topScore.toFixed(2)}.`);
+    }
+
+    const notesGuardrail = ragResult.contextText
+      ? `\n\nUse this notes context if relevant. If notes conflict with known facts, clearly mention uncertainty and advise verification:\n\n${ragResult.contextText}`
+      : '\n\nNo relevant notes context was retrieved for this query. Answer using your normal exam tutoring knowledge.';
+
     const systemPrompt = `You are an expert AI tutor specialised in ${STATE.exam} exam preparation. 
 You know the complete syllabus, exam pattern, previous year questions, and preparation strategies for ${STATE.exam}.
 Give concise, practical answers focused on helping the student prepare effectively.
-Use examples when explaining concepts. Mention shortcuts and tricks where applicable.`;
+Use examples when explaining concepts. Mention shortcuts and tricks where applicable.${notesGuardrail}`;
 
     const reply = await aiAPI(STATE.chatHistory.slice(-6), systemPrompt, 1000);
 
@@ -647,6 +767,30 @@ document.getElementById('examInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') startPrep();
 });
 
+function applyTheme(theme) {
+  const body = document.body;
+  body.classList.toggle('theme-light', theme === 'light');
+  body.classList.toggle('theme-dark', theme === 'dark');
+  try { localStorage.setItem('prepmind_theme', theme); } catch(_) {}
+  const toggle = document.getElementById('themeToggle');
+  if (toggle) toggle.textContent = theme === 'light' ? '🌞' : '🌙';
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem('prepmind_theme');
+  const theme = saved === 'light' ? 'light' : 'dark';
+  applyTheme(theme);
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.contains('theme-light');
+  applyTheme(isLight ? 'dark' : 'light');
+}
+
+loadTheme();
+
+initNotesUI();
+
 // Check if we have an active session
 if (STATE.overview) {
   document.getElementById('landing').style.display = 'none';
@@ -669,6 +813,7 @@ if (STATE.overview) {
   
   renderProgress();
   switchTab(0);
+  initNotesUI();
 } else {
   // Make sure landing is visible
   document.getElementById('landing').style.display = 'flex';

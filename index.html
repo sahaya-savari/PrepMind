@@ -87,7 +87,10 @@
   <div class="topbar">
     <div class="topbar-logo">PrepMind AI</div>
     <div class="topbar-exam" id="topbarExam">📝 —</div>
-    <button class="topbar-back" onclick="goBack()">← Change Exam</button>
+    <div class="topbar-actions">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+      <button class="topbar-back" onclick="goBack()">← Change Exam</button>
+    </div>
   </div>
 
   <div class="tabs-wrap">
@@ -136,7 +139,7 @@
         <div class="chips-wrap" id="practiceTopicChips"></div>
       </div>
 
-      <div class="filter-bar" style="margin-top:16px;">
+      <div class="filter-bar">
         <span class="filter-label">Difficulty:</span>
         <button class="diff-btn easy active" onclick="setDiff('easy',this)">🟢 Easy</button>
         <button class="diff-btn medium" onclick="setDiff('medium',this)">🟡 Medium</button>
@@ -161,6 +164,29 @@
       <div class="section-header">
         <div class="section-title">Ask Doubt</div>
         <div class="section-subtitle">Chat with your personal AI tutor for this exam</div>
+      </div>
+
+      <div class="card notes-card">
+        <div class="notes-head">
+          <div>
+            <div class="card-title notes-title"><div class="icon">📎</div> Notes-based Q&A (RAG-lite)</div>
+            <div class="notes-sub">Paste your notes below. PrepMind will retrieve the most relevant chunks while answering.</div>
+          </div>
+          <label class="notes-toggle">
+            <input type="checkbox" id="ragToggle" onchange="toggleRag(this.checked)">
+            <span>Use Notes</span>
+          </label>
+        </div>
+
+        <textarea id="notesInput" class="notes-input" placeholder="Paste class notes, formulas, short revision points, or your own summaries..."></textarea>
+
+        <div class="notes-actions">
+          <button class="next-q-btn" onclick="saveNotesFromUI()">💾 Save Notes</button>
+          <button class="next-q-btn" onclick="clearNotesFromUI()">🧹 Clear</button>
+          <div class="notes-stats" id="notesStats">No notes added yet.</div>
+        </div>
+
+        <div class="notes-status" id="ragStatus">RAG is ready.</div>
       </div>
 
       <div class="chat-wrap">
