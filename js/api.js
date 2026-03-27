@@ -14,10 +14,6 @@ function extractJSON(str) {
   }
 }
 
-function getProxiedURL() {
-  return CORS_PROXIES[currentProxy] + encodeURIComponent(API_BASE);
-}
-
 const APICache = JSON.parse(localStorage.getItem('ai_cache')) || {};
 
 async function fetchFromGemini(messages, systemPrompt = '', maxTokens = 1200) {
@@ -39,8 +35,7 @@ async function fetchFromGemini(messages, systemPrompt = '', maxTokens = 1200) {
     const res = await fetch(API_BASE, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
     });

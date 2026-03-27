@@ -78,21 +78,5 @@ function loadState() {
 loadState();
 ensureStateDefaults();
 
-const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const CORS_PROXIES = [
-  'https://corsproxy.io/?url=',
-  'https://api.allorigins.win/raw?url='
-];
-let currentProxy = 0;
-
-let API_KEY = localStorage.getItem('prepmind_api_key') || '';
-
-if (!API_KEY) {
-  const entered = (typeof prompt !== 'undefined') ? prompt('Enter your GitHub-compatible API token (no scopes needed):', '') : '';
-  if (entered && entered.trim()) {
-    API_KEY = entered.trim();
-    try { localStorage.setItem('prepmind_api_key', API_KEY); } catch(_) {}
-  }
-}
-
+const API_BASE = '/api/ai';
 const MODEL = 'gemini-2.5-flash';
