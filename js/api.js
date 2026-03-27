@@ -32,6 +32,7 @@ async function fetchFromGemini(messages, systemPrompt = '', maxTokens = 1200) {
   };
 
   try {
+    console.log('api.js → calling backend', { endpoint: API_BASE, model: MODEL, messages: msgs.length });
     const res = await fetch(API_BASE, {
       method: 'POST',
       headers: {
@@ -46,6 +47,7 @@ async function fetchFromGemini(messages, systemPrompt = '', maxTokens = 1200) {
     const data = await res.json();
     return data.choices[0].message.content;
   } catch(e) {
+    console.error('api.js → backend call failed', e);
     throw new Error(e.message || 'Failed to connect to AI API. Check your connection and token.');
   }
 }

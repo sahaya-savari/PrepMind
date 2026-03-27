@@ -1,4 +1,5 @@
 const STATE = {
+  isBuildingDashboard: false,
   exam: '',
   topics: [],
   overview: null,
@@ -57,6 +58,9 @@ function ensureStateDefaults() {
   if (!STATE.lastRetrieval.query) STATE.lastRetrieval.query = '';
   if (typeof STATE.lastRetrieval.matches !== 'number') STATE.lastRetrieval.matches = 0;
   if (typeof STATE.lastRetrieval.topScore !== 'number') STATE.lastRetrieval.topScore = 0;
+
+  // Safety: never stay stuck in a pending dashboard state across reloads
+  STATE.isBuildingDashboard = false;
 }
 
 function saveState() {

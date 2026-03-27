@@ -3,6 +3,7 @@ function fillExam(name) {
 }
 
 function goBack() {
+  STATE.isBuildingDashboard = false;
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('loader').style.display = 'none';
   document.getElementById('landing').style.display = 'flex';
@@ -21,7 +22,11 @@ function goBack() {
    LANDING → LOADER → DASHBOARD
    ============================================================ */
 async function startPrep() {
-  if (STATE.isBuildingDashboard) return;
+  console.log('Start Prep clicked');
+  if (STATE.isBuildingDashboard) {
+    console.log('startPrep blocked: dashboard build already in progress');
+    return;
+  }
   const exam = document.getElementById('examInput').value.trim();
   if (!exam) { alert('Please enter an exam name!'); return; }
 
@@ -68,6 +73,7 @@ async function startPrep() {
 
   // Fetch overview from Claude
   try {
+    console.log('Calling API...', { exam, model: MODEL, api: API_BASE });
     const raw = await aiAPI([{
       role: 'user',
       content: `Give me a complete exam overview for "${exam}" in JSON format ONLY (no extra text, no markdown). JSON structure:
@@ -128,6 +134,7 @@ async function startPrep() {
     }, 3200);
 
   } catch(err) {
+    STATE.isBuildingDashboard = false;
     setTimeout(() => {
       loader.style.display = 'none';
       document.getElementById('landing').style.display = 'flex';
@@ -244,6 +251,7 @@ function setDiff(diff, el) {
 }
 
 async function generateQuestions() {
+  console.log('Generate Questions clicked');
   if (STATE.generatingQ) return;
   if (!STATE.selectedTopic) { alert('Please select a topic first!'); return; }
 
@@ -256,6 +264,7 @@ async function generateQuestions() {
   container.innerHTML = `<div class="ai-loading"><div class="ai-dots"><span></span><span></span><span></span></div> AI is crafting ${STATE.selectedDiff} questions on "${STATE.selectedTopic}"…</div>`;
 
   try {
+    console.log('Calling API for questions...', { topic: STATE.selectedTopic, diff: STATE.selectedDiff, model: MODEL });
     const raw = await aiAPI([{
       role: 'user',
       content: `Generate exactly 3 multiple-choice questions for ${STATE.exam} exam.
@@ -580,6 +589,7 @@ function initNotesUI() {
 }
 
 async function sendChat() {
+  console.log('Chat send clicked');
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
   if (!msg) return;
@@ -763,10 +773,6 @@ function renderProgress() {
 /* ============================================================
    INIT
    ============================================================ */
-document.getElementById('examInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') startPrep();
-});
-
 function applyTheme(theme) {
   const body = document.body;
   body.classList.toggle('theme-light', theme === 'light');
@@ -791,30 +797,60 @@ loadTheme();
 
 initNotesUI();
 
-// Check if we have an active session
-if (STATE.overview) {
-  document.getElementById('landing').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'flex';
-  renderOverview(STATE.overview);
-  renderPracticeTopics();
-  renderTeachTopics();
-  document.getElementById('topbarExam').textContent = '📝 ' + (STATE.overview.fullName || STATE.exam);
-  
-  if (STATE.chatHistory.length > 0) {
-    // Re-render old chat
-    const wrap = document.getElementById('chatMessages');
-    wrap.innerHTML = `<div class="msg ai"><div class="msg-bubble" id="chatWelcomeMsg">Hi! I'm your PrepMind AI tutor. Ask me anything about your exam!</div><div class="msg-time">Just now</div></div>`;
-    STATE.chatHistory.forEach(msg => {
-      appendChatMsg(msg.role === 'user' ? 'user' : 'ai', msg.content);
+function initInteractions() {
+  const examInput = document.getElementById('examInput');
+  const startBtn = document.querySelector('.exam-submit-btn');
+  const genBtn = document.getElementById('genBtn');
+  const chatBtn = document.getElementById('chatSendBtn');
+
+  if (examInput) {
+    examInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        startPrep();
+      }
     });
-  } else {
-    document.getElementById('chatWelcomeMsg').textContent = `Hi! I'm your PrepMind AI tutor specialised in ${STATE.overview.fullName || STATE.exam}. Ask me anything — concepts, shortcuts, exam strategy, previous year patterns, or any doubts!`;
   }
-  
-  renderProgress();
-  switchTab(0);
-  initNotesUI();
-} else {
-  // Make sure landing is visible
-  document.getElementById('landing').style.display = 'flex';
+
+  if (startBtn) {
+    startBtn.addEventListener('click', startPrep);
+  }
+
+  if (genBtn) {
+    genBtn.addEventListener('click', generateQuestions);
+  }
+
+  if (chatBtn) {
+    chatBtn.addEventListener('click', sendChat);
+  }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  initInteractions();
+
+  // Restore session if exists
+  if (STATE.overview) {
+    document.getElementById('landing').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'flex';
+    renderOverview(STATE.overview);
+    renderPracticeTopics();
+    renderTeachTopics();
+    document.getElementById('topbarExam').textContent = '📝 ' + (STATE.overview.fullName || STATE.exam);
+    
+    if (STATE.chatHistory.length > 0) {
+      const wrap = document.getElementById('chatMessages');
+      wrap.innerHTML = `<div class="msg ai"><div class="msg-bubble" id="chatWelcomeMsg">Hi! I'm your PrepMind AI tutor. Ask me anything about your exam!</div><div class="msg-time">Just now</div></div>`;
+      STATE.chatHistory.forEach(msg => {
+        appendChatMsg(msg.role === 'user' ? 'user' : 'ai', msg.content);
+      });
+    } else {
+      document.getElementById('chatWelcomeMsg').textContent = `Hi! I'm your PrepMind AI tutor specialised in ${STATE.overview.fullName || STATE.exam}. Ask me anything — concepts, shortcuts, exam strategy, previous year patterns, or any doubts!`;
+    }
+    
+    renderProgress();
+    switchTab(0);
+    initNotesUI();
+  } else {
+    document.getElementById('landing').style.display = 'flex';
+  }
+});
