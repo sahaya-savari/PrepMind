@@ -29,9 +29,10 @@ const GEMINI_TIMEOUT_MS = 7500; // 6-8s range
 const FALLBACK_DELAY_MS = 2500; // trigger Ollama prep after short delay
 const OLLAMA_MAX_TOKENS = 600;
 const CACHE_MAX_ENTRIES = 5; // keep cache light
-const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-  : null;
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 if (!GEMINI_API_KEY) {
   console.warn('[server] Warning: GEMINI_API_KEY is not set. API routes will fail until provided.');
