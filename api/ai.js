@@ -17,19 +17,20 @@ export default async function handler(req, res) {
   console.log('[api/ai] incoming request', { model, msgCount });
 
   try {
-    // Call Gemini's native Generative Language API (no OpenAI endpoint)
-    const upstream = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+    // Call Gemini's native Generative Language API (key passed as query param)
+    const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model,
-        contents: (body.messages || []).map(m => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }]
-        })),
+        contents: (body.messages || [])
+          .filter(m => m.role !== 'system')
+          .map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }]
+          })),
         systemInstruction: body.messages?.find(m => m.role === 'system')
           ? {
               role: 'user',
