@@ -5,10 +5,18 @@ export default async function handler(req, res) {
     'Access-Control-Allow-Headers': 'Content-Type'
   };
 
-  const send = (status, payload) => res.status(status).set(corsHeaders).json(payload);
+  const setCors = () => {
+    Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
+  };
+
+  const send = (status, payload) => {
+    setCors();
+    res.status(status).json(payload);
+  };
 
   if (req.method === 'OPTIONS') {
-    res.status(200).set(corsHeaders).end();
+    setCors();
+    res.status(200).end();
     return;
   }
 
