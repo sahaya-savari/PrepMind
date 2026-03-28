@@ -239,6 +239,11 @@ function enforceFormat(mode, answer) {
   ].join('\n');
 }
 
+// simple health check to confirm deployed routes
+app.get('/api/check-route', (_req, res) => {
+  res.json({ message: 'route working' });
+});
+
 app.post('/api/generate', rateLimit, async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
