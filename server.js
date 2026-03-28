@@ -238,6 +238,24 @@ function enforceFormat(mode, answer) {
   ].join('\n');
 }
 
+app.post('/api/generate', rateLimit, async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || authHeader !== `Bearer ${process.env.INTERNAL_API_TOKEN}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const prompt = (req.body?.prompt || '').toString();
+  if (!prompt.trim()) return res.status(400).json({ error: 'Prompt is required' });
+
+  try {
+    const answer = await callAI(prompt, 700);
+    res.json({ result: answer });
+  } catch (err) {
+    console.error('generate error', err?.message || err);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
 app.post('/api/ask', rateLimit, async (req, res) => {
   const question = (req.body?.question || '').trim();
   if (!question) return res.status(400).json({ error: 'Question is required' });
