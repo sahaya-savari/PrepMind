@@ -13,6 +13,7 @@ const STATE = {
   generatingTeach: {},
   notesText: '',
   notesChunks: [],
+  lastFeature: null,
   notesMeta: {
     chunkSize: 700,
     overlap: 120,
@@ -35,6 +36,7 @@ const STATE = {
 function ensureStateDefaults() {
   if (!STATE.notesText) STATE.notesText = '';
   if (!Array.isArray(STATE.notesChunks)) STATE.notesChunks = [];
+  if (!('lastFeature' in STATE)) STATE.lastFeature = null;
 
   if (!STATE.notesMeta || typeof STATE.notesMeta !== 'object') {
     STATE.notesMeta = {};

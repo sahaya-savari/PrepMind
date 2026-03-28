@@ -23,6 +23,8 @@ async function fetchFromGemini(messages, systemPrompt = '', maxTokens = 1200) {
   }
   msgs.push(...messages);
 
+  console.log('API called');
+
   const body = {
     model: MODEL,
     messages: msgs,

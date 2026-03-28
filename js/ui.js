@@ -44,23 +44,37 @@ function inferFeatureType(el) {
 }
 
 function handleFeatureClick(type) {
-  const examInput = document.getElementById('examInput');
-  console.log('Feature button clicked:', type);
-  focusExamInput();
+  console.log('Feature clicked:', type);
 
-  const prefill = FEATURE_PREFILLS[type];
-  if (examInput && prefill && !examInput.value.trim()) {
-    examInput.value = prefill;
+  const mapping = {
+    practice: 1,
+    tutor: 2,
+    doubt: 3,
+    progress: 4
+  };
+
+  const examInput = document.getElementById('examInput');
+
+  if (!STATE.overview) {
+    STATE.lastFeature = type; // store intent for post-load tab
+
+    const prefill = FEATURE_PREFILLS[type] || FEATURE_PREFILLS.practice;
+    if (examInput) {
+      if (!examInput.value.trim()) examInput.value = prefill;
+      examInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      examInput.focus({ preventScroll: true });
+    }
+
+    if (!STATE.isBuildingDashboard && examInput && examInput.value.trim()) {
+      startPrep();
+    }
+    return;
   }
 
-  const dashVisible = document.getElementById('dashboard') && getComputedStyle(document.getElementById('dashboard')).display !== 'none';
-  if (dashVisible) {
-    const mapping = { practice: 1, tutor: 2, doubt: 3, progress: 4 };
-    const tabIdx = mapping[type];
-    if (typeof tabIdx === 'number') {
-      switchTab(tabIdx);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const tab = mapping[type];
+  if (tab !== undefined) {
+    switchTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
 
@@ -180,7 +194,43 @@ async function startPrep() {
       document.getElementById('topbarExam').textContent = '📝 ' + (overview.fullName || exam);
       document.getElementById('chatWelcomeMsg').textContent = `Hi! I'm your PrepMind AI tutor specialised in ${overview.fullName || exam}. Ask me anything — concepts, shortcuts, exam strategy, previous year patterns, or any doubts!`;
       renderProgress();
-      switchTab(0);
+
+      // Auto open feature tab if user clicked from landing
+      if (STATE.lastFeature) {
+        const mapping = {
+          practice: 1,
+          tutor: 2,
+          doubt: 3,
+          progress: 4
+        };
+        const targetTab = mapping[STATE.lastFeature] || 0;
+        switchTab(targetTab);
+
+        // Optional UX: auto trigger contextually
+        if (STATE.lastFeature === 'practice') {
+          generateQuestions();
+          setTimeout(() => {
+            document.getElementById('questionsContainer')?.scrollIntoView({
+              behavior: 'smooth'
+            });
+          }, 300);
+        } else if (STATE.lastFeature === 'doubt') {
+          const chatInput = document.getElementById('chatInput');
+          if (chatInput) {
+            chatInput.focus();
+            chatInput.placeholder = 'Ask your doubt here...';
+          }
+        } else if (STATE.lastFeature === 'tutor') {
+          const firstTopic = STATE.topics?.[0];
+          if (firstTopic) {
+            learnTopic(0, firstTopic);
+          }
+        }
+
+        STATE.lastFeature = null;
+      } else {
+        switchTab(0);
+      }
       STATE.isBuildingDashboard = false;
     }, 3200);
 
@@ -930,9 +980,9 @@ function initInteractions() {
   const genBtn = document.getElementById('genBtn');
   const chatBtn = document.getElementById('chatSendBtn');
   const pdfInput = document.getElementById('pdfUpload');
-  const featCards = document.querySelectorAll('.feat-card, .feature-card, button[data-feature], [data-feature]');
+  const featCards = document.querySelectorAll('[data-feature], .feature-card');
 
-  console.log('Buttons:', featCards.length);
+  console.log('Buttons found:', featCards.length);
 
   if (examInput) {
     examInput.addEventListener('keydown', e => {
@@ -970,6 +1020,8 @@ function initInteractions() {
 document.addEventListener('DOMContentLoaded', () => {
   initNotesUI();
   initInteractions();
+
+  console.log('UI Ready');
 
   // Restore session if exists
   if (STATE.overview) {
