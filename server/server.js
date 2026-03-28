@@ -27,6 +27,10 @@ if (!process.env.SUPABASE_URL || !serviceKey) {
 
 const apiToken = process.env.INTERNAL_API_TOKEN;
 
+app.get('/api/test', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 const ensureBodyObject = (req, res, next) => {
   if (req.method === 'POST') {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
@@ -47,10 +51,6 @@ app.use('/api', ensureBodyObject, (req, res, next) => {
 
 app.get('/', (_req, res) => {
   res.send('PrepMind API is running');
-});
-
-app.get('/api/test', (_req, res) => {
-  res.json({ status: 'ok', supabaseUrl: process.env.SUPABASE_URL, hasServiceKey: Boolean(serviceKey) });
 });
 
 app.get('/api/interviews', async (_req, res) => {
