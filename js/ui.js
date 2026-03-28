@@ -46,6 +46,8 @@ function inferFeatureType(el) {
 function handleFeatureClick(type) {
   console.log('Feature clicked:', type);
 
+  if (STATE.isBuildingDashboard) return;
+
   const mapping = {
     practice: 1,
     tutor: 2,
@@ -208,12 +210,17 @@ async function startPrep() {
 
         // Optional UX: auto trigger contextually
         if (STATE.lastFeature === 'practice') {
-          generateQuestions();
-          setTimeout(() => {
-            document.getElementById('questionsContainer')?.scrollIntoView({
-              behavior: 'smooth'
-            });
-          }, 300);
+          if (!STATE.topics || STATE.topics.length === 0) {
+            console.warn('No topics available');
+          } else {
+            STATE.selectedTopic = STATE.topics?.[0] || '';
+            generateQuestions();
+            setTimeout(() => {
+              document.getElementById('questionsContainer')?.scrollIntoView({
+                behavior: 'smooth'
+              });
+            }, 300);
+          }
         } else if (STATE.lastFeature === 'doubt') {
           const chatInput = document.getElementById('chatInput');
           if (chatInput) {
@@ -566,9 +573,9 @@ Write in a clear, exam-focused style. Use plain text with clear structure using 
     textDiv.innerHTML = `<p style="color:var(--red);font-size:13px">⚠️ ${err.message}</p>`;
     btn.disabled = false;
     btn.innerHTML = `🔄 Retry`;
+  } finally {
+    STATE.generatingTeach[idx] = false;
   }
-
-  STATE.generatingTeach[idx] = false;
 }
 
 function escapeHtml(text) {
@@ -648,13 +655,15 @@ async function handlePdfUpload(e) {
   const statusEl = document.getElementById('pdfStatus');
   if (!file) return;
 
+  if (typeof pdfjsLib === 'undefined') {
+    setRagStatus('PDF engine not loaded. Upload disabled.');
+    if (statusEl) statusEl.textContent = 'PDF engine not loaded. Upload disabled.';
+    return;
+  }
+
   if (statusEl) statusEl.textContent = 'Loading PDF…';
 
   try {
-    if (typeof pdfjsLib === 'undefined') {
-      throw new Error('PDF engine not loaded yet. Please retry in a second.');
-    }
-
     if (pdfjsLib.GlobalWorkerOptions) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }

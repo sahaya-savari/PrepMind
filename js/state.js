@@ -84,5 +84,5 @@ function loadState() {
 loadState();
 ensureStateDefaults();
 
-const API_BASE = '/api/ai';
+const API_BASE = window.location.origin + '/api/ai';
 const MODEL = 'models/gemini-2.5-flash';
