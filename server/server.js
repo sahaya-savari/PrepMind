@@ -36,6 +36,12 @@ app.get('/api/test', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.post('/api/generate', async (req, res) => {
+  const prompt = (req.body?.prompt || '').toString().trim();
+  if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+  res.json({ result: `Echo: ${prompt}` });
+});
+
 const ensureBodyObject = (req, res, next) => {
   if (req.method === 'POST') {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
