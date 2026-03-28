@@ -18,6 +18,7 @@ console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
 console.log("SUPABASE_KEY:", process.env.SUPABASE_KEY);
 console.log("==== ENV CHECK END ====");
 console.log("USING KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20));
+console.log("TOKEN:", process.env.INTERNAL_API_TOKEN);
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -240,8 +241,13 @@ function enforceFormat(mode, answer) {
 
 app.post('/api/generate', rateLimit, async (req, res) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || authHeader !== `Bearer ${process.env.INTERNAL_API_TOKEN}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!authHeader) {
+    return res.status(401).json({ error: 'No token' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  if (token !== process.env.INTERNAL_API_TOKEN) {
+    return res.status(401).json({ error: 'Invalid token' });
   }
 
   const prompt = (req.body?.prompt || '').toString();
