@@ -11,19 +11,37 @@ export default async function handler(req, res) {
   }
 
   const body = req.body || {};
-  const model = body.model || 'unknown-model';
+  const model = body.model || 'models/gemini-2.5-flash';
   const msgCount = Array.isArray(body.messages) ? body.messages.length : 0;
 
   console.log('[api/ai] incoming request', { model, msgCount });
 
   try {
-    const upstream = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+    // Call Gemini's native Generative Language API (no OpenAI endpoint)
+    const upstream = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'x-goog-api-key': apiKey
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        model,
+        contents: (body.messages || []).map(m => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }]
+        })),
+        systemInstruction: body.messages?.find(m => m.role === 'system')
+          ? {
+              role: 'user',
+              parts: [{ text: body.messages.find(m => m.role === 'system').content }]
+            }
+          : undefined,
+        generationConfig: {
+          temperature: typeof body.temperature === 'number' ? body.temperature : 1,
+          topP: typeof body.top_p === 'number' ? body.top_p : 1,
+          maxOutputTokens: typeof body.max_tokens === 'number' ? body.max_tokens : 1200
+        }
+      })
     });
 
     if (!upstream.ok) {
@@ -34,7 +52,15 @@ export default async function handler(req, res) {
     }
 
     const data = await upstream.json();
-    res.status(200).json(data);
+    const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+    // Return in the minimal shape the frontend expects (OpenAI-like choices array)
+    res.status(200).json({
+      choices: [
+        {
+          message: { content: text }
+        }
+      ]
+    });
   } catch (e) {
     console.error('[api/ai] exception', e?.message || e);
     res.status(500).json({ error: e?.message || 'Proxy error' });

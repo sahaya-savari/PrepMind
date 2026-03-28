@@ -14,7 +14,7 @@ PrepMind AI is a production-ready, server-backed exam preparation companion. It 
 - HTML5, CSS3 (glassmorphism, responsive, dark theme)
 - Vanilla JavaScript (state management, API orchestration)
 - Vercel Serverless Functions (Node) as secure AI proxy
-- Gemini OpenAI-compatible endpoint (no frontend key exposure)
+- Gemini API endpoint (no frontend key exposure)
 
 ## Live Demo
 - **Vercel**: _add your deployed URL here_
@@ -40,7 +40,7 @@ PrepMind/
 
 ## How It Works
 - Frontend sends all AI requests to `/api/ai` (no Authorization header client-side).
-- The Vercel function `/api/ai.js` reads `process.env.GEMINI_API_KEY`, forwards to `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`, and returns JSON.
+- The Vercel function `/api/ai.js` reads `process.env.GEMINI_API_KEY`, forwards to `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, and returns JSON.
 - State and caching are handled in-browser; no secrets are stored or requested from users.
 
 ## Installation (Local)
