@@ -11,10 +11,10 @@ export type ProgressInsights = {
   trend: { topic: string; accuracy: number; at: string }[];
 };
 
-const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
-const API_KEY = import.meta.env.VITE_INTERNAL_API_TOKEN || '';
+const API_BASE = (import.meta.env.VITE_API_BASE || 'https://prepmind-u7vv.onrender.com').replace(/\/$/, '');
+const API_TOKEN = import.meta.env.VITE_INTERNAL_API_TOKEN || '';
 
-const authHeaders = API_KEY ? { 'x-api-key': API_KEY } : {};
+const authHeaders = API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {};
 
 async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
