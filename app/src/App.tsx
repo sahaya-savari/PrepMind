@@ -1,14 +1,14 @@
 import { Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
-import ErrorBoundary from './components/ErrorBoundary';
+import TabNavigation from './components/TabNavigation';
 
 function App() {
   return (
-    <ErrorBoundary>
-      <Layout>
-        <Outlet />
-      </Layout>
-    </ErrorBoundary>
+    <Layout>
+      <Outlet />
+      <div className="h-16" />
+      <TabNavigation />
+    </Layout>
   );
 }
 

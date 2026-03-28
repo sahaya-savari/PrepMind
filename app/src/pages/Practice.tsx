@@ -1,78 +1,43 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { aiAPI } from '../api';
+import { fetchQuestions, listInterviews, type Interview, type QuestionRow } from '../api';
 import { useAuth } from '../hooks/useAuth';
 
-type LocationState = {
-  exam?: string;
-  overview?: string;
-};
-
-type Question = {
-  id: number;
-  text: string;
-};
-
-const STORAGE_KEY = 'prepmind_state';
-
 function Practice() {
-  const location = useLocation();
-  const locState = (location.state || {}) as LocationState;
-  const { data, setExamOverview, updateProgress } = useAuth();
-
-  const [exam, setExam] = useState(locState.exam || '');
-  const [overview, setOverview] = useState(locState.overview || '');
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const { updateProgress } = useAuth();
+  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [selected, setSelected] = useState('');
+  const [questions, setQuestions] = useState<QuestionRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (exam) return;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setExam(parsed.exam || '');
-        setOverview(parsed.overview || '');
-      } catch (e) {
-        console.warn('Failed to parse stored state', e);
-      }
-    }
-    if (data.exam) {
-      setExam(data.exam);
-      setOverview(data.overview);
-    }
-  }, [exam, data.exam, data.overview]);
+    loadInterviews();
+  }, []);
 
-  const parseQuestions = (text: string): Question[] => {
-    return text
-      .split(/\n+/)
-      .map((line) => line.replace(/^[-*\d\.\s]+/, '').trim())
-      .filter(Boolean)
-      .map((q, idx) => ({ id: idx + 1, text: q }));
+  const loadInterviews = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await listInterviews();
+      setInterviews(data);
+      if (!selected && data.length) setSelected(data[0].id);
+    } catch (e: any) {
+      setError(e.message || 'Failed to load interviews');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const generate = async () => {
-    if (!exam) {
-      setError('Set an exam on Home first.');
-      return;
-    }
-    setError('');
+  const loadQuestions = async () => {
+    if (!selected) { setError('Pick an interview first'); return; }
     setLoading(true);
+    setError('');
     try {
-      const resp = await aiAPI([
-        { role: 'system', content: 'You generate concise MCQs without answers unless asked. Provide 5 items.' },
-        {
-          role: 'user',
-          content: `Exam: ${exam}. Create 5 short MCQs (question only) across varied topics. Keep each on one line without numbering details beyond a leading bullet.`,
-        },
-      ]);
-      const parsed = parseQuestions(resp);
-      setQuestions(parsed.length ? parsed : [{ id: 1, text: resp }]);
-      setExamOverview(exam, overview);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to generate questions.');
+      const data = await fetchQuestions(selected);
+      setQuestions(data);
+    } catch (e: any) {
+      setError(e.message || 'Failed to fetch questions');
     } finally {
       setLoading(false);
     }
@@ -82,45 +47,46 @@ function Practice() {
     updateProgress(correct);
   };
 
-  const hasExam = Boolean(exam);
-
   return (
-    <section className="space-y-4">
+    <section className="space-y-6 py-6">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Practice</h2>
-          <p className="text-gray-600 text-sm">Generate quick MCQs for your chosen exam.</p>
+          <h2 className="text-3xl font-bold text-white">Practice</h2>
+          <p className="text-gray-300 text-sm">Pull questions from your Supabase interviews.</p>
         </div>
-        <button className="soft-button" onClick={generate} disabled={!hasExam || loading}>
-          {loading ? 'Working…' : 'Generate'}
-        </button>
+        <div className="flex gap-2">
+          <button className="soft-button px-4 py-2" onClick={loadQuestions} disabled={loading || !selected}>
+            {loading ? 'Loading…' : 'Load questions'}
+          </button>
+          <button className="soft-button px-3 py-2" onClick={loadInterviews} disabled={loading}>Refresh</button>
+        </div>
       </header>
 
-      {!hasExam && (
-        <div className="card-surface p-5 text-sm text-white">
-          Please set an exam on <Link to="/" className="text-accent-400">Home</Link> first.
-        </div>
-      )}
+      <div className="card-surface p-6 space-y-3">
+        <label className="text-xs text-gray-300">Select interview</label>
+        <select
+          className="w-full px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white"
+          value={selected}
+          onChange={(e) => setSelected(e.target.value)}
+        >
+          {interviews.map((i) => (
+            <option key={i.id} value={i.id} className="bg-slate-900">
+              {i.role}
+            </option>
+          ))}
+          {!interviews.length && <option value="">No interviews yet</option>}
+        </select>
+        {error && <div className="text-sm text-red-300">{error}</div>}
+      </div>
 
-      {hasExam && overview && (
-        <div className="card-surface p-5">
-          <div className="text-xs text-white/70">Overview</div>
-          <div className="text-sm text-white whitespace-pre-wrap">{overview}</div>
-        </div>
-      )}
-
-      {error && <div className="text-sm text-red-400">{error}</div>}
-
-      <div className="card-surface p-5 space-y-3 min-h-[200px]">
-        {loading && <div className="flex items-center justify-center py-6"><LoadingSpinner label="Generating" /></div>}
-        {!loading && questions.length === 0 && (
-          <div className="text-white/80 text-sm">Tap Generate to fetch MCQs.</div>
-        )}
+      <div className="card-surface p-6 space-y-3 min-h-[200px]">
+        {loading && <div className="flex items-center justify-center py-6"><LoadingSpinner label="Loading" /></div>}
+        {!loading && questions.length === 0 && <div className="text-gray-200 text-sm">Click "Load questions" to fetch seeded prompts.</div>}
         {!loading && questions.length > 0 && (
-          <ol className="space-y-3 text-sm text-gray-900">
-            {questions.map((q) => (
-              <li key={q.id} className="card-surface bg-white/70 text-gray-900 p-4 space-y-3 list-decimal list-inside">
-                <div>{q.text}</div>
+          <ol className="space-y-3 text-sm text-white">
+            {questions.map((q, idx) => (
+              <li key={q.id} className="card-surface bg-slate-900 text-white p-4 space-y-3 list-decimal list-inside">
+                <div>{idx + 1}. {q.question}</div>
                 <div className="flex gap-2 text-xs">
                   <button className="soft-button px-3 py-2" onClick={() => mark(true)}>Mark Correct</button>
                   <button className="soft-button px-3 py-2" onClick={() => mark(false)}>Mark Incorrect</button>

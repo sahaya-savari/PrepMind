@@ -12,15 +12,15 @@ function TabNavigation() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/20 bg-white/20 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-3xl items-stretch justify-between px-2 py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-gray-900 border-t border-gray-700 h-16">
+      <div className="mx-auto flex max-w-3xl items-center justify-around h-full px-2">
         {tabs.map((tab) => (
           <NavLink
             key={tab.path}
             to={tab.path}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200 ${
-                isActive ? 'bg-white/30 text-gray-900 shadow-lg' : 'text-gray-800 hover:scale-105'
+              `flex flex-col items-center gap-1 text-xs font-semibold px-3 py-1 rounded-lg transition-colors ${
+                isActive ? 'text-white' : 'text-gray-400 hover:text-white'
               }`
             }
             end={tab.path === '/'}

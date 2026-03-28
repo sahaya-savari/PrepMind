@@ -5,12 +5,13 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
   font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-  @apply bg-gradient-to-br from-blue-50 to-purple-100 text-gray-900;
+  background: #0b1021;
+  color: #e2e8f0;
   min-height: 100vh;
 }
 
@@ -19,25 +20,33 @@ body {
 }
 
 .container-shell {
-  max-width: 1200px;
+  max-width: 72rem;
   margin: 0 auto;
-  padding: 1.25rem 1rem 5rem;
+  padding: 2.5rem 1.5rem 5rem;
 }
 
 .card-surface {
-  @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl transition-all duration-200 hover:shadow-2xl;
+  @apply bg-slate-900 border border-gray-800 rounded-xl shadow-lg transition-transform duration-150;
+}
+
+.glass-card {
+  @apply bg-slate-900 border border-gray-800 rounded-xl shadow-lg;
 }
 
 .soft-button {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg transition-all duration-200 hover:scale-105;
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition-colors;
 }
 
 .tab-active {
-  @apply text-white bg-ink-800 border border-ink-600 shadow-inner;
+  @apply text-white bg-cyan-600 border-transparent shadow-sm;
 }
 
-input, textarea {
-  @apply bg-ink-800 text-ink-50 placeholder:text-ink-400 border border-ink-700 rounded-lg focus:border-accent-400 focus:outline-none;
+.blink {
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to { opacity: 0; }
 }
 
 ::-webkit-scrollbar {

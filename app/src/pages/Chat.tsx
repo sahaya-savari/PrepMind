@@ -1,84 +1,63 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { AIMessage, aiAPI } from '../api';
-import { useAuth } from '../hooks/useAuth';
+import { askStream, ChatMessage } from '../api';
 
-type LocationState = {
-  exam?: string;
-  overview?: string;
-};
-
-const STORAGE_KEY = 'prepmind_state';
+const STORAGE_KEY = 'prepmind_chat_v2';
 
 function Chat() {
-  const location = useLocation();
-  const locState = (location.state || {}) as LocationState;
-  const { data, setExamOverview, saveChatHistory } = useAuth();
-
-  const [exam, setExam] = useState(locState.exam || '');
-  const [overview, setOverview] = useState(locState.overview || '');
-  const [messages, setMessages] = useState<AIMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved) as ChatMessage[];
+    } catch {
+      return [];
+    }
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const chatRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (exam && messages.length) return;
-    if (data.exam) {
-      setExam(data.exam);
-      setOverview(data.overview);
-      setMessages(data.chatHistory || []);
-      return;
-    }
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setExam(parsed.exam || '');
-        setOverview(parsed.overview || '');
-      } catch (e) {
-        console.warn('Failed to parse stored state', e);
-      }
-    }
-  }, [exam, data.exam, data.overview, data.chatHistory, messages.length]);
-
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages, loading]);
 
-  const systemPrompt = useMemo(() => {
-    const base = 'You are a concise exam tutor. Keep replies brief and actionable.';
-    return overview ? `${base} Exam overview: ${overview}` : base;
-  }, [overview]);
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
 
   const sendMessage = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    if (!exam) {
-      setError('Set an exam on Home first.');
-      return;
-    }
+    const content = input.trim();
+    if (!content) return;
 
-    const userMsg: AIMessage = { role: 'user', content: input.trim() };
-    const draftMessages = [...messages, userMsg];
-
-    setMessages(draftMessages);
+    const userMsg: ChatMessage = { role: 'user', content };
+    const next = [...messages, userMsg];
+    setMessages(next);
     setInput('');
-    setError('');
     setLoading(true);
+    setError('');
 
     try {
-      const resp = await aiAPI([{ role: 'system', content: systemPrompt }, ...draftMessages]);
-      const nextMessages = [...draftMessages, { role: 'assistant', content: resp }];
-      setMessages(nextMessages);
-      setExamOverview(exam, overview);
-      saveChatHistory(nextMessages);
+      let acc = '';
+      await askStream(content, 'chat', (chunk) => {
+        acc += chunk;
+        setMessages((prev) => {
+          const merged = [...next];
+          const existing = merged[merged.length - 1];
+          if (existing?.role === 'assistant') {
+            merged[merged.length - 1] = { role: 'assistant', content: acc };
+          } else {
+            merged.push({ role: 'assistant', content: acc });
+          }
+          return merged;
+        });
+      });
     } catch (err: any) {
-      setError(err?.message || 'Failed to send message.');
+      setError(err?.message || 'Failed to send');
+      setMessages((prev) => prev.filter((m) => m !== userMsg));
     } finally {
       setLoading(false);
     }
@@ -87,70 +66,51 @@ function Chat() {
   const clearChat = () => {
     setMessages([]);
     setError('');
-    saveChatHistory([]);
   };
 
-  const hasExam = Boolean(exam);
-
   return (
-    <section className="space-y-4">
-      <header className="flex items-start justify-between gap-3">
+    <section className="space-y-5 py-6 text-white">
+      <header className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Chat Tutor</h2>
-          <p className="text-gray-600 text-sm">Ask doubts; responses are notes-aware when overview exists.</p>
+          <h2 className="text-3xl font-bold text-white">Chat</h2>
+          <p className="text-sm text-gray-300">Streaming, saved locally.</p>
         </div>
-        <button className="soft-button" onClick={clearChat} disabled={loading}>
-          Clear
-        </button>
+        <button className="soft-button px-3 py-2" onClick={clearChat} disabled={loading}>Clear</button>
       </header>
-
-      {!hasExam && (
-        <div className="card-surface p-5 text-sm text-white">
-          Please set an exam on <Link to="/" className="text-blue-200">Home</Link> first.
-        </div>
-      )}
-
-      {hasExam && overview && (
-        <div className="card-surface p-4 text-xs text-white/80">
-          Context loaded for: <span className="text-white font-semibold">{exam}</span>
-        </div>
-      )}
 
       {error && <div className="text-sm text-red-400">{error}</div>}
 
-      <div ref={chatRef} className="card-surface p-5 h-[420px] overflow-y-auto space-y-3 scroll-smooth">
-        {messages.length === 0 && <div className="text-white/80 text-sm">Say hi to start the tutor.</div>}
+      <div ref={chatRef} className="min-h-[420px] max-h-[520px] overflow-y-auto p-4 rounded-xl bg-slate-900 border border-gray-800 shadow-lg space-y-3">
+        {messages.length === 0 && <div className="text-sm text-gray-300">Start chatting.</div>}
         {messages.map((m, idx) => (
-          <div
+          <motion.div
             key={idx}
-            className={`max-w-[88%] text-sm px-4 py-3 rounded-2xl shadow-lg transition-all duration-200 ${
-              m.role === 'user'
-                ? 'ml-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                : 'mr-auto bg-white/80 text-gray-900'
-            }`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            {m.content}
-          </div>
+            <div className={`${m.role === 'user' ? 'bg-cyan-600 text-white' : 'bg-slate-800 border border-gray-800 text-white'} px-4 py-3 rounded-xl max-w-[90%] whitespace-pre-wrap break-words shadow-lg`}>
+              {m.content}
+              {idx === messages.length - 1 && m.role === 'assistant' && loading && <span className="blink ml-1">|</span>}
+            </div>
+          </motion.div>
         ))}
         {loading && <LoadingSpinner label="Thinking" />}
       </div>
 
-      <form onSubmit={sendMessage} className="card-surface p-4 flex gap-3 items-center sticky bottom-20 sm:bottom-4">
+      <form onSubmit={sendMessage} className="flex flex-col gap-3 p-4 rounded-xl bg-slate-900 border border-gray-800 shadow-lg">
         <textarea
-          className="w-full resize-none px-3 py-3 rounded-xl bg-white/80 text-gray-900 placeholder:text-gray-500 shadow-lg focus:ring-4 focus:ring-blue-300 focus:outline-none"
-          rows={2}
-          placeholder="Type a question"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          disabled={loading || !hasExam}
+          className="w-full min-h-[90px] px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white placeholder:text-gray-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
+          placeholder="Ask anything..."
+          disabled={loading}
         />
-        <button
-          type="submit"
-          className="soft-button px-4 py-3"
-          disabled={loading || !hasExam}
-        >
-          Send
-        </button>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-gray-300">Streaming enabled</span>
+          <button type="submit" className="soft-button px-4 py-2" disabled={loading}>Send</button>
+        </div>
       </form>
     </section>
   );
