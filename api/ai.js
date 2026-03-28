@@ -1,12 +1,23 @@
 export default async function handler(req, res) {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).set(corsHeaders).end();
+    return;
+  }
+
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).set(corsHeaders).json({ error: 'Method not allowed' });
     return;
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: 'Server misconfigured: missing GEMINI_API_KEY' });
+    res.status(500).set(corsHeaders).json({ error: 'Server misconfigured: missing GEMINI_API_KEY' });
     return;
   }
 
@@ -49,14 +60,14 @@ export default async function handler(req, res) {
       const errText = await upstream.text();
       const snippet = (errText || '').slice(0, 600);
       console.error('[api/ai] upstream error', upstream.status, snippet);
-      res.status(upstream.status).json({ error: { message: `Upstream ${upstream.status}: ${snippet}` } });
+      res.status(upstream.status).set(corsHeaders).json({ error: { message: `Upstream ${upstream.status}: ${snippet}` } });
       return;
     }
 
     const data = await upstream.json();
     const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
     // Return in the minimal shape the frontend expects (OpenAI-like choices array)
-    res.status(200).json({
+    res.status(200).set(corsHeaders).json({
       choices: [
         {
           message: { content: text }
