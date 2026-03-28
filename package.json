@@ -1,0 +1,9 @@
+{
+  "name": "prepmind",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "split": "node split.js"
+  }
+}
