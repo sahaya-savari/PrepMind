@@ -402,6 +402,7 @@
     padding: 20px 16px;
     text-align: center;
     transition: all 0.25s;
+    cursor: pointer;
   }
 
   .feat-card:hover {

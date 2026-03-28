@@ -18,6 +18,26 @@ function goBack() {
   document.getElementById('loaderBar').style.width = '0%';
 }
 
+// Navigate from landing feature cards
+function featureNav(target) {
+  const dash = document.getElementById('dashboard');
+  const mapping = { practice: 1, tutor: 2, doubt: 3, progress: 4 };
+
+  // If dashboard is visible, switch tab directly
+  if (dash && getComputedStyle(dash).display !== 'none') {
+    if (mapping[target] !== undefined) switchTab(mapping[target]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  // If still on landing, focus exam input to prompt user to start
+  const examInput = document.getElementById('examInput');
+  if (examInput) {
+    examInput.focus();
+    examInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
 /* ============================================================
    LANDING → LOADER → DASHBOARD
    ============================================================ */
