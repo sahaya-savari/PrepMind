@@ -52,6 +52,26 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
+const authMiddleware = (req, res, next) => {
+  // allow health check without auth
+  if (req.path === '/api/check-route') return next();
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: 'No token' });
+  }
+
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.split(' ')[1]
+    : authHeader;
+
+  if (token !== process.env.INTERNAL_API_TOKEN) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  next();
+};
+
 const pdfIndex = new Map(); // id -> { sourceId, pages, chars, title }
 const linkIndex = new Map(); // id -> { sourceId, title, chars }
 const INDEX_MAX = 200;
@@ -244,17 +264,7 @@ app.get('/api/check-route', (_req, res) => {
   res.json({ message: 'route working' });
 });
 
-app.post('/api/generate', rateLimit, async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No token' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  if (token !== process.env.INTERNAL_API_TOKEN) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
-
+app.post('/api/generate', authMiddleware, rateLimit, async (req, res) => {
   const prompt = (req.body?.prompt || '').toString();
   if (!prompt.trim()) return res.status(400).json({ error: 'Prompt is required' });
 
