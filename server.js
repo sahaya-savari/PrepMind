@@ -13,6 +13,11 @@ import examService from './server/services/examService.js';
 
 dotenv.config();
 
+console.log("==== ENV CHECK START ====");
+console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
+console.log("SUPABASE_KEY:", process.env.SUPABASE_KEY);
+console.log("==== ENV CHECK END ====");
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 const MODEL = 'models/gemini-2.5-flash';
