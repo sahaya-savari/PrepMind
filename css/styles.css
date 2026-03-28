@@ -613,6 +613,38 @@
 
   .topbar-back:hover { border-color: var(--text2); color: var(--text); }
 
+  /* Light theme polish for nav/tabs/cards */
+  .theme-light .topbar {
+    background: rgba(255,255,255,0.9);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .theme-light .topbar-back,
+  .theme-light .theme-toggle {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+
+  .theme-light .tabs-wrap {
+    background: rgba(255,255,255,0.92);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .theme-light .tab-btn { color: var(--text3); }
+  .theme-light .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .theme-light .card,
+  .theme-light .chat-wrap,
+  .theme-light .notes-toggle,
+  .theme-light .notes-input,
+  .theme-light .option-btn,
+  .theme-light .mcq-card {
+    background: var(--card);
+    border-color: var(--border);
+    color: var(--text);
+  }
+
   /* TABS */
   .tabs-wrap {
     border-bottom: 1px solid var(--border);
