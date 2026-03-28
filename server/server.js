@@ -42,8 +42,8 @@ const ensureBodyObject = (req, res, next) => {
 
 app.use('/api', ensureBodyObject, (req, res, next) => {
   if (!apiToken) return res.status(500).json({ error: 'Server misconfigured' });
-  const key = req.headers['x-api-key'];
-  if (!key || key !== apiToken) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || authHeader !== `Bearer ${apiToken}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   next();
