@@ -18,6 +18,13 @@ function goBack() {
   document.getElementById('loaderBar').style.width = '0%';
 }
 
+const FEATURE_PREFILLS = {
+  tutor: 'Explain concept',
+  practice: 'Generate practice questions',
+  doubt: 'Ask your doubt',
+  progress: 'Show my progress'
+};
+
 function focusExamInput() {
   const examInput = document.querySelector('#examInput');
   if (!examInput) return;
@@ -25,29 +32,41 @@ function focusExamInput() {
   examInput.focus({ preventScroll: true });
 }
 
-function handleFeatureClick(card) {
-  const title = card.querySelector('.feat-title')?.textContent?.trim() || card.textContent.trim();
-  console.log('Feature button clicked:', title || '(unknown)');
+function inferFeatureType(el) {
+  const data = el.dataset?.feature?.toLowerCase();
+  if (data) return data;
+  const text = (el.querySelector('.feat-title')?.textContent || el.innerText || '').toLowerCase();
+  if (text.includes('tutor')) return 'tutor';
+  if (text.includes('practice')) return 'practice';
+  if (text.includes('doubt')) return 'doubt';
+  if (text.includes('progress')) return 'progress';
+  return 'practice';
+}
+
+function handleFeatureClick(type) {
+  const examInput = document.getElementById('examInput');
+  console.log('Feature button clicked:', type);
   focusExamInput();
+
+  const prefill = FEATURE_PREFILLS[type];
+  if (examInput && prefill && !examInput.value.trim()) {
+    examInput.value = prefill;
+  }
+
+  const dashVisible = document.getElementById('dashboard') && getComputedStyle(document.getElementById('dashboard')).display !== 'none';
+  if (dashVisible) {
+    const mapping = { practice: 1, tutor: 2, doubt: 3, progress: 4 };
+    const tabIdx = mapping[type];
+    if (typeof tabIdx === 'number') {
+      switchTab(tabIdx);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 }
 
 // Navigate from landing feature cards
 function featureNav(target) {
-  const dash = document.getElementById('dashboard');
-  const mapping = { practice: 1, tutor: 2, doubt: 3, progress: 4 };
-
-  // Always guide user to the exam input
-  focusExamInput();
-
-  // If dashboard is visible, switch tab directly
-  if (dash && getComputedStyle(dash).display !== 'none') {
-    if (mapping[target] !== undefined) switchTab(mapping[target]);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-
-  // If still on landing, keep the input focused
-  focusExamInput();
+  handleFeatureClick(target);
 }
 
 /* ============================================================
@@ -903,6 +922,7 @@ function toggleTheme() {
 }
 
 loadTheme();
+console.log('JS Loaded');
 
 function initInteractions() {
   const examInput = document.getElementById('examInput');
@@ -910,7 +930,9 @@ function initInteractions() {
   const genBtn = document.getElementById('genBtn');
   const chatBtn = document.getElementById('chatSendBtn');
   const pdfInput = document.getElementById('pdfUpload');
-  const featCards = document.querySelectorAll('.feat-card');
+  const featCards = document.querySelectorAll('.feat-card, .feature-card, button[data-feature], [data-feature]');
+
+  console.log('Buttons:', featCards.length);
 
   if (examInput) {
     examInput.addEventListener('keydown', e => {
@@ -927,12 +949,8 @@ function initInteractions() {
 
   if (featCards.length) {
     featCards.forEach(card => card.addEventListener('click', () => {
-      handleFeatureClick(card);
-      const examInputEl = document.getElementById('examInput');
-      if (examInputEl && !examInputEl.value.trim()) {
-        const title = card.querySelector('.feat-title')?.textContent?.trim();
-        if (title) examInputEl.value = title;
-      }
+      const type = inferFeatureType(card);
+      handleFeatureClick(type);
     }));
   }
 
