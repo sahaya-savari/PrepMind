@@ -17,6 +17,7 @@ console.log("==== ENV CHECK START ====");
 console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
 console.log("SUPABASE_KEY:", process.env.SUPABASE_KEY);
 console.log("==== ENV CHECK END ====");
+console.log("USING KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20));
 
 const app = express();
 const PORT = process.env.PORT || 4000;
