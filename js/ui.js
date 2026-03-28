@@ -18,10 +18,20 @@ function goBack() {
   document.getElementById('loaderBar').style.width = '0%';
 }
 
+function focusExamInput() {
+  const examInput = document.querySelector('#examInput');
+  if (!examInput) return;
+  examInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  examInput.focus({ preventScroll: true });
+}
+
 // Navigate from landing feature cards
 function featureNav(target) {
   const dash = document.getElementById('dashboard');
   const mapping = { practice: 1, tutor: 2, doubt: 3, progress: 4 };
+
+  // Always guide user to the exam input
+  focusExamInput();
 
   // If dashboard is visible, switch tab directly
   if (dash && getComputedStyle(dash).display !== 'none') {
@@ -30,12 +40,8 @@ function featureNav(target) {
     return;
   }
 
-  // If still on landing, focus exam input to prompt user to start
-  const examInput = document.getElementById('examInput');
-  if (examInput) {
-    examInput.focus();
-    examInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
+  // If still on landing, keep the input focused
+  focusExamInput();
 }
 
 /* ============================================================
@@ -900,6 +906,7 @@ function initInteractions() {
   const genBtn = document.getElementById('genBtn');
   const chatBtn = document.getElementById('chatSendBtn');
   const pdfInput = document.getElementById('pdfUpload');
+  const featCards = document.querySelectorAll('.feat-card');
 
   if (examInput) {
     examInput.addEventListener('keydown', e => {
@@ -912,6 +919,10 @@ function initInteractions() {
 
   if (startBtn) {
     startBtn.addEventListener('click', startPrep);
+  }
+
+  if (featCards.length) {
+    featCards.forEach(card => card.addEventListener('click', focusExamInput));
   }
 
   if (genBtn) {
