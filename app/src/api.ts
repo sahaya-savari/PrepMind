@@ -12,9 +12,16 @@ export type ProgressInsights = {
 };
 
 const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
+const API_KEY = import.meta.env.VITE_INTERNAL_API_TOKEN || '';
+
+const authHeaders = API_KEY ? { 'x-api-key': API_KEY } : {};
 
 async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      ...authHeaders,
+    },
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({} as any));
     throw new Error(err?.error || `Request failed (${res.status})`);
@@ -25,7 +32,7 @@ async function getJSON<T>(path: string): Promise<T> {
 async function postJSON<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
     body: JSON.stringify(body),
   });
 

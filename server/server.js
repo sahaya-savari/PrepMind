@@ -9,13 +9,41 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST'],
+}));
 app.use(express.json());
 
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 if (!process.env.SUPABASE_URL || !serviceKey) {
   console.warn('[PrepMind] Missing SUPABASE_URL or service role key. API will still start but writes may fail.');
 }
+
+const apiToken = process.env.INTERNAL_API_TOKEN;
+
+const ensureBodyObject = (req, res, next) => {
+  if (req.method === 'POST') {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return res.status(400).json({ error: 'Invalid input' });
+    }
+  }
+  next();
+};
+
+app.use('/api', ensureBodyObject, (req, res, next) => {
+  if (!apiToken) return res.status(500).json({ error: 'Server misconfigured' });
+  const key = req.headers['x-api-key'];
+  if (!key || key !== apiToken) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+});
 
 app.get('/', (_req, res) => {
   res.send('PrepMind API is running');
