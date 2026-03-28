@@ -47,8 +47,9 @@ export default async function handler(req, res) {
 
     if (!upstream.ok) {
       const errText = await upstream.text();
-      console.error('[api/ai] upstream error', upstream.status, errText);
-      res.status(upstream.status).json({ error: errText || 'Upstream error' });
+      const snippet = (errText || '').slice(0, 600);
+      console.error('[api/ai] upstream error', upstream.status, snippet);
+      res.status(upstream.status).json({ error: { message: `Upstream ${upstream.status}: ${snippet}` } });
       return;
     }
 
