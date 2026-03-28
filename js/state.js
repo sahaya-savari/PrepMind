@@ -83,4 +83,4 @@ loadState();
 ensureStateDefaults();
 
 const API_BASE = '/api/ai';
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'models/gemini-2.5-flash';

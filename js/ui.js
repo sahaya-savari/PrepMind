@@ -25,6 +25,12 @@ function focusExamInput() {
   examInput.focus({ preventScroll: true });
 }
 
+function handleFeatureClick(card) {
+  const title = card.querySelector('.feat-title')?.textContent?.trim() || card.textContent.trim();
+  console.log('Feature button clicked:', title || '(unknown)');
+  focusExamInput();
+}
+
 // Navigate from landing feature cards
 function featureNav(target) {
   const dash = document.getElementById('dashboard');
@@ -898,8 +904,6 @@ function toggleTheme() {
 
 loadTheme();
 
-initNotesUI();
-
 function initInteractions() {
   const examInput = document.getElementById('examInput');
   const startBtn = document.querySelector('.exam-submit-btn');
@@ -922,7 +926,14 @@ function initInteractions() {
   }
 
   if (featCards.length) {
-    featCards.forEach(card => card.addEventListener('click', focusExamInput));
+    featCards.forEach(card => card.addEventListener('click', () => {
+      handleFeatureClick(card);
+      const examInputEl = document.getElementById('examInput');
+      if (examInputEl && !examInputEl.value.trim()) {
+        const title = card.querySelector('.feat-title')?.textContent?.trim();
+        if (title) examInputEl.value = title;
+      }
+    }));
   }
 
   if (genBtn) {
@@ -939,6 +950,7 @@ function initInteractions() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  initNotesUI();
   initInteractions();
 
   // Restore session if exists
