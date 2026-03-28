@@ -24,6 +24,7 @@ export default async function handler(req, res) {
   const body = req.body || {};
   const model = body.model || 'models/gemini-2.5-flash';
   const msgCount = Array.isArray(body.messages) ? body.messages.length : 0;
+  const systemMsg = body.messages?.find(m => m.role === 'system');
 
   console.log('[api/ai] incoming request', { model, msgCount });
 
@@ -42,10 +43,10 @@ export default async function handler(req, res) {
             role: m.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: m.content }]
           })),
-        systemInstruction: body.messages?.find(m => m.role === 'system')
+        systemInstruction: systemMsg
           ? {
               role: 'user',
-              parts: [{ text: body.messages.find(m => m.role === 'system').content }]
+              parts: [{ text: systemMsg.content }]
             }
           : undefined,
         generationConfig: {
