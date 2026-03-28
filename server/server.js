@@ -27,6 +27,11 @@ if (!process.env.SUPABASE_URL || !serviceKey) {
 
 const apiToken = process.env.INTERNAL_API_TOKEN;
 
+// health check without auth
+app.get('/api/check-route', (_req, res) => {
+  res.json({ message: 'route working' });
+});
+
 app.get('/api/test', (_req, res) => {
   res.json({ status: 'ok' });
 });
