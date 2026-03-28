@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  @apply bg-gradient-to-br from-blue-50 to-purple-100 text-gray-900;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.container-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 5rem;
+}
+
+.card-surface {
+  @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl transition-all duration-200 hover:shadow-2xl;
+}
+
+.soft-button {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg transition-all duration-200 hover:scale-105;
+}
+
+.tab-active {
+  @apply text-white bg-ink-800 border border-ink-600 shadow-inner;
+}
+
+input, textarea {
+  @apply bg-ink-800 text-ink-50 placeholder:text-ink-400 border border-ink-700 rounded-lg focus:border-accent-400 focus:outline-none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2b2b40;
+  border-radius: 999px;
+}
