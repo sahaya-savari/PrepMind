@@ -13,90 +13,27 @@ export type ProgressInsights = {
   trend: { topic: string; accuracy: number; at: string }[];
 };
 
-const IS_PROD = import.meta.env.PROD;
-const RAW_API_BASE = import.meta.env.VITE_API_BASE;
-const API_BASE = (RAW_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
-const API_TOKEN = import.meta.env.VITE_API_TOKEN || '';
-const REQUEST_TIMEOUT_MS = 15000;
-const RETRY_COUNT = 1;
 
-const authHeaders = API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {};
+// --- MASTER FIX: Central API config and safeJsonFetch ---
+const API_BASE = import.meta.env.VITE_API_URL;
+const API_TOKEN = import.meta.env.VITE_API_TOKEN;
 
-const ensureEnv = () => {
-  if (!API_BASE) throw new Error('API base URL is not configured');
-  if (!API_TOKEN) {
-    const msg = '[PrepMind] Missing VITE_API_TOKEN; requests will fail with 401.';
-    if (IS_PROD) throw new Error(msg);
-    console.warn(msg);
-  }
-  if (IS_PROD && !RAW_API_BASE) throw new Error('VITE_API_BASE is required in production');
-};
-
-ensureEnv();
-
-const withTimeout = async <T>(task: () => Promise<T>, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> => {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await task();
-  } finally {
-    clearTimeout(timeout);
-  }
-};
-
-const shouldRetry = (status?: number) => {
-  if (!status) return true;
-  if (status === 401 || status === 429) return false;
-  return status >= 500;
-};
-
-async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit & { expectJson?: boolean } = {}) {
-  let attempt = 0;
-  let lastError: any;
-  while (attempt <= RETRY_COUNT) {
-    try {
-      const res = await withTimeout(async () => await fetch(input, { ...init, signal: init.signal }));
-      if (!res.ok) {
-        const text = await res.text();
-        const status = res.status;
-        const message = (text && text.slice(0, 300)) || `Request failed (${status})`;
-        const err = new Error(message) as any;
-        err.status = status;
-        throw err;
-      }
-
-      if (init.expectJson) {
-        return res.json();
-      }
-      return res;
-    } catch (err: any) {
-      lastError = err;
-      if (err?.name === 'AbortError') {
-        throw new Error('Request timed out');
-      }
-      if (!shouldRetry(err?.status) || attempt === RETRY_COUNT) {
-        throw err;
-      }
-      attempt += 1;
+export async function safeJsonFetch(url: string, options: RequestInit = {}) {
+  const res = await fetch(`${API_BASE}${url}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_TOKEN}`,
+      ...(options.headers || {})
     }
-  }
-  throw lastError;
-}
-
-async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetchWithRetry(`${API_BASE}${path}`, { headers: { ...authHeaders }, expectJson: true });
-  return res as T;
-}
-
-async function postJSON<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetchWithRetry(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders },
-    body: JSON.stringify(body),
-    expectJson: true,
   });
 
-  return res as T;
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || 'API Error');
+  }
+
+  return res.json();
 }
 
 export async function fetchHealth(): Promise<{ status: string; supabaseUrl?: string; hasServiceKey?: boolean }> {
@@ -171,7 +108,7 @@ export async function askStream(question: string, sessionId: string, onToken: (c
   if (!API_TOKEN) throw new Error('Missing API token');
 
   const res = await postJSON<{ response?: string }>(
-    '/api/ask',
+    '/api/query-context',
     { message: question, sessionId }
   );
 
@@ -189,4 +126,9 @@ export async function aiAPI(messages: AIMessage[]): Promise<string> {
   const res = await postJSON<{ response?: string }>('/api/ask', { message: prompt });
   if (!res?.response) throw new Error('Empty response');
   return res.response;
+}
+
+export async function generateQuestions(topic: string, difficulty: string) {
+  if (!topic || !difficulty) throw new Error('Topic and difficulty are required');
+  return await postJSON('/api/generate', { topic, difficulty });
 }

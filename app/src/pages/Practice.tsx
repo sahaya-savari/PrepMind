@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { fetchQuestions, listInterviews, type Interview, type QuestionRow } from '../api';
+import { fetchQuestions, listInterviews, safeJsonFetch, type Interview, type QuestionRow } from '../api';
 import { useAuth } from '../hooks/useAuth';
 
 function Practice() {
@@ -19,13 +19,8 @@ function Practice() {
   const [mcqResult, setMcqResult] = useState<{ score?: number; correct?: string; explanation?: string } | null>(null);
   const [attempts, setAttempts] = useState<{ topic: string; score: number; at: string }[]>(() => {
     try {
-      const raw = localStorage.getItem('mcq_attempts');
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      console.warn('Failed to load attempts', e);
-      return [];
-    }
-  });
+      const raw = localStorage.getItem('mcq_attempts'); return raw ? JSON.parse(raw) : [];
+    } catch (e) { console.warn('Failed to load attempts', e); return []; } });
 
   useEffect(() => {
     loadInterviews();
@@ -70,15 +65,7 @@ function Practice() {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 12000);
     try {
-      const res = await fetch(`${apiBase}${path}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(apiToken ? { Authorization: `Bearer ${apiToken}` } : {}),
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
+      const res = await fetch(`${apiBase}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(apiToken ? { Authorization: `Bearer ${apiToken}` } : {}) }, body: JSON.stringify(body), signal: controller.signal, });
 
       let data: any = null;
       try {
@@ -105,8 +92,7 @@ function Practice() {
     setMcqResult(null);
     setMcqChoice('');
     try {
-      const payload = { topic: mcqTopic.trim(), difficulty: mcqDifficulty };
-      const data = await safeJsonFetch('/api/generate', payload, true);
+      const data = await safeJsonFetch('/generate', { method: 'POST', body: JSON.stringify({ topic: mcqTopic.trim(), difficulty: mcqDifficulty }) });
       const question = Array.isArray(data?.questions) && data.questions[0] ? data.questions[0] : null;
       if (!question || !Array.isArray(question.options)) {
         throw new Error('Invalid question payload');
@@ -183,6 +169,7 @@ function Practice() {
           className="w-full px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white"
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
+          aria-label="Select interview"
         >
           {interviews.map((i) => (
             <option key={i.id} value={i.id} className="bg-slate-900">
@@ -239,6 +226,7 @@ function Practice() {
                   value={mcqDifficulty}
                   onChange={(e) => setMcqDifficulty(e.target.value)}
                   className="w-full px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white"
+                  aria-label="Select difficulty"
                 >
                   <option value="Beginner" className="bg-slate-900">Beginner</option>
                   <option value="Intermediate" className="bg-slate-900">Intermediate</option>

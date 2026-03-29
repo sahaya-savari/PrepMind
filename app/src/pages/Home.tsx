@@ -14,6 +14,7 @@ import {
   type Interview,
   type QuestionRow,
 } from '../api';
+import { generateQuestions } from '../api';
 
 type Status = 'idle' | 'ok' | 'error';
 const listVariants = {
@@ -109,6 +110,23 @@ function Home() {
       setToast('Questions loaded');
     } catch (e: any) {
       setError(e.message || 'Failed to fetch questions');
+    } finally {
+      setBusy('questions', false);
+    }
+  };
+
+  const onGenerateQuestions = async () => {
+    setBusy('questions', true);
+    setError('');
+    try {
+      // Example: use form.role as topic, form.difficulty as difficulty
+      const topic = form.role || 'AI';
+      const difficulty = form.difficulty || 'easy';
+      const data = await generateQuestions(topic, difficulty);
+      setQuestions(Array.isArray(data.questions) ? data.questions : []);
+      setToast('Questions generated');
+    } catch (e: any) {
+      setError(e.message || 'Failed to generate questions');
     } finally {
       setBusy('questions', false);
     }
