@@ -13,31 +13,63 @@ import examService from './server/services/examService.js';
 
 dotenv.config();
 
-console.log("==== ENV CHECK START ====");
-console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
-console.log("SUPABASE_KEY:", process.env.SUPABASE_KEY);
-console.log("==== ENV CHECK END ====");
-console.log("USING KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20));
-console.log("TOKEN:", process.env.INTERNAL_API_TOKEN);
+const IS_DEV = process.env.NODE_ENV !== 'production';
+const fallback = {
+  INTERNAL_API_TOKEN: 'dev123',
+  GEMINI_API_KEY: 'dev_dummy_key',
+};
+
+const validateEnv = () => {
+  const missing = [];
+  if (!process.env.INTERNAL_API_TOKEN) missing.push('INTERNAL_API_TOKEN');
+  if (!process.env.SUPABASE_URL) missing.push('SUPABASE_URL');
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  if (!process.env.GEMINI_API_KEY && !process.env.OLLAMA_URL) missing.push('GEMINI_API_KEY|OLLAMA_URL');
+  if (missing.length) {
+    if (IS_DEV) {
+      console.warn(`[PrepMind] Missing env (dev mode using fallbacks/partial disable): ${missing.join(', ')}`);
+    } else {
+      throw new Error(`[PrepMind] Missing required env: ${missing.join(', ')}`);
+    }
+  }
+};
+
+validateEnv();
+
+if (IS_DEV) {
+  console.log('[PrepMind] Env check:', {
+    supabaseUrl: Boolean(process.env.SUPABASE_URL),
+    serviceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    internalToken: Boolean(process.env.INTERNAL_API_TOKEN),
+    aiKey: Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || process.env.OLLAMA_URL),
+  });
+}
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 const MODEL = 'models/gemini-2.5-flash';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || '';
+const HAS_GEMINI_KEY = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
+const GEMINI_API_KEY = HAS_GEMINI_KEY
+  ? (process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY)
+  : (IS_DEV ? fallback.GEMINI_API_KEY : '');
+const INTERNAL_TOKEN = process.env.INTERNAL_API_TOKEN || (IS_DEV ? fallback.INTERNAL_API_TOKEN : undefined);
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'mistral';
 const DEBUG_LOG = process.env.NODE_ENV !== 'production';
-const GEMINI_TIMEOUT_MS = 7500; // 6-8s range
+const GEMINI_TIMEOUT_MS = 12000; // keep within 10–15s window
 const FALLBACK_DELAY_MS = 2500; // trigger Ollama prep after short delay
 const OLLAMA_MAX_TOKENS = 600;
 const CACHE_MAX_ENTRIES = 5; // keep cache light
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
-if (!GEMINI_API_KEY) {
-  console.warn('[server] Warning: GEMINI_API_KEY is not set. API routes will fail until provided.');
+if (!HAS_GEMINI_KEY) {
+  if (IS_DEV) {
+    console.warn('[server] GEMINI_API_KEY missing; using dev dummy key.');
+  } else {
+    console.warn('[server] GEMINI_API_KEY missing; AI will be unavailable.');
+  }
 }
 
 app.use(cors({ origin: '*', credentials: true }));
@@ -54,7 +86,7 @@ const upload = multer({
 
 const authMiddleware = (req, res, next) => {
   // allow health check without auth
-  if (req.path === '/api/check-route') return next();
+  if (req.path === '/api/check-route' || req.path === '/api/health') return next();
 
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -65,7 +97,7 @@ const authMiddleware = (req, res, next) => {
     ? authHeader.split(' ')[1]
     : authHeader;
 
-  if (token !== process.env.INTERNAL_API_TOKEN) {
+  if (token !== INTERNAL_TOKEN) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 
@@ -219,6 +251,10 @@ async function callOllama(prompt, maxTokens = 700) {
 }
 
 async function callAI(prompt, maxTokens = 700) {
+  if (!HAS_GEMINI_KEY) {
+    return { success: false, error: 'AI temporarily unavailable' };
+  }
+
   const shortPrompt = shrinkPrompt(prompt);
   if (GEMINI_API_KEY) {
     try {
@@ -260,6 +296,10 @@ function enforceFormat(mode, answer) {
 }
 
 // simple health check to confirm deployed routes
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 app.get('/api/check-route', (_req, res) => {
   res.json({ message: 'route working' });
 });
@@ -270,6 +310,9 @@ app.post('/api/generate', authMiddleware, rateLimit, async (req, res) => {
 
   try {
     const answer = await callAI(prompt, 700);
+    if (answer && typeof answer === 'object' && answer.success === false) {
+      return res.status(503).json(answer);
+    }
     res.json({ result: answer });
   } catch (err) {
     console.error('generate error', err?.message || err);
@@ -313,6 +356,12 @@ Question: ${question}`;
     memoryService.push(sessionId, 'user', question);
     const history = memoryService.get(sessionId).map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
     const answer = await callAI(`${history}\n\nCurrent question: ${question}\n\n${prompt}`, 650);
+    if (answer && typeof answer === 'object' && answer.success === false) {
+      if (!res.headersSent) {
+        return res.status(503).json(answer);
+      }
+      return;
+    }
     memoryService.push(sessionId, 'assistant', answer);
     await streamText(enforceFormat('qa', answer));
   } catch (err) {
@@ -343,6 +392,9 @@ Topic: ${topic}`;
 
   try {
     const answer = await callAI(prompt, 650);
+    if (answer && typeof answer === 'object' && answer.success === false) {
+      return res.status(503).json(answer);
+    }
     const formatted = enforceFormat('notes', answer);
     if (supabase) {
       await supabase.from('notes').insert({ title: topic, content: formatted }).throwOnError();
@@ -402,6 +454,9 @@ Question: ${question}`;
 
   try {
     const answer = await callAI(prompt, 550);
+    if (answer && typeof answer === 'object' && answer.success === false) {
+      return res.status(503).json(answer);
+    }
     res.json({ answer: enforceFormat('qa', answer) });
   } catch (err) {
     console.error('pdf ask error', err);
@@ -475,6 +530,9 @@ Question: ${question}`;
 
   try {
     const answer = await callAI(prompt, 550);
+    if (answer && typeof answer === 'object' && answer.success === false) {
+      return res.status(503).json(answer);
+    }
     res.json({ answer: enforceFormat('qa', answer) });
   } catch (err) {
     console.error('link ask error', err);
@@ -501,6 +559,9 @@ Context:\n${context}\nQuestion: ${question}`;
 
   try {
     const answer = await callAI(prompt, 550);
+    if (answer && typeof answer === 'object' && answer.success === false) {
+      return res.status(503).json(answer);
+    }
     res.json({ answer: enforceFormat('qa', answer) });
   } catch (err) {
     console.error('rag ask error', err);
@@ -515,6 +576,9 @@ app.post('/api/exam/generate', rateLimit, async (req, res) => {
   const prompt = examService.buildExamPrompt(topic);
   try {
     const raw = await callAI(prompt, 900);
+    if (raw && typeof raw === 'object' && raw.success === false) {
+      return res.status(503).json(raw);
+    }
     let parsed;
     try { parsed = JSON.parse(raw); } catch { parsed = []; }
     const questions = examService.normalizeQuestions(parsed);
@@ -540,6 +604,9 @@ app.post('/api/exam/evaluate', rateLimit, async (req, res) => {
   const prompt = examService.buildEvalPrompt(question, userAnswer);
   try {
     const raw = await callAI(prompt, 400);
+    if (raw && typeof raw === 'object' && raw.success === false) {
+      return res.status(503).json(raw);
+    }
     let parsed;
     try { parsed = JSON.parse(raw); } catch { parsed = null; }
     if (!parsed || typeof parsed.score !== 'number') return res.status(500).json({ error: 'Evaluation failed' });

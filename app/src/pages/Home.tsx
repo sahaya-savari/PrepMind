@@ -51,9 +51,12 @@ function Home() {
     try {
       const health = await fetchHealth();
       setApiStatus(health.status === 'ok' ? 'ok' : 'error');
-
-      const { error: supaError } = await supabase.from('interviews').select('*').limit(1);
-      setSupabaseStatus(supaError ? 'error' : 'ok');
+      if (!supabase) {
+        setSupabaseStatus('error');
+      } else {
+        const { error: supaError } = await supabase.from('interviews').select('*').limit(1);
+        setSupabaseStatus(supaError ? 'error' : 'ok');
+      }
     } catch (e: any) {
       setApiStatus('error');
       setSupabaseStatus('error');

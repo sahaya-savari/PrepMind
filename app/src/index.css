@@ -12,6 +12,7 @@ body {
   font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   background: #0b1021;
   color: #e2e8f0;
+  scroll-behavior: smooth;
   min-height: 100vh;
 }
 
@@ -47,6 +48,60 @@ body {
 
 @keyframes blink {
   to { opacity: 0; }
+}
+
+.markdown-safe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.markdown-safe p { margin: 0; }
+
+.markdown-safe h1,
+.markdown-safe h2,
+.markdown-safe h3,
+.markdown-safe h4,
+.markdown-safe h5,
+.markdown-safe h6 {
+  margin: 4px 0 2px;
+  font-weight: 700;
+}
+
+.markdown-safe ul,
+.markdown-safe ol {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.markdown-safe li { line-height: 1.5; }
+
+.markdown-safe strong { font-weight: 700; }
+
+.markdown-safe code {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'DM Sans', ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.markdown-safe pre {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 10px 12px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.markdown-safe a {
+  color: #6ee7ff;
+  text-decoration: underline;
 }
 
 ::-webkit-scrollbar {

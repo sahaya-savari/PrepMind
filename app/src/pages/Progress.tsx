@@ -10,16 +10,55 @@ const defaultInsights: ProgressInsights = {
   trend: [],
 };
 
+const CACHE_KEY = 'prepmind_progress_cache';
+
+const loadCache = (): ProgressInsights | null => {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? (JSON.parse(raw) as ProgressInsights) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveCache = (data: ProgressInsights) => {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {
+    // ignore cache errors
+  }
+};
+
 function Progress() {
   const [insights, setInsights] = useState<ProgressInsights>(defaultInsights);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError('');
+  const hydrate = (next: ProgressInsights) => {
+    setInsights(next);
+    setLastUpdated(new Date().toISOString());
+    saveCache(next);
+  };
 
+  const load = async () => {
+    setLoading(true);
+    setError('');
+
+    if (!supabase) {
+      const cached = loadCache();
+      if (cached) {
+        hydrate(cached);
+        setError('Supabase unavailable (using cached)');
+      } else {
+        setError('Supabase unavailable');
+        setInsights(defaultInsights);
+      }
+      setLoading(false);
+      return;
+    }
+
+    try {
       const { data, error: supaError } = await supabase
         .from('results')
         .select('score, feedback, created_at, interview_id, interviews ( role )')
@@ -29,7 +68,7 @@ function Progress() {
       if (supaError) throw supaError;
 
       if (!data || data.length === 0) {
-        setInsights(defaultInsights);
+        hydrate(defaultInsights);
         return;
       }
 
@@ -44,20 +83,28 @@ function Progress() {
 
       const weakTopic = trend.reduce((worst, curr) => (curr.accuracy < worst.accuracy ? curr : worst), trend[0]);
 
-      setInsights({
+      hydrate({
         accuracy,
         totalExams: trend.length,
         weakTopic: weakTopic?.topic || 'N/A',
         mostStudied: trend[0]?.topic || 'N/A',
         trend,
       });
-    };
+    } catch (e: any) {
+      const cached = loadCache();
+      if (cached) {
+        hydrate(cached);
+      } else {
+        setInsights(defaultInsights);
+      }
+      setError(e?.message || 'Failed to load insights');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    load().catch((e) => {
-      console.error('Supabase progress load failed', e);
-      setError(e.message || 'Failed to load insights');
-      setInsights(defaultInsights);
-    }).finally(() => setLoading(false));
+  useEffect(() => {
+    load();
   }, []);
 
   return (
@@ -65,7 +112,11 @@ function Progress() {
       <header className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-3xl font-bold text-white">Progress</h2>
-          <p className="text-gray-300 text-sm">Latest scores stored in Supabase.</p>
+          <p className="text-gray-300 text-sm">Latest scores stored in Supabase with offline cache.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {lastUpdated && <span className="text-xs text-gray-400">Updated {new Date(lastUpdated).toLocaleString()}</span>}
+          <button className="soft-button px-3 py-2" onClick={load} disabled={loading}>Refresh</button>
         </div>
       </header>
 

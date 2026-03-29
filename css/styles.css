@@ -1228,6 +1228,52 @@
     border: 1px solid var(--border);
   }
 
+  .markdown-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--text);
+  }
+
+  .markdown-text p {
+    margin: 0;
+  }
+
+  .markdown-text h3,
+  .markdown-text h4,
+  .markdown-text h5,
+  .markdown-text h6 {
+    margin: 4px 0 2px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .markdown-text ul,
+  .markdown-text ol {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+  }
+
+  .markdown-text li {
+    line-height: 1.5;
+    color: var(--text2);
+  }
+
+  .markdown-text strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .markdown-text code {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
   .msg-time { font-size: 11px; color: var(--text3); margin-top: 4px; padding: 0 4px; }
   .msg.user .msg-time { text-align: right; }
 

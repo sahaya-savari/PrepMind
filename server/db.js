@@ -3,11 +3,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_KEY } = process.env;
-const serviceKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_KEY;
+const { SUPABASE_URL, SUPABASE_KEY } = process.env;
 
-if (!SUPABASE_URL || !serviceKey) {
-  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.');
+let supabase = null;
+if (SUPABASE_URL && SUPABASE_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+} else {
+  console.warn('[PrepMind] Supabase disabled: SUPABASE_URL or SUPABASE_KEY missing');
 }
 
-export const supabase = createClient(SUPABASE_URL, serviceKey);
+export { supabase };

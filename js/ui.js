@@ -582,6 +582,58 @@ function escapeHtml(text) {
   return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function renderMarkdown(text) {
+  const safe = escapeHtml(text || '');
+  const lines = safe.split(/\r?\n/);
+  let html = '';
+  let listType = '';
+
+  const applyInline = (val) => val
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  const closeList = () => {
+    if (listType === 'ul') html += '</ul>';
+    if (listType === 'ol') html += '</ol>';
+    listType = '';
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { closeList(); continue; }
+
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+    if (headingMatch) {
+      closeList();
+      const level = Math.min(6, headingMatch[1].length);
+      const content = applyInline(headingMatch[2]);
+      html += `<h${level}>${content}</h${level}>`;
+      continue;
+    }
+
+    const bullet = line.match(/^[-*]\s+(.*)$/);
+    if (bullet) {
+      if (listType !== 'ul') { closeList(); html += '<ul>'; listType = 'ul'; }
+      html += `<li>${applyInline(bullet[1])}</li>`;
+      continue;
+    }
+
+    const numbered = line.match(/^\d+\.\s+(.*)$/);
+    if (numbered) {
+      if (listType !== 'ol') { closeList(); html += '<ol>'; listType = 'ol'; }
+      html += `<li>${applyInline(numbered[1])}</li>`;
+      continue;
+    }
+
+    closeList();
+    html += `<p>${applyInline(line)}</p>`;
+  }
+
+  closeList();
+  return `<div class="markdown-text">${html}</div>`;
+}
+
 /* ============================================================
    TAB 4 - ASK DOUBT
    ============================================================ */
@@ -847,7 +899,7 @@ function appendChatMsg(role, text) {
   const div = document.createElement('div');
   div.className = `msg ${role}`;
   div.innerHTML = `
-    <div class="msg-bubble">${escapeHtml(text)}</div>
+    <div class="msg-bubble">${renderMarkdown(text)}</div>
     <div class="msg-time">${now()}</div>
   `;
   wrap.appendChild(div);
