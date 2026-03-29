@@ -42,8 +42,15 @@ function Header() {
 
           <button
             onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-primary hover:text-accent transition"
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className={
+              `inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface transition focus-visible:ring-2 focus-visible:ring-cyan-400 ${theme === 'dark' ? 'text-yellow-300 hover:text-yellow-400' : 'text-blue-900 hover:text-blue-700'}`
+            }
+            tabIndex={0}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') toggleTheme();
+            }}
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>

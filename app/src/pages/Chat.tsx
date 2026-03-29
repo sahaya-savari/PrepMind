@@ -100,6 +100,7 @@ function Chat() {
   const [lastPrompt, setLastPrompt] = useState('');
   const cancelRef = useRef(false);
   const chatRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const trimHistory = (list: ChatMessage[]) => {
     if (list.length <= MAX_HISTORY) return list;
@@ -110,6 +111,9 @@ function Chat() {
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages, loading]);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
@@ -231,19 +235,36 @@ function Chat() {
         )}
       </div>
 
-      <form id="chat-form" onSubmit={sendMessage} className="flex flex-col gap-3 p-4 rounded-xl bg-slate-900 border border-gray-800 shadow-lg sticky bottom-20 md:static">
+      <form
+        id="chat-form"
+        onSubmit={sendMessage}
+        className="flex flex-col gap-3 p-4 rounded-xl bg-slate-900 border border-gray-800 shadow-lg sticky bottom-20 md:static"
+        autoComplete="off"
+      >
         <textarea
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+              e.preventDefault();
+              if (input.trim() && !loading) sendMessage(e as any);
+            }
+          }}
           className="w-full min-h-[90px] px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white placeholder:text-gray-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
           placeholder="Ask anything..."
+          aria-label="Chat input"
           disabled={loading}
         />
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs text-gray-300">Streaming enabled</span>
           <div className="flex items-center gap-2">
             {loading && <button type="button" className="soft-button px-3 py-2" onClick={cancelStream}>Cancel</button>}
-            <button type="submit" className="soft-button px-4 py-2" disabled={loading}>Send</button>
+            <button
+              type="submit"
+              className="soft-button px-4 py-2"
+              disabled={loading || !input.trim()}
+            >Send</button>
           </div>
         </div>
       </form>
