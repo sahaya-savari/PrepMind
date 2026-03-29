@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import { AuthProvider } from './context/AuthContext';
+import { ExamProvider } from './context/ExamContext';
 import './index.css';
 
 const root = document.getElementById('root');
@@ -18,19 +19,21 @@ if (root) {
   createRoot(root).render(
     <StrictMode>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<App />}>
-              <Route index element={<Home />} />
-              <Route path="chat" element={<Chat />} />
-              <Route path="practice" element={<Practice />} />
-              <Route path="progress" element={<Progress />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="login" element={<Login />} />
-              <Route path="signup" element={<Signup />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <ExamProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<App />}>
+                <Route index element={<Home />} />
+                <Route path="chat" element={<Chat />} />
+                <Route path="practice" element={<Practice />} />
+                <Route path="progress" element={<Progress />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="login" element={<Login />} />
+                <Route path="signup" element={<Signup />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </ExamProvider>
       </AuthProvider>
     </StrictMode>,
   );

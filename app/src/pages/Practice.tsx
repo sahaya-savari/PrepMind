@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useExam } from '../context/ExamContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { fetchQuestions, listInterviews, safeJsonFetch, type Interview, type QuestionRow } from '../api';
 import { useAuth } from '../hooks/useAuth';
 
-function Practice() {
   const { updateProgress } = useAuth();
   const [interviews, setInterviews] = useState<Interview[]>([]);
-  const [selected, setSelected] = useState('');
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
+  const { exam, setExam } = useExam();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mcqTopic, setMcqTopic] = useState('Loops and Arrays');
@@ -32,7 +32,7 @@ function Practice() {
     try {
       const data = await listInterviews();
       setInterviews(data);
-      if (!selected && data.length) setSelected(data[0].id);
+      if (!exam && data.length) setExam(data[0].id);
     } catch (e: any) {
       setError(e.message || 'Failed to load interviews');
     } finally {
@@ -41,11 +41,11 @@ function Practice() {
   };
 
   const loadQuestions = async () => {
-    if (!selected) { setError('Pick an interview first'); return; }
+    if (!exam) { setError('Pick an interview first'); return; }
     setLoading(true);
     setError('');
     try {
-      const data = await fetchQuestions(selected);
+      const data = await fetchQuestions(exam);
       setQuestions(data);
     } catch (e: any) {
       setError(e.message || 'Failed to fetch questions');
@@ -167,8 +167,8 @@ function Practice() {
         <label className="text-xs text-gray-300">Select interview</label>
         <select
           className="w-full px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white"
-          value={selected}
-          onChange={(e) => setSelected(e.target.value)}
+          value={exam}
+          onChange={(e) => setExam(e.target.value)}
           aria-label="Select interview"
         >
           {interviews.map((i) => (

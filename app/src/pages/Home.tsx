@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useExam } from '../context/ExamContext';
 import { motion } from 'framer-motion';
 import AnimatedButton from '../components/AnimatedButton';
 import AnimatedCard from '../components/AnimatedCard';
@@ -31,13 +32,13 @@ function Home() {
   const [apiStatus, setApiStatus] = useState<Status>('idle');
   const [supabaseStatus, setSupabaseStatus] = useState<Status>('idle');
   const [interviews, setInterviews] = useState<Interview[]>([]);
-  const [selected, setSelected] = useState('');
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
   const [form, setForm] = useState({ name: '', role: '', difficulty: 'Intermediate' });
   const [resultForm, setResultForm] = useState({ score: '', feedback: '' });
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
+  const { exam, setExam } = useExam();
 
   useEffect(() => {
     healthCheck();
@@ -73,7 +74,7 @@ function Home() {
     try {
       const data = await listInterviews();
       setInterviews(data);
-      if (!selected && data.length) setSelected(String(data[0].id));
+      if (!exam && data.length) setExam(String(data[0].id));
     } catch (e: any) {
       setError(e.message || 'Failed to load interviews');
     } finally {
@@ -101,11 +102,11 @@ function Home() {
   };
 
   const onFetchQuestions = async () => {
-    if (!selected) { setError('Pick an interview'); return; }
+    if (!exam) { setError('Pick an interview'); return; }
     setBusy('questions', true);
     setError('');
     try {
-      const data = await fetchQuestions(selected);
+      const data = await fetchQuestions(exam);
       setQuestions(data);
       setToast('Questions loaded');
     } catch (e: any) {
@@ -133,7 +134,7 @@ function Home() {
   };
 
   const onStartInterview = async () => {
-    if (!selected) { setError('Pick an interview'); return; }
+    if (!exam) { setError('Pick an interview'); return; }
     if (!questions.length) {
       await onFetchQuestions();
       return;
@@ -146,7 +147,7 @@ function Home() {
     setBusy('result', true);
     setError('');
     try {
-      await saveResult({ interviewId: selected, score: Number(resultForm.score), feedback: resultForm.feedback });
+      await saveResult({ interviewId: exam, score: Number(resultForm.score), feedback: resultForm.feedback });
       setResultForm({ score: '', feedback: '' });
       setToast('Result saved');
     } catch (e: any) {
@@ -162,7 +163,7 @@ function Home() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const currentInterview = useMemo(() => interviews.find((i) => String(i.id) === String(selected)), [interviews, selected]);
+  const currentInterview = useMemo(() => interviews.find((i) => String(i.id) === String(exam)), [interviews, exam]);
 
   const statusTone = (status: Status) =>
     status === 'ok'
