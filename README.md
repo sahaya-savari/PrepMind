@@ -2,6 +2,9 @@
 
 PrepMind AI is a production-ready, server-backed exam preparation companion. It builds a personalised dashboard with overview, practice MCQs, teaching notes, chat tutoring, and progress analytics for any exam (e.g., CAT, GATE, UPSC, JEE). No frontend keys, no prompts—works out of the box via a secure Vercel function proxying Gemini.
 
+## ⚠️ Note
+This project currently uses mock AI responses. Real AI (Gemini/Ollama) will be added in Phase 2.
+
 ## Features
 - **Instant Exam Dashboard**: Auto-generates overview, syllabus chips, strategy, and study plan.
 - **Smart Practice MCQs**: Topic + difficulty based MCQs with explanations and quick tricks.
