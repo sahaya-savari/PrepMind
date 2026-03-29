@@ -1,16 +1,14 @@
 import { NavLink } from 'react-router-dom';
-import { Home, MessageSquare, Brain, BarChart3, User, LogIn } from 'lucide-react';
+import { Home, MessageSquare, Brain, BarChart3 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { cn } from '../lib/utils';
 
 function TabNavigation() {
-  const { user } = useAuth();
   const tabs = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/practice', label: 'Practice', icon: Brain },
     { path: '/chat', label: 'Chat', icon: MessageSquare },
     { path: '/progress', label: 'Progress', icon: BarChart3 },
-    user ? { path: '/profile', label: 'Profile', icon: User } : { path: '/login', label: 'Login', icon: LogIn },
   ];
 
   return (
