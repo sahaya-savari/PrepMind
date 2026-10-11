@@ -15,6 +15,7 @@ import {
 import { ThoughtLine } from '../components/reactbits/ThoughtLine';
 import { SlingButton } from '../components/reactbits/SlingButton';
 import { CodeBlock } from '../components/shared/CodeBlock';
+import { MarkdownView } from '../components/shared/MarkdownView';
 import { askStream, ChatMessage } from '../api';
 
 const STORAGE_KEY = 'prepmind_chat_v2';
@@ -132,7 +133,10 @@ function Chat() {
     try {
       let acc = '';
       setMessages((prev) => trimHistory([...prev, { role: 'assistant', content: '...' }]));
-      await askStream(content, 'chat', (chunk) => {
+      const promptWithContext = exam && exam !== 'Target Syllabus'
+        ? `[Target Exam: ${exam}]\n${content}`
+        : content;
+      await askStream(promptWithContext, 'chat', (chunk) => {
         if (cancelRef.current) return;
         acc += chunk;
         setMessages((prev) => {
@@ -342,9 +346,7 @@ function Chat() {
                       );
                     }
                     return (
-                      <div key={pIdx} className="whitespace-pre-wrap break-words leading-relaxed">
-                        {p.content}
-                      </div>
+                      <MarkdownView key={pIdx} content={p.content} />
                     );
                   })}
                 </div>

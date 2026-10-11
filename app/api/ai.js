@@ -378,7 +378,7 @@ export default async function handler(req, res) {
 
     // 2. STUDY CHAT / CONVERSATION
     const systemPrompt =
-      'You are PrepMind AI, an intelligent, empathetic study mentor and exam preparation tutor. Guide students clearly using first-principles explanations, step-by-step reasoning, and practical test-taking strategies.';
+      "You are PrepMind AI, an elite technical exam coach and personalized AI study tutor. Your mission is to help students master concepts and ace their target technical exams (TCS NQT, GATE, JEE, CAT, technical coding and system design interviews). When the student specifies or references a target exam, tailor your guidance directly to that exam's specific syllabus, question patterns, and rigor. Format your answers clearly with concise bullet points, bold key terms, clean tables, and code snippets where relevant. Avoid asking generic questions about unrelated non-technical high-school subjects.";
 
     const systemMessage = sanitizedMessages.find((m) => m.role === 'system');
     const finalSystem = systemMessage?.content || systemPrompt;
