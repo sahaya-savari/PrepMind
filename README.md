@@ -1,6 +1,17 @@
+<div align="center">
+
 # PrepMind AI 🧠
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+**An intelligent, resilient AI-powered exam preparation and personalized learning platform.**
+
+Adaptive practice questions · Socratic AI tutoring · Concept deep dives · Notes retrieval · Progress analytics
+for CAT, GATE, UPSC, JEE, NEET and custom exams.
+
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_Site-black?style=for-the-badge)](https://prep-weblearning.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+[![Open Source](https://img.shields.io/badge/Open_Source-Yes-2ea44f?style=for-the-badge&logo=github)](https://github.com/sahaya-savari/PrepMind)
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](CONTRIBUTING.md)
+
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.2-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -9,57 +20,107 @@
 [![Express](https://img.shields.io/badge/Express-4.19-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![Google Gemini](https://img.shields.io/badge/AI-Google_Gemini-8E75C2?logo=google&logoColor=white)](https://ai.google.dev/)
 [![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
-[![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?logo=vercel&logoColor=white)](https://prep-weblearning.vercel.app/)
 
-> **An intelligent, resilient AI-powered exam preparation and personalized learning platform.**  
-> PrepMind AI delivers adaptive practice questions, real-time interactive AI tutoring, structured concept breakdowns, syllabus navigation, and progress analytics across exams like CAT, GATE, UPSC, JEE, and more.
+[Live App](https://prep-weblearning.vercel.app/) · [Architecture](docs/ARCHITECTURE.md) · [API Reference](docs/API_REFERENCE.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
----
-
-## 🔗 Quick Links
-
-- **Live Production App**: [https://prep-weblearning.vercel.app/](https://prep-weblearning.vercel.app/)
-- **GitHub Repository**: [https://github.com/sahaya-savari/PrepMind](https://github.com/sahaya-savari/PrepMind)
+</div>
 
 ---
 
-## 🌟 Key Features
+## Table of Contents
 
-* **🎯 Instant Exam Onboarding & Dashboard**: Select from predefined competitive exams (CAT, GATE, UPSC, JEE, NEET) or enter custom exams. Automatically prepares customized syllabus paths, strategy recommendations, and study roadmaps.
-* **⚡ Smart MCQ Practice Engine**: Generates topic-wise questions with customizable difficulty levels (`Easy`, `Medium`, `Hard`). Provides immediate scoring, step-by-step solutions, and trick explanations.
-* **🤖 Socratic AI Study Tutor (Chat)**: Interactive conversational assistant tailored to the active exam syllabus. Guides students through complex problem-solving rather than just providing static answers.
-* **💡 Concept Breakdown & Deep Dives**: Multi-level explanations dissecting core formulas, underlying theory, common traps, and mental shortcuts.
-* **📚 Notes & Knowledge Retrieval (RAG-lite)**: Upload or paste study notes to query contextual answers powered by recent notes context in Supabase.
-* **📊 Analytics & Mastery Tracking**: Visualizes question accuracy, total attempts, weak areas, and trends with persistent local and cloud storage.
-* **🛡️ Offline & Degraded Fallback Mode**: Zero-lockout design—if external API quotas or Supabase credentials are unavailable, the platform automatically falls back to deterministic synthetic generators and offline `localStorage` storage.
-* **🎙️ Voice & Audio Synthesis (Companion App)**: Speech synthesis and speech recognition integration via the Web Speech API.
+- [Overview](#overview)
+- [Core Principles](#core-principles)
+- [Key Features](#key-features)
+- [How It Works](#how-it-works)
+- [Tech Stack](#tech-stack)
+- [System Architecture](#system-architecture)
+- [Repository Structure](#repository-structure)
+- [Database Schema](#database-schema)
+- [API Endpoints](#api-endpoints)
+- [Getting Started](#getting-started)
+- [Running Without API Keys](#running-without-api-keys)
+- [Deployment](#deployment)
+- [Security](#security)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Acknowledgements](#acknowledgements)
+- [License](#license)
 
 ---
 
-## 🛠️ Tech Stack
+## Overview
+
+PrepMind AI helps students prepare for competitive exams with practice questions, an AI tutor, structured concept breakdowns, syllabus navigation and progress tracking, all in one platform.
+
+It is built to **keep working when things go wrong**: if AI quotas run out or database credentials are missing, the app falls back to built-in question generators and local storage instead of locking the student out.
+
+> [!NOTE]
+> AI-generated questions and explanations can contain mistakes. Always verify important facts and formulas against official study material.
+
+## Core Principles
+
+| | Principle |
+|---|---|
+| 🛡️ | **Resilient:** automatic fallback to offline generators and local storage |
+| 🔐 | **Secure by design:** frontend clients never hold raw LLM API keys |
+| 🎯 | **Learning-first:** the tutor guides students through problems instead of just giving answers |
+| 🔓 | **Open source:** MIT licensed, and contributions are welcome |
+
+---
+
+## Key Features
+
+| | Feature | Description |
+|---|---|---|
+| 🎯 | **Instant Exam Onboarding & Dashboard** | Select from predefined competitive exams (CAT, GATE, UPSC, JEE, NEET) or enter custom exams. Automatically prepares customized syllabus paths, strategy recommendations, and study roadmaps. |
+| ⚡ | **Smart MCQ Practice Engine** | Generates topic-wise questions with customizable difficulty levels (`Easy`, `Medium`, `Hard`). Provides immediate scoring, step-by-step solutions, and trick explanations. |
+| 🤖 | **Socratic AI Study Tutor (Chat)** | Interactive conversational assistant tailored to the active exam syllabus. Guides students through complex problem-solving rather than just providing static answers. |
+| 💡 | **Concept Breakdown & Deep Dives** | Multi-level explanations dissecting core formulas, underlying theory, common traps, and mental shortcuts. |
+| 📚 | **Notes & Knowledge Retrieval (RAG-lite)** | Upload or paste study notes to query contextual answers powered by recent notes context in Supabase. |
+| 📊 | **Analytics & Mastery Tracking** | Visualizes question accuracy, total attempts, weak areas, and trends with persistent local and cloud storage. |
+| 🛡️ | **Offline & Degraded Fallback Mode** | Zero-lockout design: if external API quotas or Supabase credentials are unavailable, the platform automatically falls back to deterministic synthetic generators and offline `localStorage` storage. |
+| 🎙️ | **Voice & Audio Synthesis (Companion App)** | Speech synthesis and speech recognition integration via the Web Speech API. |
+
+---
+
+## How It Works
+
+1. **Choose an exam:** pick CAT, GATE, UPSC, JEE, NEET or enter a custom exam.
+2. **Get your roadmap:** syllabus paths, strategy recommendations and a study plan are prepared for you.
+3. **Practice:** generate topic-wise MCQs at your chosen difficulty and get instant scoring with solutions.
+4. **Ask the tutor:** chat with the Socratic AI tutor tuned to your exam's syllabus.
+5. **Use your notes:** upload or paste notes and ask questions against them.
+6. **Track progress:** review accuracy, attempts, weak areas and trends.
+
+---
+
+## Tech Stack
 
 ### Frontend
+
 | Component | Technology | Description |
 | :--- | :--- | :--- |
 | **Primary App (`/app`)** | **React 18** + **TypeScript** | Modern Single Page Application (SPA) deployed to production |
-| **Bundler & Tooling** | **Vite 5** | Lightning-fast HMR and optimized production bundles |
-| **Styling** | **Tailwind CSS 3.4** | Modern, responsive dark-mode and glassmorphic user interface |
-| **Icons & Animations** | **Lucide React** + **Framer Motion** | Polished micro-interactions and iconography |
+| **Bundler & Tooling** | **Vite 5** | Lightning-fast HMR, SWC compiler, and PWA service worker generation |
+| **Styling** | **Tailwind CSS 3.4** | Terminal-Dark / Midnight design tokens with smooth transitions |
+| **Icons & Animations** | **Lucide React** + **Framer Motion** | Polished micro-interactions, responsive mobile dock, and iconography |
 | **State & Navigation** | **React Context API** | Modular state for user authentication, exams, and sessions |
 | **Companion App (`/`)** | **Vanilla HTML5 / CSS3 / ES6+** | Lightweight, framework-free alternative with Web Speech API |
 
 ### Backend & Cloud Services
+
 | Component | Technology | Description |
 | :--- | :--- | :--- |
 | **API Server (`/server`)** | **Node.js** + **Express 4** | Protected REST API with Bearer token authentication and rate limiting |
-| **Serverless Proxy (`/api`)**| **Vercel Serverless Functions** | Secure zero-leakage proxy forwarding requests to Gemini API |
-| **AI / LLM Engine** | **Google Gemini API** (`gemini-2.5-flash` / `1.5-flash`) | Contextual reasoning, MCQ generation, and study tutoring |
+| **Serverless Proxy (`/api`)**| **Vercel Serverless Functions** | Dual-discovery proxy forwarding requests securely to Groq, NVIDIA, or Gemini |
+| **AI / LLM Providers** | **Groq**, **NVIDIA NIM**, **Gemini** | High-performance cascade for reasoning, MCQ generation, and study tutoring |
 | **Database & Auth** | **Supabase (PostgreSQL)** | Persistent storage for interviews, notes, and user progress with RLS |
-| **Deployment & Hosting**| **Vercel** | CI/CD deployment with edge CDN caching |
+| **Deployment & Hosting**| **Vercel** | CI/CD edge deployment with SPA rewrite precedence |
 
 ---
 
-## 📐 System Architecture
+## System Architecture
 
 PrepMind AI implements a dual-tier client architecture with secure backend orchestration:
 
@@ -69,7 +130,11 @@ graph TD
     Client -->|Zero Client Keys| VercelAPI["Vercel Serverless Function (/api/ai.js)"]
     Client -->|Authenticated REST| ExpressAPI["Express Backend (/server)"]
     
-    VercelAPI -->|Private GEMINI_API_KEY| Gemini["Google Gemini API (gemini-2.5-flash)"]
+    VercelAPI -->|1. Try Primary| Groq["Groq Cloud API (openai/gpt-oss-120b)"]
+    Groq -.->|Failover| Nvidia["NVIDIA NIM (nemotron-3.5-lightning-30b-a3b)"]
+    Nvidia -.->|Tertiary| Gemini["Google Gemini API (gemini-2.5-flash)"]
+    Gemini -.->|Offline| OfflineBank["Deterministic Question Bank"]
+
     ExpressAPI -->|Gemini API Key| Gemini
     ExpressAPI -->|Database & Auth| Supabase[("Supabase PostgreSQL")]
 
@@ -80,9 +145,11 @@ graph TD
 1. **Security-First AI Communication**: Frontend clients never hold raw LLM API keys. All queries route through serverless proxies or Express middleware.
 2. **Resilient Failure Handling**: If external API quotas are hit or credentials are not configured, automatic fallbacks generate mock exam structures and save results locally without disrupting the user experience.
 
+> For in-depth architecture specifications and timeout policies, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 PrepMind/
@@ -125,9 +192,11 @@ PrepMind/
 │   └── local-dev-api.mjs       # Local developer API mock harness
 │
 ├── docs/                       # Production readiness & QA specifications
-│   ├── PRODUCTION_UPGRADE_PLAN.md
-│   ├── PRODUCTION_READINESS_PRD.md
-│   └── PRODUCTION_READINESS_CHECKLIST.md
+│   ├── ARCHITECTURE.md         # In-depth system architecture & data flow
+│   ├── API_REFERENCE.md        # Complete endpoint & action payload documentation
+│   ├── PRODUCTION_UPGRADE_PLAN.md # 10-phase upgrade plan
+│   ├── PRODUCTION_READINESS_PRD.md # Production readiness PRD and audit findings
+│   └── PRODUCTION_READINESS_CHECKLIST.md # Quality and security audit checklist
 │
 ├── js/                         # Companion Vanilla JS modules
 │   ├── api.js                  # Client API fetchers
@@ -142,14 +211,20 @@ PrepMind/
 ├── robots.txt                  # Web crawler access configuration
 ├── og-image.png                # Social preview image (1200x630)
 ├── package.json                # Root package configuration with unified dev/test scripts
+├── CONTRIBUTING.md             # Contributor guidelines and workflow
+├── CODE_OF_CONDUCT.md         # Contributor Covenant v2.1 code of conduct
+├── SECURITY.md                 # Vulnerability disclosure policy
+├── SUPPORT.md                  # Support channels and issue templates
+├── CHANGELOG.md                # Version history and release notes
+├── LICENSE                     # MIT License
 └── README.md                   # Project documentation
 ```
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
-The database is built on **PostgreSQL (Supabase)** with Row-Level Security (RLS) enabled. See [`supabase_schema.sql`](file:///d:/PrepMind/supabase_schema.sql) for the complete schema:
+The database is built on **PostgreSQL (Supabase)** with Row-Level Security (RLS) enabled. See [`supabase_schema.sql`](supabase_schema.sql) for the complete schema:
 
 ```sql
 create extension if not exists "pgcrypto";
@@ -187,7 +262,15 @@ create table if not exists public.results (
 
 ---
 
-## 🔌 API Endpoints (Express Server)
+## API Endpoints
+
+### Serverless AI Proxy (`/api/ai`)
+- `GET /api/ai` — Health check & provider status enumeration
+- `POST /api/ai` with `action: "generate_mcq"` — Generates targeted exam MCQs
+- `POST /api/ai` with `action: "chat"` — Multi-turn Socratic study tutoring
+- `POST /api/ai` with `action: "evaluate"` — Deterministic scoring & feedback
+
+### Express Server (`/server`)
 
 | Method | Endpoint | Auth Required | Description |
 | :--- | :--- | :---: | :--- |
@@ -198,17 +281,18 @@ create table if not exists public.results (
 | `POST` | `/api/store` | Bearer Token | Stores user notes into Supabase |
 | `POST` | `/api/query-context` | Bearer Token | RAG-lite query utilizing stored notes as context |
 
+> For request/response schemas, JSON payloads, and error codes, see [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md).
+
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-* **Node.js**: v18.0.0 or higher
-* **npm**: v9.0.0 or higher
-* *(Optional)* A [Google AI Studio Gemini API Key](https://aistudio.google.com/)
-* *(Optional)* A [Supabase Project](https://supabase.com/)
 
----
+- **Node.js** v18.0.0 or higher
+- **npm** v9.0.0 or higher
+- *(Optional)* A [Google AI Studio Gemini API Key](https://aistudio.google.com/)
+- *(Optional)* A [Supabase Project](https://supabase.com/)
 
 ### 1. Clone the Repository
 
@@ -217,8 +301,6 @@ git clone https://github.com/sahaya-savari/PrepMind.git
 cd PrepMind
 ```
 
----
-
 ### 2. Run the React Production App (`/app`)
 
 ```bash
@@ -226,9 +308,11 @@ cd app
 npm install
 npm run dev
 ```
+
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-To configure environment variables for the React app, create `app/.env`:
+Create `app/.env`:
+
 ```env
 VITE_API_URL=http://localhost:5000
 VITE_API_TOKEN=your_backend_secret_token
@@ -236,7 +320,8 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_KEY=your_supabase_anon_key
 ```
 
----
+> [!WARNING]
+> Every `VITE_` variable is embedded in the browser bundle and visible to anyone using the app. Never put a private secret in one. Only the Supabase **anon** key is safe to expose, and only with RLS enabled.
 
 ### 3. Run the Backend Server (`/server`)
 
@@ -245,9 +330,11 @@ cd ../server
 npm install
 npm run dev
 ```
-The server will start on [http://localhost:5000](http://localhost:5000).
+
+The server starts on [http://localhost:5000](http://localhost:5000).
 
 Create `server/.env`:
+
 ```env
 PORT=5000
 API_TOKEN=your_backend_secret_token
@@ -256,39 +343,43 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_service_role_or_anon_key
 ```
 
----
-
 ### 4. (Optional) Run the Vanilla JS Companion App
 
 From the project root:
+
 ```bash
 npx serve .
 ```
-Open [http://localhost:3000](http://localhost:3000) to view the lightweight Vanilla JS interface.
 
----
+Open [http://localhost:3000](http://localhost:3000) to view the lightweight Vanilla JS interface.
 
 ### 5. Automated Tests & Quality Gates
 
-Run quality verification directly from the repository root:
+Run these from the repository root:
 
-```bash
-# Run AI provider orchestration and offline fallback test suite
-npm test
-
-# Build the production Vite bundle
-npm run build
-
-# Run TypeScript typecheck
-npm run typecheck
-
-# Run lightweight local dev API harness (port 5000)
-npm run server:dev
-```
+| Command | Purpose |
+| :--- | :--- |
+| `npm test` | Run the AI provider orchestration and offline fallback test suite |
+| `npm run build` | Build the production Vite bundle |
+| `npm run typecheck` | Run TypeScript typecheck across the frontend |
+| `npm run server:dev` | Run the lightweight local dev API harness (port 5000) |
 
 ---
 
-## ☁️ Deployment
+## Running Without API Keys
+
+Both the Gemini key and Supabase are optional for local development. If they are missing or a quota is exhausted, PrepMind AI switches to its fallback mode:
+
+| Missing | What happens |
+|---|---|
+| Gemini API key / quota exhausted | Deterministic synthetic question generators are used |
+| Supabase credentials | Progress and results are saved in browser `localStorage` |
+
+This lets you explore and develop the app without setting up any external service.
+
+---
+
+## Deployment
 
 ### Deploying to Vercel
 
@@ -296,13 +387,94 @@ npm run server:dev
 2. Import the project into your **Vercel Dashboard**.
 3. Set the **Root Directory** to `app` (for the React application) or deploy the root repository.
 4. Add the following **Environment Variables** in Vercel Project Settings:
-   - `GEMINI_API_KEY`: Your Google Gemini API key.
-   - `VITE_SUPABASE_URL`: (Optional) Your Supabase URL.
-   - `VITE_SUPABASE_KEY`: (Optional) Your Supabase Anon Key.
+   - `GEMINI_API_KEY`: Your Google Gemini API key
+   - `VITE_SUPABASE_URL`: *(Optional)* Your Supabase URL
+   - `VITE_SUPABASE_KEY`: *(Optional)* Your Supabase anon key
 5. Deploy! Vercel will automatically provision the application and edge endpoints.
+
+### Deploying the Express Backend (`/server`)
+
+The Express server is deployed separately from the Vercel frontend, on any Node.js host.
+
+1. Set the server's environment variables on your host: `API_TOKEN`, `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`.
+2. Point the frontend's `VITE_API_URL` to your deployed server URL.
+3. Check that `GET /api/health` responds before connecting the frontend.
 
 ---
 
-## 📄 License
+## Security
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+- Raw LLM API keys are never shipped to the browser; AI calls go through the serverless proxy or the Express backend
+- Express API routes require a Bearer token and are rate limited
+- Supabase tables use Row-Level Security (RLS)
+- Never commit `.env` files or real keys to the repository
+
+> For our vulnerability disclosure procedure and security guarantees, see [`SECURITY.md`](SECURITY.md).
+
+---
+
+## Roadmap
+
+> [!NOTE]
+> These are plans, not promises. Priorities may change.
+
+- [ ] Frontend UI redesign (in progress)
+- [ ] Timer per question
+- [ ] Score history graph
+- [ ] Weak-topic detection
+- [ ] Dashboard UX improvements
+
+Have an idea? [Open an issue](https://github.com/sahaya-savari/PrepMind/issues) to discuss it.
+
+---
+
+## Contributing
+
+PrepMind AI is open source and contributions are welcome, from bug reports and docs fixes to new features.
+
+### Quick start
+
+1. **Fork** the repository and clone your fork
+2. Create a branch:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. Make your changes, following the existing code style
+4. Run the quality checks from the repository root:
+   ```bash
+   npm test
+   npm run typecheck
+   npm run build
+   ```
+5. Commit with a clear message (for example `feat: add timer per question` or `fix: handle empty notes`)
+6. Push your branch and open a **Pull Request** describing what changed and why
+
+> For full developer guidelines, code conventions, and pull request checklist, see [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
+### Contributors
+
+<a href="https://github.com/sahaya-savari/PrepMind/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=sahaya-savari/PrepMind" alt="Contributors" />
+</a>
+
+---
+
+## Acknowledgements
+
+PrepMind AI is built on the work of these open-source projects and services:
+
+[React](https://react.dev/) · [TypeScript](https://www.typescriptlang.org/) · [Vite](https://vitejs.dev/) · [Tailwind CSS](https://tailwindcss.com/) · [Framer Motion](https://www.framer.com/motion/) · [Lucide](https://lucide.dev/) · [Express](https://expressjs.com/) · [Supabase](https://supabase.com/) · [Google Gemini API](https://ai.google.dev/)
+
+---
+
+## License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+<div align="center">
+
+If PrepMind AI helps you, consider giving the repository a ⭐
+
+**Built by [Sahaya Savari F](https://github.com/sahaya-savari)**
+
+</div>
