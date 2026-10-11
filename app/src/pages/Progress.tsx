@@ -1,14 +1,26 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart3, TrendingUp, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
+import {
+  TrendingUp,
+  Target,
+  Award,
+  AlertTriangle,
+  RefreshCw,
+  ArrowRight,
+  Filter,
+  CheckCircle2,
+  Layers,
+} from 'lucide-react';
+import { AnimatedList } from '../components/reactbits/AnimatedList';
+import { DodgeField } from '../components/reactbits/DodgeField';
 import { type ProgressInsights } from '../api';
 import { supabase } from '../lib/supabase';
 
 const defaultInsights: ProgressInsights = {
   accuracy: 0,
   totalExams: 0,
-  weakTopic: 'N/A',
-  mostStudied: 'N/A',
+  weakTopic: 'None',
+  mostStudied: 'None',
   trend: [],
 };
 
@@ -36,6 +48,7 @@ function Progress() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [filterTopic, setFilterTopic] = useState<string>('all');
 
   const hydrate = (next: ProgressInsights) => {
     setInsights(next);
@@ -65,7 +78,7 @@ function Progress() {
         .from('results')
         .select('score, feedback, created_at, interview_id, interviews ( role )')
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (supaError) throw supaError;
 
@@ -95,21 +108,35 @@ function Progress() {
         trend[0]
       );
 
+      // Derive most studied topic
+      const topicCounts: Record<string, number> = {};
+      trend.forEach((t) => {
+        topicCounts[t.topic] = (topicCounts[t.topic] || 0) + 1;
+      });
+      let mostStudied = 'General';
+      let maxCount = 0;
+      Object.entries(topicCounts).forEach(([top, count]) => {
+        if (count > maxCount) {
+          maxCount = count;
+          mostStudied = top;
+        }
+      });
+
       hydrate({
         accuracy,
         totalExams: trend.length,
-        weakTopic: weakTopic?.topic || 'N/A',
-        mostStudied: trend[0]?.topic || 'N/A',
+        weakTopic: weakTopic ? weakTopic.topic : 'None',
+        mostStudied,
         trend,
       });
-    } catch (e: any) {
+    } catch (err: any) {
       const cached = loadCache();
       if (cached) {
         hydrate(cached);
+        setError('Could not reach remote database. Displaying local cache.');
       } else {
-        setInsights(defaultInsights);
+        setError(err.message || 'Failed to fetch performance insights');
       }
-      setError(e?.message || 'Failed to load progress metrics');
     } finally {
       setLoading(false);
     }
@@ -119,26 +146,27 @@ function Progress() {
     load();
   }, []);
 
+  const uniqueTopics = Array.from(new Set(insights.trend.map((t) => t.topic)));
+  const filteredTrend = insights.trend.filter(
+    (t) => filterTopic === 'all' || t.topic === filterTopic
+  );
+
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-midnight-border pb-4">
+      {/* 1. TOP HEADER & METRIC CONTROLS */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-midnight-accentSoft border border-midnight-accent/30 text-midnight-accent mb-1.5">
-            <BarChart3 size={12} />
-            <span>Mastery & Analytics</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold font-display tracking-tight text-ink-primary">
-            Learning Progress
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+            Performance & Mastery Overview
           </h1>
-          <p className="text-xs sm:text-sm text-ink-secondary">
-            Verified performance history, accuracy trends, and weak area insights.
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+            Verified performance history, evaluation accuracy trends, and weak area diagnostics.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <span className="text-xs text-ink-muted">
+            <span className="text-xs font-mono text-[var(--text-muted)] hidden sm:inline">
               Updated{' '}
               {new Date(lastUpdated).toLocaleTimeString([], {
                 hour: '2-digit',
@@ -146,140 +174,165 @@ function Progress() {
               })}
             </span>
           )}
+
           <button
             type="button"
             onClick={load}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold bg-midnight-subtle border border-midnight-border text-ink-primary hover:bg-midnight-elevated hover:border-midnight-accent/40 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-colors cursor-pointer disabled:opacity-50"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            <span>{loading ? 'Refreshing…' : 'Refresh'}</span>
+            <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
           </button>
         </div>
       </header>
 
-      {/* Notice */}
+      {/* Notice / Warning */}
       {error && (
-        <div className="text-xs p-3 rounded-lg bg-midnight-subtle border border-midnight-border text-ink-secondary flex items-center justify-between">
+        <div className="text-xs p-3 rounded-lg bg-[var(--surface-elevated)] border border-[var(--warning)]/40 text-[var(--warning)] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={14} className="text-midnight-warning" />
+            <AlertTriangle size={14} className="shrink-0" />
             <span>{error}</span>
           </div>
-          <span className="text-[10px] text-midnight-accent font-semibold uppercase tracking-wider">
-            Cached Data Available
+          <span className="text-[10px] font-mono text-[var(--accent)] uppercase tracking-wider">
+            Cached Session Active
           </span>
         </div>
       )}
 
-      {/* KPI Cards Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <InsightCard
-          title="Overall Accuracy"
-          value={`${insights.accuracy}%`}
-          hint={`${insights.totalExams} recorded sessions`}
-          loading={loading}
-          progress={insights.accuracy}
-        />
-        <InsightCard
-          title="Focus Area Needed"
-          value={insights.weakTopic}
-          hint="Lowest scoring domain"
-          loading={loading}
-          tone="warning"
-        />
-        <InsightCard
-          title="Most Studied Subject"
-          value={insights.mostStudied}
-          hint="Most frequent drill subject"
-          loading={loading}
-        />
-        <InsightCard
-          title="Total Logged Drills"
-          value={`${insights.trend.length}`}
-          hint="Recent session records"
-          loading={loading}
-        />
+      {/* 2. REAL METRIC KPI CARDS (DERIVED FROM APPLICATION STATE ONLY) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
+            <span>Overall Accuracy</span>
+            <Target className="w-3.5 h-3.5 text-[var(--accent)]" />
+          </div>
+          <div className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] font-mono tabular-nums">
+            {loading ? '...' : `${insights.accuracy}%`}
+          </div>
+          <div className="w-full h-1.5 rounded-full bg-[var(--surface-elevated)] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-[var(--accent)] transition-all duration-300"
+              style={{ width: `${Math.min(100, Math.max(0, insights.accuracy))}%` }}
+            />
+          </div>
+          <div className="text-[11px] text-[var(--text-secondary)] font-mono">
+            {insights.totalExams} recorded evaluations
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
+            <span>Priority Focus</span>
+            <AlertTriangle className="w-3.5 h-3.5 text-[var(--warning)]" />
+          </div>
+          <div className="text-lg sm:text-xl font-bold text-[var(--warning)] truncate">
+            {loading ? '...' : insights.weakTopic}
+          </div>
+          <div className="text-[11px] text-[var(--text-secondary)]">
+            Lowest scoring discipline
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
+            <span>Primary Focus</span>
+            <Layers className="w-3.5 h-3.5 text-[var(--positive)]" />
+          </div>
+          <div className="text-lg sm:text-xl font-bold text-[var(--text-primary)] truncate">
+            {loading ? '...' : insights.mostStudied}
+          </div>
+          <div className="text-[11px] text-[var(--text-secondary)]">
+            Most frequent drill topic
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
+            <span>Logged Drills</span>
+            <Award className="w-3.5 h-3.5 text-[var(--accent)]" />
+          </div>
+          <div className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] font-mono tabular-nums">
+            {loading ? '...' : insights.trend.length}
+          </div>
+          <div className="text-[11px] text-[var(--text-secondary)] font-mono">
+            Persistent database records
+          </div>
+        </div>
       </div>
 
-      {/* Recent Session History Card */}
-      <div className="rounded-xl border border-midnight-border bg-midnight-surface p-5 sm:p-6 space-y-5 shadow-card">
-        <div className="flex items-center justify-between border-b border-midnight-border pb-3">
+      {/* 3. RECENT SESSION RECORDS OR DODGEFIELD EMPTY STATE */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
           <div>
-            <h2 className="text-base sm:text-lg font-semibold font-display text-ink-primary">
-              Recent Session Records
+            <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
+              Historical Session Records
             </h2>
-            <p className="text-xs text-ink-secondary">
-              Score distribution across practice sets and evaluations
+            <p className="text-xs text-[var(--text-secondary)]">
+              Evaluation scores across saved interview drills and practice sets.
             </p>
           </div>
-          {insights.trend.length > 0 && (
-            <span className="text-xs font-mono font-semibold text-midnight-accent">
-              {insights.trend.length} records
-            </span>
+
+          {uniqueTopics.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Filter className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+              <select
+                value={filterTopic}
+                onChange={(e) => setFilterTopic(e.target.value)}
+                className="px-2.5 py-1 text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] font-mono focus:outline-none"
+              >
+                <option value="all">All Topics ({insights.trend.length})</option>
+                {uniqueTopics.map((top) => (
+                  <option key={top} value={top}>
+                    {top}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
 
+        {/* Empty State with DodgeField Component (Strictly empty state) */}
         {insights.trend.length === 0 ? (
-          <div className="text-center py-12 px-4 space-y-3">
-            <div className="w-12 h-12 mx-auto rounded-xl bg-midnight-subtle border border-midnight-border flex items-center justify-center text-ink-muted">
-              <TrendingUp size={20} />
-            </div>
-            <div className="text-sm font-semibold text-ink-primary">
-              No session records logged yet
-            </div>
-            <p className="text-xs text-ink-secondary max-w-sm mx-auto leading-relaxed">
-              Complete practice drills or mock evaluations to track your accuracy and identify priority topics.
-            </p>
-            <div className="pt-2">
-              <Link
-                to="/practice"
-                className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold bg-ink-primary text-midnight-bg hover:bg-[#d1d4d9] transition-colors"
-              >
-                <span>Start Practice Drill</span>
-                <ArrowRight size={13} />
-              </Link>
-            </div>
-          </div>
+          <DodgeField onReset={load} />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {insights.trend.map((t, idx) => (
+          <AnimatedList className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredTrend.map((t, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-lg border border-midnight-border bg-midnight-subtle space-y-3"
+                className="p-4 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] space-y-3"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="font-semibold text-xs sm:text-sm text-ink-primary truncate">
+                  <span className="font-semibold text-xs sm:text-sm text-[var(--text-primary)] truncate">
                     {t.topic}
-                  </div>
+                  </span>
                   <span
                     className={`text-xs font-bold px-2 py-0.5 rounded font-mono shrink-0 ${
                       t.accuracy >= 70
-                        ? 'bg-midnight-positive/15 text-midnight-positive border border-midnight-positive/30'
+                        ? 'bg-[var(--positive)]/15 text-[var(--positive)] border border-[var(--positive)]/30'
                         : t.accuracy >= 40
-                        ? 'bg-midnight-warning/15 text-midnight-warning border border-midnight-warning/30'
-                        : 'bg-midnight-error/15 text-midnight-error border border-midnight-error/30'
+                        ? 'bg-[var(--warning)]/15 text-[var(--warning)] border border-[var(--warning)]/30'
+                        : 'bg-[var(--error)]/15 text-[var(--error)] border border-[var(--error)]/30'
                     }`}
                   >
                     {t.accuracy}%
                   </span>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="w-full h-1.5 rounded-full bg-midnight-surface overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        t.accuracy >= 70
-                          ? 'bg-midnight-positive'
-                          : t.accuracy >= 40
-                          ? 'bg-midnight-warning'
-                          : 'bg-midnight-error'
-                      }`}
-                      style={{ width: `${Math.min(100, Math.max(0, t.accuracy))}%` }}
-                    />
-                  </div>
+                <div className="w-full h-1.5 rounded-full bg-[var(--surface)] overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      t.accuracy >= 70
+                        ? 'bg-[var(--positive)]'
+                        : t.accuracy >= 40
+                        ? 'bg-[var(--warning)]'
+                        : 'bg-[var(--error)]'
+                    }`}
+                    style={{ width: `${Math.min(100, Math.max(0, t.accuracy))}%` }}
+                  />
                 </div>
 
-                <div className="text-[11px] text-ink-muted flex items-center justify-between font-mono">
+                <div className="text-[11px] font-mono text-[var(--text-muted)] flex items-center justify-between">
                   <span>{new Date(t.at).toLocaleDateString()}</span>
                   <span>
                     {new Date(t.at).toLocaleTimeString([], {
@@ -290,53 +343,9 @@ function Progress() {
                 </div>
               </div>
             ))}
-          </div>
+          </AnimatedList>
         )}
       </div>
-    </div>
-  );
-}
-
-function InsightCard({
-  title,
-  value,
-  hint,
-  loading,
-  progress,
-  tone,
-}: {
-  title: string;
-  value: string;
-  hint?: string;
-  loading?: boolean;
-  progress?: number;
-  tone?: 'positive' | 'warning' | 'error';
-}) {
-  return (
-    <div className="rounded-xl border border-midnight-border bg-midnight-surface p-4 sm:p-5 flex flex-col justify-between space-y-3">
-      <div className="space-y-1.5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">
-          {title}
-        </div>
-        <div
-          className={`text-2xl font-semibold font-display tracking-tight tabular-nums truncate ${
-            tone === 'warning' ? 'text-midnight-warning' : 'text-ink-primary'
-          }`}
-        >
-          {loading ? '…' : value}
-        </div>
-      </div>
-
-      {typeof progress === 'number' && (
-        <div className="w-full h-1.5 rounded-full bg-midnight-subtle overflow-hidden">
-          <div
-            className="h-full rounded-full bg-midnight-accent transition-all duration-300"
-            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-          />
-        </div>
-      )}
-
-      {hint && <div className="text-xs text-ink-muted">{hint}</div>}
     </div>
   );
 }
