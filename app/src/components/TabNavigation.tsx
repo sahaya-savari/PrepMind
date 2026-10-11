@@ -1,55 +1,39 @@
 import { NavLink } from 'react-router-dom';
-import { Home, MessageSquare, Brain, BarChart3 } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { Home, Brain, MessageCircle, BarChart3 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-function TabNavigation() {
-  const tabs = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/practice', label: 'Practice', icon: Brain },
-    { path: '/chat', label: 'Chat', icon: MessageSquare },
-    { path: '/progress', label: 'Progress', icon: BarChart3 },
-  ];
+const tabs = [
+  { path: '/', label: 'Home', icon: Home },
+  { path: '/practice', label: 'Practice', icon: Brain },
+  { path: '/chat', label: 'AI Tutor', icon: MessageCircle },
+  { path: '/progress', label: 'Progress', icon: BarChart3 },
+];
 
+function TabNavigation() {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 h-16 bg-gradient-to-t from-black/70 via-slate-950/70 to-slate-900/40 backdrop-blur-xl border-t border-white/10"
-      aria-label="Main navigation"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-midnight-surface/95 backdrop-blur-md border-t border-midnight-border pb-[env(safe-area-inset-bottom)]"
+      aria-label="Mobile navigation"
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-around h-full px-3">
-        {tabs.map((tab, idx) => {
+      <div className="mx-auto flex max-w-lg items-center justify-around h-full px-2">
+        {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <NavLink
               key={tab.path}
               to={tab.path}
               end={tab.path === '/'}
-              tabIndex={0}
               aria-label={tab.label}
-              className={({ isActive, isPending }) =>
+              className={({ isActive }) =>
                 cn(
-                  'flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition-all outline-none',
-                  'text-slate-300 hover:text-white hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-cyan-400',
-                  isActive && 'text-white bg-white/10 border border-white/10 shadow-lg shadow-indigo-500/20',
-                  isPending && 'opacity-60'
+                  'flex flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 text-[11px] font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent min-h-[44px] min-w-[56px]',
+                  isActive
+                    ? 'text-midnight-accent font-bold'
+                    : 'text-ink-muted hover:text-ink-primary'
                 )
               }
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  (e.target as HTMLElement).click();
-                }
-                // Keyboard arrow navigation
-                if (e.key === 'ArrowRight') {
-                  const next = (e.currentTarget.parentElement?.children?.[idx + 1] as HTMLElement) || e.currentTarget.parentElement?.children?.[0];
-                  next?.focus();
-                }
-                if (e.key === 'ArrowLeft') {
-                  const prev = (e.currentTarget.parentElement?.children?.[idx - 1] as HTMLElement) || e.currentTarget.parentElement?.children?.[tabs.length - 1];
-                  prev?.focus();
-                }
-              }}
             >
-              <Icon className="h-4 w-4" aria-hidden />
+              <Icon className="h-5 w-5" aria-hidden />
               <span>{tab.label}</span>
             </NavLink>
           );

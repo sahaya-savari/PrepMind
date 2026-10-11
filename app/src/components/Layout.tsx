@@ -5,10 +5,10 @@ import { ThemeProvider } from '../context/ThemeContext';
 function Layout({ children }: PropsWithChildren) {
   return (
     <ThemeProvider>
-      <div className="min-h-screen flex flex-col text-primary bg-gradient-to-br from-[#0B0F14] via-[#0d1320] to-[#0B0F14] transition-colors">
+      <div className="min-h-screen flex flex-col bg-midnight-bg text-ink-primary transition-colors selection:bg-midnight-accent selection:text-midnight-bg">
         <Header />
-        <main className="flex-1 w-full">
-          <div className="container-shell space-y-10 pb-16">{children}</div>
+        <main className="flex-1 w-full" id="main-content">
+          <div className="container-shell">{children}</div>
         </main>
       </div>
     </ThemeProvider>

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { supabase } from './db.js';
+import aiHandler from '../api/ai.js';
 
 dotenv.config();
 
@@ -39,6 +40,8 @@ app.use((req, res, next) => {
   if (fresh.length > RATE_LIMIT) return res.status(429).json({ error: 'Too many requests, slow down' });
   next();
 });
+
+app.all('/api/ai', (req, res) => aiHandler(req, res));
 
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization || '';

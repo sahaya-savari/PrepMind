@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useExam } from '../context/ExamContext';
 import { motion } from 'framer-motion';
+import { ArrowRight, BookOpen, Brain, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import AnimatedButton from '../components/AnimatedButton';
 import AnimatedCard from '../components/AnimatedCard';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -15,18 +16,28 @@ import {
   type Interview,
   type QuestionRow,
 } from '../api';
-import { generateQuestions } from '../api';
 
 type Status = 'idle' | 'ok' | 'error';
+
 const listVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' } },
 };
+
+const POPULAR_EXAMS = [
+  'GATE CSE',
+  'CAT 2025',
+  'TCS NQT',
+  'UPSC CSE',
+  'JEE Advanced',
+  'NEET UG',
+  'SBI PO',
+];
 
 function Home() {
   const [apiStatus, setApiStatus] = useState<Status>('idle');
@@ -45,7 +56,8 @@ function Home() {
     loadInterviews();
   }, []);
 
-  const setBusy = (key: string, value: boolean) => setLoading((prev) => ({ ...prev, [key]: value }));
+  const setBusy = (key: string, value: boolean) =>
+    setLoading((prev) => ({ ...prev, [key]: value }));
 
   const healthCheck = async () => {
     setBusy('health', true);
@@ -84,15 +96,18 @@ function Home() {
 
   const onCreateInterview = async () => {
     const role = form.role.trim();
-    if (!role) { setError('Role is required'); return; }
+    if (!role) {
+      setError('Role or Subject is required');
+      return;
+    }
     setBusy('create', true);
     setError('');
     try {
       const titleLabel = form.difficulty ? `${role} • ${form.difficulty}` : role;
       const { interview } = await createInterview({ title: titleLabel });
-      setToast('Interview created');
+      setToast('Interview session initialized');
       setForm({ name: '', role: '', difficulty: 'Intermediate' });
-      setSelected(interview.id.toString());
+      setExam(interview.id.toString());
       await loadInterviews();
     } catch (e: any) {
       setError(e.message || 'Failed to create interview');
@@ -102,7 +117,10 @@ function Home() {
   };
 
   const onFetchQuestions = async () => {
-    if (!exam) { setError('Pick an interview'); return; }
+    if (!exam) {
+      setError('Select an interview target first');
+      return;
+    }
     setBusy('questions', true);
     setError('');
     try {
@@ -116,40 +134,33 @@ function Home() {
     }
   };
 
-  const onGenerateQuestions = async () => {
-    setBusy('questions', true);
-    setError('');
-    try {
-      // Example: use form.role as topic, form.difficulty as difficulty
-      const topic = form.role || 'AI';
-      const difficulty = form.difficulty || 'easy';
-      const data = await generateQuestions(topic, difficulty);
-      setQuestions(Array.isArray(data.questions) ? data.questions : []);
-      setToast('Questions generated');
-    } catch (e: any) {
-      setError(e.message || 'Failed to generate questions');
-    } finally {
-      setBusy('questions', false);
-    }
-  };
-
   const onStartInterview = async () => {
-    if (!exam) { setError('Pick an interview'); return; }
+    if (!exam) {
+      setError('Pick an interview session');
+      return;
+    }
     if (!questions.length) {
       await onFetchQuestions();
       return;
     }
-    setToast('Ready to start — questions loaded');
+    setToast('Ready to start — questions prepared');
   };
 
   const onSaveResult = async () => {
-    if (!selected) { setError('Pick an interview'); return; }
+    if (!exam) {
+      setError('Pick an interview first');
+      return;
+    }
     setBusy('result', true);
     setError('');
     try {
-      await saveResult({ interviewId: exam, score: Number(resultForm.score), feedback: resultForm.feedback });
+      await saveResult({
+        interviewId: exam,
+        score: Number(resultForm.score),
+        feedback: resultForm.feedback,
+      });
       setResultForm({ score: '', feedback: '' });
-      setToast('Result saved');
+      setToast('Result logged successfully');
     } catch (e: any) {
       setError(e.message || 'Failed to save result');
     } finally {
@@ -163,282 +174,451 @@ function Home() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const currentInterview = useMemo(() => interviews.find((i) => String(i.id) === String(exam)), [interviews, exam]);
-
-  const statusTone = (status: Status) =>
-    status === 'ok'
-      ? 'border-emerald-400/40 text-emerald-200 bg-emerald-500/10'
-      : status === 'error'
-        ? 'border-amber-400/50 text-amber-200 bg-amber-500/10'
-        : 'border-white/15 text-white/70 bg-white/5';
+  const currentInterview = useMemo(
+    () => interviews.find((i) => String(i.id) === String(exam)),
+    [interviews, exam]
+  );
 
   return (
-    <main className="bg-slate-950">
-      <section className="max-w-6xl mx-auto px-6 md:px-10 py-10 space-y-10">
-        <div className="text-center space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">PrepMind Interview Copilot</p>
-          <h1 className="text-3xl md:text-4xl font-bold text-white">Premium AI interview lane</h1>
-          <p className="text-sm text-gray-300">Connected to Supabase, Express API, and Vite — end-to-end flow for setup, generation, and results.</p>
-          <div className="flex flex-wrap justify-center gap-3 pt-2">
-            <span className={`px-3 py-2 rounded-full text-xs font-semibold border ${statusTone(apiStatus)}`}>API {apiStatus}</span>
-            <span className={`px-3 py-2 rounded-full text-xs font-semibold border ${statusTone(supabaseStatus)}`}>Supabase {supabaseStatus}</span>
-            <AnimatedButton onClick={healthCheck} disabled={loading.health} className="min-w-[180px]">
-              {loading.health ? 'Checking…' : 'Re-run health check'}
-            </AnimatedButton>
+    <div className="space-y-12">
+      {/* Editorial Overview Section */}
+      <section className="space-y-6 pt-2">
+        <div className="space-y-3 max-w-3xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-midnight-accentSoft border border-midnight-accent/30 text-midnight-accent">
+            <span className="h-1.5 w-1.5 rounded-full bg-midnight-accent animate-pulse" />
+            PrepMind Midnight Learning Engine
           </div>
-          {toast && <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-emerald-300">{toast}</motion.div>}
-          {error && <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-amber-300">{error}</motion.div>}
+
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-display tracking-tight text-ink-primary leading-tight">
+            Distraction-free preparation for high-stakes examinations.
+          </h1>
+
+          <p className="text-sm sm:text-base text-ink-secondary leading-relaxed">
+            Personalized practice drills, adaptive multiple-choice evaluations, and structured AI tutoring calibrated to your curriculum and weak areas.
+          </p>
         </div>
 
-        <SectionContainer
-          badge="Phase 1"
-          title="Setup Interview"
-          description="Create interview records with Supabase and keep the runway clear with live health checks."
-        >
-          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <AnimatedCard className="rounded-xl border border-gray-800 bg-slate-900 shadow-lg space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-300">Use role + difficulty to seed Supabase via Express.</p>
-                  <div className="flex flex-wrap gap-2 text-xs text-gray-400">
-                    <span className="px-2 py-1 rounded-lg bg-slate-800 border border-gray-800">API: {import.meta.env.VITE_API_BASE || 'http://localhost:5000'}</span>
-                    <span className="px-2 py-1 rounded-lg bg-slate-800 border border-gray-800">Supabase: {import.meta.env.VITE_SUPABASE_URL ? 'Configured' : 'Missing URL'}</span>
-                  </div>
-                </div>
-                {loading.create && <LoadingSpinner label="Saving" />}
-              </div>
+        {/* Target Exam Switcher */}
+        <div className="p-4 sm:p-5 rounded-xl border border-midnight-border bg-midnight-surface space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink-muted">
+              Select Examination Target
+            </span>
+            {exam && (
+              <span className="text-xs text-midnight-accent font-medium">
+                Active: <strong className="text-ink-primary">{exam}</strong>
+              </span>
+            )}
+          </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs text-white/70">Candidate name (optional)</label>
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                    className="w-full px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white placeholder:text-gray-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
-                    placeholder="Alex Doe"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-white/70">Role / Title *</label>
-                  <input
-                    value={form.role}
-                    onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
-                    className="w-full px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white placeholder:text-gray-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
-                    placeholder="Senior Full-stack"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-white/70">Difficulty</label>
-                  <select
-                    value={form.difficulty}
-                    onChange={(e) => setForm((p) => ({ ...p, difficulty: e.target.value }))}
-                    className="w-full px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
-                  >
-                    <option value="Beginner" className="bg-slate-900">Beginner</option>
-                    <option value="Intermediate" className="bg-slate-900">Intermediate</option>
-                    <option value="Advanced" className="bg-slate-900">Advanced</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <AnimatedButton onClick={onCreateInterview} disabled={loading.create} className="min-w-[160px]">
-                  {loading.create ? 'Creating…' : 'Create interview'}
-                </AnimatedButton>
-                <AnimatedButton
-                  glow={false}
-                  onClick={loadInterviews}
-                  disabled={loading.interviews}
-                  className="bg-slate-800 border border-gray-800 hover:border-cyan-500/50"
+          <div className="flex flex-wrap items-center gap-2">
+            {POPULAR_EXAMS.map((ex) => {
+              const isSelected = exam === ex;
+              return (
+                <button
+                  key={ex}
+                  type="button"
+                  onClick={() => {
+                    setExam(ex);
+                    setToast(`Target set to ${ex}`);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent ${
+                    isSelected
+                      ? 'bg-midnight-accent text-[#0B0D12] shadow-sm font-bold'
+                      : 'bg-midnight-subtle border border-midnight-border text-ink-secondary hover:text-ink-primary hover:border-midnight-accent/50'
+                  }`}
                 >
-                  {loading.interviews ? 'Refreshing…' : 'Refresh list'}
-                </AnimatedButton>
-              </div>
-            </AnimatedCard>
+                  {ex}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-            <AnimatedCard className="rounded-xl border border-gray-800 bg-slate-900 shadow-lg space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="text-xs text-cyan-300 font-semibold">Supabase live</p>
-                  <h3 className="text-xl font-semibold text-white">Recent interviews</h3>
-                  <p className="text-sm text-gray-300">Select one to drive questions and results.</p>
-                </div>
-                {loading.interviews && <LoadingSpinner label="Loading" />}
+        {/* Primary Learning Pillar Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1: Practice */}
+          <div className="p-5 rounded-xl border border-midnight-border bg-midnight-surface hover:border-midnight-accent/50 transition-all flex flex-col justify-between group space-y-4">
+            <div className="space-y-3">
+              <div className="h-10 w-10 rounded-lg bg-midnight-accentSoft border border-midnight-accent/30 flex items-center justify-center text-midnight-accent">
+                <Brain size={20} />
+              </div>
+              <h2 className="text-lg font-bold font-display text-ink-primary group-hover:text-midnight-accent transition-colors">
+                Adaptive MCQ Practice
+              </h2>
+              <p className="text-xs text-ink-secondary leading-relaxed">
+                Subject-specific multiple-choice drills with instant Socratic reasoning and verified offline question fallback.
+              </p>
+            </div>
+            <a
+              href="/practice"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold bg-midnight-accent text-[#0B0D12] hover:bg-midnight-accentHover transition-colors text-center"
+            >
+              <span>Start Practice Session</span>
+              <ArrowRight size={14} />
+            </a>
+          </div>
+
+          {/* Card 2: AI Tutor */}
+          <div className="p-5 rounded-xl border border-midnight-border bg-midnight-surface hover:border-midnight-accent/50 transition-all flex flex-col justify-between group space-y-4">
+            <div className="space-y-3">
+              <div className="h-10 w-10 rounded-lg bg-midnight-subtle border border-midnight-border flex items-center justify-center text-ink-primary">
+                <BookOpen size={20} />
+              </div>
+              <h2 className="text-lg font-bold font-display text-ink-primary group-hover:text-midnight-accent transition-colors">
+                Socratic AI Study Tutor
+              </h2>
+              <p className="text-xs text-ink-secondary leading-relaxed">
+                Step-by-step guidance on complex formulas, algorithmic proofs, and conceptual bottlenecks with multi-provider cascade.
+              </p>
+            </div>
+            <a
+              href="/chat"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold bg-midnight-subtle border border-midnight-border text-ink-primary hover:bg-midnight-elevated hover:border-midnight-accent/60 transition-colors text-center"
+            >
+              <span>Launch AI Tutor</span>
+              <ArrowRight size={14} />
+            </a>
+          </div>
+
+          {/* Card 3: Performance Tracking */}
+          <div className="p-5 rounded-xl border border-midnight-border bg-midnight-surface hover:border-midnight-accent/50 transition-all flex flex-col justify-between group space-y-4">
+            <div className="space-y-3">
+              <div className="h-10 w-10 rounded-lg bg-midnight-positive/10 border border-midnight-positive/30 flex items-center justify-center text-midnight-positive">
+                <CheckCircle2 size={20} />
+              </div>
+              <h2 className="text-lg font-bold font-display text-ink-primary group-hover:text-midnight-positive transition-colors">
+                Performance Analytics
+              </h2>
+              <p className="text-xs text-ink-secondary leading-relaxed">
+                Transparent accuracy trends, score distributions, and domain-level weak spots without arbitrary filler statistics.
+              </p>
+            </div>
+            <a
+              href="/progress"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold bg-midnight-subtle border border-midnight-border text-ink-primary hover:bg-midnight-elevated hover:border-midnight-accent/60 transition-colors text-center"
+            >
+              <span>View Progress</span>
+              <ArrowRight size={14} />
+            </a>
+          </div>
+        </div>
+
+        {/* System Diagnostics Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-midnight-border bg-midnight-subtle/50 text-xs text-ink-secondary">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  apiStatus === 'ok' ? 'bg-midnight-positive' : 'bg-midnight-warning'
+                }`}
+              />
+              <span>
+                AI Engine:{' '}
+                <strong className="text-ink-primary">
+                  {apiStatus === 'ok' ? 'Online (Groq + NIM + Gemini)' : 'Local Fallback Ready'}
+                </strong>
+              </span>
+            </span>
+            <span className="text-midnight-border">|</span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  supabaseStatus === 'ok' ? 'bg-midnight-positive' : 'bg-ink-muted'
+                }`}
+              />
+              <span>
+                Cloud Sync:{' '}
+                <strong className="text-ink-primary">
+                  {supabaseStatus === 'ok' ? 'Connected' : 'Offline / Guest Session'}
+                </strong>
+              </span>
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={healthCheck}
+            disabled={loading.health}
+            className="inline-flex items-center gap-1 text-ink-muted hover:text-midnight-accent transition-colors underline outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent"
+          >
+            <RefreshCw size={12} className={loading.health ? 'animate-spin' : ''} />
+            <span>{loading.health ? 'Diagnosing…' : 'Check status'}</span>
+          </button>
+        </div>
+
+        {/* Toast / Notification Feed */}
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-xs text-midnight-positive bg-midnight-positive/10 border border-midnight-positive/30 py-2 px-3.5 rounded-lg flex items-center gap-2"
+          >
+            <CheckCircle2 size={14} />
+            <span>{toast}</span>
+          </motion.div>
+        )}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-xs text-midnight-warning bg-midnight-warning/10 border border-midnight-warning/30 py-2 px-3.5 rounded-lg flex items-center gap-2"
+          >
+            <AlertTriangle size={14} />
+            <span>{error}</span>
+          </motion.div>
+        )}
+      </section>
+
+      {/* Preserved Workspace & Session Management */}
+      <SectionContainer
+        badge="Session Seed"
+        title="Interview & Topic Session Configuration"
+        description="Configure structured exam subjects, seed questions, and persist scores."
+      >
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-start">
+          {/* Creation form */}
+          <AnimatedCard className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold font-display text-ink-primary">
+                  Create Preparation Session
+                </h3>
+                <p className="text-xs text-ink-secondary">
+                  Specify topic domain and difficulty level.
+                </p>
+              </div>
+              {loading.create && <LoadingSpinner label="Saving" />}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3.5 pt-1">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink-secondary">
+                  Candidate / Student ID
+                </label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-midnight-border bg-midnight-subtle text-ink-primary placeholder:text-ink-muted focus:border-midnight-accent focus:outline-none focus:ring-1 focus:ring-midnight-accent"
+                  placeholder="e.g. Scholar"
+                />
               </div>
 
-              <motion.ul
-                variants={listVariants}
-                initial="hidden"
-                animate="visible"
-                className="space-y-3 max-h-[320px] overflow-y-auto pr-1"
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink-secondary">
+                  Role / Target Domain *
+                </label>
+                <input
+                  value={form.role}
+                  onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-midnight-border bg-midnight-subtle text-ink-primary placeholder:text-ink-muted focus:border-midnight-accent focus:outline-none focus:ring-1 focus:ring-midnight-accent"
+                  placeholder="e.g. Algorithms & Complexity"
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-semibold text-ink-secondary">Difficulty</label>
+                <select
+                  value={form.difficulty}
+                  onChange={(e) => setForm((p) => ({ ...p, difficulty: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-midnight-border bg-midnight-subtle text-ink-primary focus:border-midnight-accent focus:outline-none focus:ring-1 focus:ring-midnight-accent"
+                >
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <AnimatedButton
+                onClick={onCreateInterview}
+                disabled={loading.create}
+                className="min-w-[140px]"
               >
-                {interviews.map((item) => (
+                {loading.create ? 'Creating…' : 'Create Session'}
+              </AnimatedButton>
+              <AnimatedButton
+                variant="secondary"
+                onClick={loadInterviews}
+                disabled={loading.interviews}
+              >
+                {loading.interviews ? 'Refreshing…' : 'Refresh Sessions'}
+              </AnimatedButton>
+            </div>
+          </AnimatedCard>
+
+          {/* Active interview picker */}
+          <AnimatedCard className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold font-display text-ink-primary">
+                  Recent Sessions
+                </h3>
+                <p className="text-xs text-ink-secondary">
+                  Choose a session to drive questions and evaluations.
+                </p>
+              </div>
+              {loading.interviews && <LoadingSpinner label="Loading" />}
+            </div>
+
+            <motion.ul
+              variants={listVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-2 max-h-[280px] overflow-y-auto pr-1"
+            >
+              {interviews.map((item) => {
+                const isActive = exam === String(item.id);
+                return (
                   <motion.li key={item.id} variants={itemVariants}>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      className={`w-full text-left p-4 rounded-xl border transition ${
-                        selected === String(item.id)
-                          ? 'border-cyan-500 bg-slate-800 shadow-lg'
-                          : 'border-gray-800 bg-slate-900 hover:border-gray-700'
+                    <button
+                      type="button"
+                      onClick={() => setExam(String(item.id))}
+                      className={`w-full text-left p-3 rounded-lg border transition-all text-xs outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent ${
+                        isActive
+                          ? 'border-midnight-accent bg-midnight-subtle shadow-sm'
+                          : 'border-midnight-border bg-midnight-surface hover:border-midnight-accent/40'
                       }`}
-                      onClick={() => setSelected(String(item.id))}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-semibold text-white">{item.title}</div>
-                        <span className="text-[11px] px-2 py-1 rounded-full bg-slate-800 border border-gray-800 text-gray-200">{item.name || 'Candidate'}</span>
+                        <div className="font-semibold text-ink-primary text-sm truncate">
+                          {item.title}
+                        </div>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-midnight-subtle border border-midnight-border text-ink-secondary">
+                          {item.name || 'Candidate'}
+                        </span>
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">{new Date(item.created_at || '').toLocaleString()}</div>
-                    </motion.button>
+                      <div className="text-[11px] text-ink-muted mt-1">
+                        {new Date(item.created_at || '').toLocaleDateString()}{' '}
+                        {new Date(item.created_at || '').toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                    </button>
                   </motion.li>
-                ))}
-                {!interviews.length && (
-                  <motion.li variants={itemVariants} className="text-sm text-gray-400">No interviews yet. Create one to begin.</motion.li>
-                )}
-              </motion.ul>
-            </AnimatedCard>
-          </div>
-        </SectionContainer>
-
-        <SectionContainer
-          badge="Phase 2"
-          title="Generate Questions"
-          description="Pull tailored prompts from Supabase and seed defaults when empty."
-        >
-          <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] items-start">
-            <AnimatedCard className="rounded-xl border border-gray-800 bg-slate-900 shadow-lg space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <h3 className="text-xl font-semibold text-white">Question pipeline</h3>
-                  <p className="text-sm text-gray-300">Loads stored questions and seeds defaults for a clean start.</p>
-                </div>
-                {loading.questions && <LoadingSpinner label="Preparing" />}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <AnimatedButton
-                  onClick={onFetchQuestions}
-                  disabled={loading.questions || !selected}
-                  className="min-w-[170px]"
-                >
-                  {loading.questions ? 'Fetching…' : 'Generate / Load questions'}
-                </AnimatedButton>
-                <span className="text-xs text-white/60">Target: {currentInterview?.title || 'Select an interview'}</span>
-              </div>
-
-              {loading.questions && (
-                <div className="rounded-xl border border-gray-800 bg-slate-800 px-4 py-3 text-sm text-gray-200">
-                  Streaming questions from Supabase…
-                </div>
+                );
+              })}
+              {!interviews.length && (
+                <li className="text-xs text-ink-muted py-6 text-center">
+                  No sessions recorded yet. Create one above to begin.
+                </li>
               )}
+            </motion.ul>
+          </AnimatedCard>
+        </div>
+      </SectionContainer>
 
-              <motion.ul
-                variants={listVariants}
-                initial="hidden"
-                animate="visible"
-                className="space-y-3"
+      {/* Question Pipeline & Results Saving */}
+      <SectionContainer
+        badge="Question Engine"
+        title="Drill Runway & Evaluation Records"
+        description="Stream prompts and persist test feedback to your database."
+      >
+        <div className="grid gap-6 lg:grid-cols-[1fr_1fr] items-start">
+          {/* Question Generator Card */}
+          <AnimatedCard className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold font-display text-ink-primary">
+                  Question Runway
+                </h3>
+                <p className="text-xs text-ink-secondary">
+                  Active target: {currentInterview?.title || 'Select session'}
+                </p>
+              </div>
+              {loading.questions && <LoadingSpinner label="Loading" />}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <AnimatedButton
+                onClick={onStartInterview}
+                disabled={!exam}
+                className="min-w-[150px]"
               >
-                {questions.map((q, idx) => (
-                  <motion.li
-                    key={q.id}
-                    variants={itemVariants}
-                    className="p-4 rounded-xl bg-slate-800 border border-gray-800 text-sm text-gray-100 shadow-inner shadow-black/20"
-                  >
-                    <div className="text-xs text-gray-400 mb-1">Question {idx + 1}</div>
-                    <div className="font-semibold leading-relaxed text-gray-100">{q.question}</div>
-                  </motion.li>
-                ))}
-              </motion.ul>
-
-              {!questions.length && !loading.questions && (
-                <div className="text-sm text-white/60">No questions yet — generate to seed defaults.</div>
-              )}
-            </AnimatedCard>
-
-            <AnimatedCard className="rounded-xl border border-gray-800 bg-slate-900 shadow-lg space-y-4">
-              <div className="space-y-1">
-                <p className="text-xs text-cyan-300 font-semibold">Context</p>
-                <h3 className="text-xl font-semibold text-white">Interview snapshot</h3>
-                <p className="text-sm text-gray-300">Live Supabase-backed details for the active interview.</p>
-              </div>
-              <div className="grid gap-3 text-sm text-white/80">
-                <div className="rounded-xl border border-gray-800 bg-slate-800 px-4 py-3">
-                  <div className="text-xs text-gray-400">Selected interview</div>
-                  <div className="font-semibold">{currentInterview?.title || 'None selected'}</div>
-                  <div className="text-xs text-gray-400">ID: {selected || '—'}</div>
-                </div>
-                <div className="rounded-xl border border-gray-800 bg-slate-800 px-4 py-3 space-y-1">
-                  <div className="text-xs text-gray-400">Supabase URL</div>
-                  <div className="truncate text-gray-200">{import.meta.env.VITE_SUPABASE_URL || 'Not set'}</div>
-                  <div className="text-xs text-gray-400">API base</div>
-                  <div className="text-gray-200">{(import.meta.env.VITE_API_BASE || 'http://localhost:5000').replace(/\/$/, '')}</div>
-                </div>
-              </div>
-            </AnimatedCard>
-          </div>
-        </SectionContainer>
-
-        <SectionContainer
-          badge="Phase 3"
-          title="Start Interview / Results"
-          description="Run the session, then persist scores + feedback back to Supabase."
-        >
-          <div className="grid gap-6 lg:grid-cols-[1fr_1fr] items-start">
-            <AnimatedCard className="rounded-xl border border-gray-800 bg-slate-900 shadow-lg space-y-5">
-              <div className="space-y-1">
-                <h3 className="text-xl font-semibold text-white">Interview runway</h3>
-                <p className="text-sm text-gray-300">Kick off with the selected interview and questions you just generated.</p>
-              </div>
-              <AnimatedButton onClick={onStartInterview} disabled={!selected} className="min-w-[180px]">
-                {questions.length ? 'Start interview now' : 'Load questions and start'}
+                {questions.length ? 'Start Drill Now' : 'Load Questions'}
               </AnimatedButton>
-              <div className="rounded-xl border border-gray-800 bg-slate-800 px-4 py-3 text-sm text-gray-200 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span>Active interview</span>
-                  <span className={`px-2 py-1 rounded-full text-[11px] border ${statusTone(apiStatus)}`}>API {apiStatus}</span>
-                </div>
-                <div className="font-semibold text-white">{currentInterview?.title || 'Select an interview to start'}</div>
-                <div className="text-xs text-white/50">Questions ready: {questions.length}</div>
-              </div>
-            </AnimatedCard>
+              <span className="text-xs text-ink-muted">
+                {questions.length} questions ready
+              </span>
+            </div>
 
-            <AnimatedCard className="rounded-xl border border-gray-800 bg-slate-900 shadow-lg space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-cyan-300 font-semibold">Persist results</p>
-                  <h3 className="text-xl font-semibold text-white">Save score + feedback</h3>
-                </div>
-                {loading.result && <LoadingSpinner label="Saving" />}
+            <motion.ul
+              variants={listVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-2.5 max-h-[240px] overflow-y-auto pr-1"
+            >
+              {questions.map((q, idx) => (
+                <motion.li
+                  key={q.id}
+                  variants={itemVariants}
+                  className="p-3 rounded-lg bg-midnight-subtle border border-midnight-border text-xs text-ink-primary space-y-1"
+                >
+                  <span className="text-[10px] font-bold text-midnight-accent uppercase tracking-wider">
+                    Question {idx + 1}
+                  </span>
+                  <div className="font-medium leading-relaxed">{q.question}</div>
+                </motion.li>
+              ))}
+            </motion.ul>
+
+            {!questions.length && !loading.questions && (
+              <div className="text-xs text-ink-muted p-4 rounded-lg border border-dashed border-midnight-border text-center">
+                Click <strong>Load Questions</strong> to stream stored prompts.
               </div>
-              <div className="space-y-2">
-                <label className="text-xs text-white/70">Score (0-100)</label>
+            )}
+          </AnimatedCard>
+
+          {/* Persist Score & Feedback Card */}
+          <AnimatedCard className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold font-display text-ink-primary">
+                  Persist Performance
+                </h3>
+                <p className="text-xs text-ink-secondary">
+                  Log evaluation scores and feedback comments.
+                </p>
+              </div>
+              {loading.result && <LoadingSpinner label="Saving" />}
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-ink-secondary">Score (0–100)</label>
                 <input
                   value={resultForm.score}
                   onChange={(e) => setResultForm((p) => ({ ...p, score: e.target.value }))}
-                  className="w-full px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white placeholder:text-gray-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-midnight-border bg-midnight-subtle text-ink-primary placeholder:text-ink-muted focus:border-midnight-accent focus:outline-none focus:ring-1 focus:ring-midnight-accent tabular-nums"
                   placeholder="85"
                   inputMode="numeric"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs text-white/70">Feedback</label>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-ink-secondary">Feedback Notes</label>
                 <textarea
                   value={resultForm.feedback}
                   onChange={(e) => setResultForm((p) => ({ ...p, feedback: e.target.value }))}
-                  className="w-full min-h-[140px] px-3 py-3 rounded-xl border border-gray-800 bg-slate-800 text-white placeholder:text-gray-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
-                  placeholder="Great systems depth, tighten API design examples."
+                  className="w-full min-h-[90px] px-3 py-2 text-sm rounded-lg border border-midnight-border bg-midnight-subtle text-ink-primary placeholder:text-ink-muted focus:border-midnight-accent focus:outline-none focus:ring-1 focus:ring-midnight-accent"
+                  placeholder="Strong problem formulation; tighten recursion complexity analysis."
                 />
               </div>
-              <AnimatedButton onClick={onSaveResult} disabled={loading.result || !selected} className="w-full">
-                {loading.result ? 'Saving…' : 'Save result to Supabase'}
+
+              <AnimatedButton
+                onClick={onSaveResult}
+                disabled={loading.result || !exam}
+                className="w-full"
+              >
+                {loading.result ? 'Saving…' : 'Save Result to Database'}
               </AnimatedButton>
-              {currentInterview && (
-                <div className="text-xs text-white/60">Target interview: {currentInterview.title}</div>
-              )}
-            </AnimatedCard>
-          </div>
-        </SectionContainer>
-      </section>
-    </main>
+            </div>
+          </AnimatedCard>
+        </div>
+      </SectionContainer>
+    </div>
   );
 }
 

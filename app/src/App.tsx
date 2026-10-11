@@ -6,7 +6,7 @@ function App() {
   return (
     <Layout>
       <Outlet />
-      <div className="h-16" />
+      <div className="h-16 md:hidden" />
       <TabNavigation />
     </Layout>
   );

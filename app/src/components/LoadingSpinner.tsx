@@ -4,12 +4,12 @@ type Props = {
 
 function LoadingSpinner({ label = 'Loading' }: Props) {
   return (
-    <div className="flex items-center gap-3 text-ink-200">
-      <span className="relative h-4 w-4">
-        <span className="absolute inset-0 rounded-full border-2 border-accent-400 opacity-20"></span>
-        <span className="absolute inset-0 rounded-full border-2 border-accent-400 border-t-transparent animate-spin"></span>
+    <div className="inline-flex items-center gap-2.5 text-ink-secondary text-xs font-medium" role="status" aria-live="polite">
+      <span className="relative h-4 w-4 shrink-0">
+        <span className="absolute inset-0 rounded-full border-2 border-midnight-accent/20"></span>
+        <span className="absolute inset-0 rounded-full border-2 border-midnight-accent border-t-transparent animate-spin"></span>
       </span>
-      <span className="text-sm">{label}…</span>
+      <span>{label}…</span>
     </div>
   );
 }

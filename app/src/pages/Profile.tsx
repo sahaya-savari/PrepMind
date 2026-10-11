@@ -1,47 +1,94 @@
-import { useAuth } from '../hooks/useAuth';
+import { useState } from 'react';
+import { useExam } from '../context/ExamContext';
+import { User, Award, Target, BookOpen } from 'lucide-react';
 
 function Profile() {
-  const { user, data, logout } = useAuth();
-  const accuracy = data.progress.total > 0 ? Math.round((data.progress.correct / data.progress.total) * 100) : 0;
+  const { exam } = useExam();
+  const [attempts] = useState<any[]>(() => {
+    try {
+      const raw = localStorage.getItem('mcq_attempts');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const correctAttempts = attempts.filter((a) => a.score > 0).length;
+  const accuracy =
+    attempts.length > 0 ? Math.round((correctAttempts / attempts.length) * 100) : 0;
 
   return (
-    <section className="space-y-6 py-6">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-3xl font-bold text-white">Profile</h2>
-          <p className="text-gray-300 text-sm">Your identity, stats, and progress.</p>
-        </div>
-        <button className="soft-button" onClick={logout}>Logout</button>
+    <div className="space-y-8 max-w-4xl mx-auto">
+      {/* Header */}
+      <header className="border-b border-midnight-border pb-4">
+        <h1 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-ink-primary">
+          Student Profile
+        </h1>
+        <p className="text-xs sm:text-sm text-ink-secondary">
+          Active target exam, performance summary, and session preferences.
+        </p>
       </header>
 
-      <div className="card-surface p-6 space-y-4">
-        <div className="text-sm text-gray-300">Name</div>
-        <div className="text-2xl font-semibold text-white">{user?.name}</div>
-        <div className="text-sm text-gray-300">Email</div>
-        <div className="text-lg text-white">{user?.email}</div>
+      {/* Profile Overview Card */}
+      <div className="rounded-xl border border-midnight-border bg-midnight-surface p-5 sm:p-6 flex items-center gap-4">
+        <div className="w-14 h-14 rounded-xl bg-midnight-accentSoft border border-midnight-accent/30 flex items-center justify-center text-midnight-accent font-bold text-xl shrink-0">
+          <User size={26} />
+        </div>
+        <div className="space-y-0.5">
+          <div className="text-base sm:text-lg font-bold font-display text-ink-primary">
+            PrepMind Scholar
+          </div>
+          <div className="text-xs text-ink-muted">
+            Guest Session &bull; Local Storage Persistence Active
+          </div>
+        </div>
       </div>
 
+      {/* Metrics Grid */}
       <div className="grid sm:grid-cols-3 gap-4">
-        <StatCard label="Accuracy" value={`${accuracy}%`} sub={`${data.progress.total} questions`} />
-        <StatCard label="Current Exam" value={data.exam || 'Not set'} sub={data.overview ? 'Overview saved' : 'No overview yet'} />
-        <StatCard label="Recent Exams" value={(data.recentExams[0] || 'None')} sub={`${data.recentExams.length} saved`} />
+        <StatCard
+          icon={<Award size={18} className="text-midnight-positive" />}
+          label="Practice Accuracy"
+          value={`${accuracy}%`}
+          sub={`${attempts.length} logged drill sessions`}
+        />
+        <StatCard
+          icon={<Target size={18} className="text-midnight-accent" />}
+          label="Active Target Exam"
+          value={exam || 'Not Selected'}
+          sub="Configured in header bar"
+        />
+        <StatCard
+          icon={<BookOpen size={18} className="text-midnight-info" />}
+          label="Latest Drill Subject"
+          value={attempts[0]?.topic || 'None'}
+          sub={attempts[0] ? new Date(attempts[0].at).toLocaleDateString() : 'No attempts logged'}
+        />
       </div>
-    </section>
+    </div>
   );
 }
 
 type StatProps = {
+  icon?: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
 };
 
-function StatCard({ label, value, sub }: StatProps) {
+function StatCard({ icon, label, value, sub }: StatProps) {
   return (
-    <div className="card-surface p-4 space-y-1">
-      <div className="text-sm text-gray-400">{label}</div>
-      <div className="text-xl font-bold text-white">{value}</div>
-      {sub && <div className="text-xs text-gray-400">{sub}</div>}
+    <div className="rounded-xl border border-midnight-border bg-midnight-surface p-4 sm:p-5 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-semibold text-ink-muted uppercase tracking-wider">
+          {label}
+        </div>
+        {icon}
+      </div>
+      <div className="text-xl sm:text-2xl font-bold font-display text-ink-primary truncate tabular-nums">
+        {value}
+      </div>
+      {sub && <div className="text-xs text-ink-muted">{sub}</div>}
     </div>
   );
 }
