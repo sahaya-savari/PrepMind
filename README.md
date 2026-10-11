@@ -7,7 +7,7 @@
 Adaptive practice questions · Socratic AI tutoring · Concept deep dives · Notes retrieval · Progress analytics
 for CAT, GATE, UPSC, JEE, NEET and custom exams.
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-prep--weblearning.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://prep-weblearning.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_Site-black?style=for-the-badge)](https://prep-weblearning.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](#license)
 [![Open Source](https://img.shields.io/badge/Open_Source-Yes-2ea44f?style=for-the-badge&logo=github)](https://github.com/sahaya-savari/PrepMind)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](#contributing)
