@@ -1,34 +1,51 @@
 # PREPMIND AI — PRODUCTION READINESS PRD & AUDIT REPORT
 
-**Date:** October 11, 2026  
-**Auditor:** Senior Software Engineer, QA Lead, Application Security Reviewer & SEO Auditor  
-**Repository:** `D:\PrepMind`  
-**Target Branch:** `ui-terminal-dark`  
-**Live Production Host:** `https://prep-weblearning.vercel.app/`  
+**Date:** October 11, 2026<br>
+**Auditor:** Senior Software Engineer, QA Lead, Application Security Reviewer & SEO Auditor<br>
+**Repository:** `D:\PrepMind` (Destination / Sole Production Source of Truth)<br>
+**Reference Clone:** `D:\clone-prepmind` (Google AI Studio Read-Only Frontend Reference)<br>
+**Target Branch:** `ui-terminal-dark`<br>
+**Live Production Host:** `https://prep-weblearning.vercel.app/`<br>
 **Overall Readiness Status:** **CONDITIONAL GO (CODEBASE REMEDIATED & READY FOR DEPLOYMENT)**
 
 ---
 
 ## A. EXECUTIVE SUMMARY
 
-Following the comprehensive audit of PrepMind AI, all safely remediable **P0 Critical Blockers** and **SEO requirements** have been implemented and verified in the repository.
+Following the comprehensive audit of PrepMind AI across the two in-scope project folders (`D:\PrepMind` and `D:\clone-prepmind`), all safely remediable **P0 Critical Blockers**, **Vercel SPA routing rules**, **React Bits component integrations**, and **SEO technical requirements** have been implemented and verified in the repository without violating any protected boundaries.
 
-### Remediation Status:
-1. **`ISSUE-P0-01` (Vercel Serverless Function Routing)**: **FIXED IN REPOSITORY**. Created `app/api/ai.js` and `app/vercel.json` with explicit rewrite rules (`/api/(.*) -> /api/$1`). Once deployed, Vercel will bundle the Serverless Function at the app root level rather than falling back to the SPA HTML shell.
-2. **`ISSUE-P0-02` (Validation Order-of-Operations Bug)**: **FIXED & VERIFIED**. Reordered input payload validation in `api/ai.js` and `app/api/ai.js` before the provider check. Malformed requests now immediately return HTTP 400 Bad Request. All 6 test suites in `test/api-test.mjs` pass cleanly (`Exit code 0`).
-3. **`ISSUE-P0-03` (Database Schema Discrepancy)**: **FIXED IN REPOSITORY**. Reconciled `supabase_schema.sql` and `server/supabase_schema.sql` with full DDL for `interviews` (including `role` and `user_id`), `questions`, `results`, indexes, and idempotent Row-Level Security (RLS) policies.
-4. **`SEO-001` - `SEO-004` (SEO Technical Assets)**: **FIXED & VERIFIED**. Created `robots.txt` and `sitemap.xml` with indexable public routes (`/`, `/practice`, `/chat`) and disallowed private routes (`/progress`, `/profile`, `/api/`). Added canonical tags, Open Graph, Twitter cards, and Schema.org `WebApplication` structured data in `app/index.html`. Verified in Vite production build.
-5. **`ISSUE-P1-01` (Chat Context & Streaming)**: **OPEN (SPECIFIED PATCH PROPOSED)**. The caller in protected `app/src/api.ts` transmits only the single latest question. Due to the strict protected boundary preserving user changes in `app/src/api.ts`, this file was kept untouched. A patch proposal is documented below.
-6. **`ISSUE-P1-02` (Authentication & Route Protection)**: **SPECIFICATION REQUIRED**. No login UI, signup endpoints, or token handling exist in the codebase. Guests use local storage fallbacks. Introducing arbitrary route blocking would break functionality. Full authentication specification is required before implementation.
-7. **`ISSUE-P1-03` (Backend Dependency & Startup)**: **BLOCKED BY DEPENDENCY RESTRICTIONS**. `@supabase/supabase-js` is declared in `server/package.json` but `node_modules` was not installed in `server/`. Running package installation was restricted during this run.
+### Remediation & Verification Summary:
+1. **`ISSUE-P0-01` (Vercel Serverless Function Routing & SPA Fallback)**: **FIXED IN REPO**.
+   - Created `app/api/ai.js` and hardened `app/vercel.json` and root `vercel.json` with explicit rewrite precedence: `/api/(.*) -> /api/$1` followed by `/(.*) -> /index.html`.
+   - Resolves both serverless function bundling when Vercel root is `app/` and direct SPA URL refresh 404s.
+2. **`ISSUE-P0-02` (Validation Order-of-Operations Bug)**: **FIXED & VERIFIED BY LOCAL AUTOMATED TEST**.
+   - Reordered input payload validation in `api/ai.js` and `app/api/ai.js` before provider existence checks.
+   - Malformed/empty payloads return HTTP 400 Bad Request immediately. All 6 test suites in `test/api-test.mjs` pass cleanly (`Exit code 0`).
+3. **`ISSUE-P0-03` (Database Schema Discrepancy)**: **FIXED IN REPO (PENDING PRODUCTION APPLICATION)**.
+   - Reconciled `supabase_schema.sql` and `server/supabase_schema.sql` with full DDL for `interviews` (including `role` and `user_id`), `questions`, `results`, relational indexes, and idempotent Row-Level Security (RLS) policies.
+   - SQL is prepared and reviewed, but has **NOT been executed against the live production database**.
+4. **`SEO-001` - `SEO-004` (SEO Technical Assets)**: **VERIFIED IN LOCAL PRODUCTION BUILD (PENDING LIVE HOST DEPLOYMENT)**.
+   - Created `robots.txt` and `sitemap.xml` allowing public canonical routes (`/`, `/practice`, `/chat`) and disallowing private user routes (`/progress`, `/profile`, `/api/`).
+   - Added canonical tags, Open Graph, Twitter cards, and Schema.org `WebApplication` structured data in `app/index.html`.
+   - Verified present in `app/dist/` bundle. Live production host still serves older deployment until deployed.
+5. **`ISSUE-P1-01` (Chat Context & Streaming)**: **OPEN (SPECIFIED PATCH PROPOSED)**.
+   - Caller in protected `app/src/api.ts` transmits only the single latest prompt and buffers responses.
+   - Due to strict protected boundaries preserving user changes, `app/src/api.ts` was kept untouched.
+6. **`ISSUE-P1-02` (Authentication & Route Protection)**: **SPECIFICATION REQUIRED**.
+   - PrepMind runs in a guest-first model with local storage caching. No registration UI or token session listeners exist.
+   - Specification is required before building auth guards.
+7. **`ISSUE-P1-03` (Backend Dependency & Startup)**: **BLOCKED BY DEPENDENCY RESTRICTIONS**.
+   - `@supabase/supabase-js` is declared in `server/package.json` but absent from `server/package-lock.json` and `server/node_modules/`.
+   - Package installation commands were prohibited in this run.
 
 ---
 
 ## B. ARCHITECTURE & DISCOVERED INVENTORY
 
-### 1. Dual-Frontend Architecture Discovery
-- **Primary Production Frontend (`/app`)**: React 18.3.1, Vite 5.2.0, Tailwind CSS 3.4.13, Framer Motion 11.18.2, Lucide React. Contains the Terminal-Dark SPA (`/`, `/practice`, `/chat`, `/progress`, `/profile`).
-- **Legacy Companion Frontend (`/`)**: Root-level static `index.html` (271 lines), Vanilla JS/CSS companion app.
+### 1. Two-Project Architecture Scope
+- **Primary Production Destination (`D:\PrepMind`)**: React 18.3.1, Vite 5.2.0, Tailwind CSS 3.4.13, Framer Motion 11.18.2, Lucide React, Express backend, Supabase client. Sole source of truth for production code, backend logic, and real APIs.
+- **Read-Only Frontend Reference (`D:\clone-prepmind`)**: Google AI Studio clone containing luxury visual composition, screen layouts, and React Bits components. Kept strictly read-only.
+- **Third Project Reference**: `D:\AIStudio-site` is excluded from scope.
 
 ### 2. Discovered Routes & Access Control
 | Route | Component | Audience | Intended Auth | Actual Enforcement |
@@ -57,127 +74,51 @@ Following the comprehensive audit of PrepMind AI, all safely remediable **P0 Cri
 
 | ID | Category | Requirement | Test / Audit Step | Expected Result | Actual Result | Status | Severity |
 |---|---|---|---|---|---|---|---|
-| `DEP-001` | Deployment | `/api/ai` routes to serverless function on Vercel | Created `app/api/ai.js` and `app/vercel.json` | Vercel bundles Serverless Function | Configured in repo; pending Vercel deployment | **FIXED IN REPO** | **P0** |
-| `API-001` | Backend | Input validation returns 400 before provider check | `POST /api/ai` with `{ action: 'generate_mcq', topic: '' }` | HTTP 400 Bad Request | Returns HTTP 400 (verified by test runner) | **FIXED & VERIFIED** | **P0** |
-| `DATA-001`| Database | Schema matches all frontend queries | Inspect `supabase_schema.sql` vs `app/src/api.ts` | Tables `interviews`, `questions`, `results` defined | All 3 tables, `role` column, indexes, RLS added | **FIXED IN REPO** | **P0** |
+| `DEP-001` | Deployment | `/api/ai` routes to serverless function and SPA fallback active | Created `app/api/ai.js`, `app/vercel.json`, `vercel.json` | Vercel bundles Serverless Function and routes SPA | Configured in repo; pending Vercel deployment | **FIXED IN REPO** | **P0** |
+| `API-001` | Backend | Input validation returns 400 before provider check | `POST /api/ai` with `{ action: 'generate_mcq', topic: '' }` | HTTP 400 Bad Request | Returns HTTP 400 (`node test/api-test.mjs` pass) | **FIXED & VERIFIED** | **P0** |
+| `DATA-001`| Database | Schema matches all frontend queries | Inspect `supabase_schema.sql` vs `app/src/api.ts` | Tables `interviews`, `questions`, `results` defined | All 3 tables, `role` column, indexes, RLS added | **PREPARED (NOT APPLIED)** | **P0** |
 | `CHAT-001`| AI / Chat | Chat maintains conversation history | Inspect payload in `askStream()` | Transmits previous message context | Truncates to latest message in protected `api.ts` | **OPEN (PATCH READY)** | **P1** |
 | `CHAT-002`| AI / Chat | Chat streaming delivers progressive chunks | Inspect `askStream()` in `app/src/api.ts` | HTTP SSE / ReadableStream chunks delivered | Single buffered POST in protected `api.ts` | **OPEN (PATCH READY)** | **P1** |
 | `AUTH-001`| Security | Protected routes block unauthenticated access | Direct URL access to `/progress` & `/profile` | Redirect to login if unauthenticated | Guest fallback active; Auth spec required | **SPEC REQUIRED** | **P1** |
 | `SRV-001` | Backend | Express backend starts cleanly | `node server/server.js` | Starts on port 5000 | Requires `npm install` in `server/` | **BLOCKED (DEP RULE)** | **P1** |
-| `BLD-001` | Build | TypeScript compiles with zero errors | `npx tsc --noEmit` in `app/` | Exit code 0 | Exit code 0 | **PASS** | P3 |
-| `BLD-002` | Build | Vite builds production bundle cleanly | `npm run build` in `app/` | Exit code 0, bundled assets | Exit code 0, bundled in 3.17s | **PASS** | P3 |
-| `SEO-001` | SEO | Robots.txt exists and configures crawling | Request `/robots.txt` | Valid robots directives | Verified in `app/dist/robots.txt` | **FIXED & VERIFIED** | P1 |
-| `SEO-002` | SEO | XML Sitemap exists with canonical URLs | Request `/sitemap.xml` | Valid XML sitemap | Verified in `app/dist/sitemap.xml` | **FIXED & VERIFIED** | P1 |
-| `SEO-003` | SEO | JSON-LD Structured data on homepage | Inspect `<head>` of `index.html` | Valid WebApplication schema | Verified in `app/dist/index.html` | **FIXED & VERIFIED** | P2 |
-| `ACC-001` | A11y | Keyboard focus skip link present | Inspect DOM for skip to `#main-content` | Accessible skip link in header | Skip link present & verified | **PASS** | P3 |
-| `A11-002` | A11y | `prefers-reduced-motion` honored | Inspect Canvas & Motion components | Animations paused / suppressed | Suppressed in all 7 animations | **PASS** | P2 |
+| `BLD-001` | Build | TypeScript compiles with zero errors | `npx tsc --noEmit` in `app/` | Exit code 0 | Exit code 0 | **PASS (VERIFIED)** | P3 |
+| `BLD-002` | Build | Vite builds production bundle cleanly | `npm run build` in `app/` | Exit code 0, bundled assets | Exit code 0, bundled in 4.72s | **PASS (VERIFIED)** | P3 |
+| `SEO-001` | SEO | Robots.txt exists and configures crawling | Request `/robots.txt` | Valid robots directives | Verified in `app/dist/robots.txt` | **FIXED (LOCAL BUILD)** | P1 |
+| `SEO-002` | SEO | XML Sitemap exists with canonical URLs | Request `/sitemap.xml` | Valid XML sitemap | Verified in `app/dist/sitemap.xml` | **FIXED (LOCAL BUILD)** | P1 |
+| `SEO-003` | SEO | JSON-LD Structured data on homepage | Inspect `<head>` of `index.html` | Valid WebApplication schema | Verified in `app/dist/index.html` | **FIXED (LOCAL BUILD)** | P2 |
+| `ACC-001` | A11y | Keyboard focus skip link present | Inspect DOM for skip to `#main-content` | Accessible skip link in header | Skip link present & verified | **PASS (VERIFIED)** | P3 |
+| `A11-002` | A11y | `prefers-reduced-motion` honored | Inspect Canvas & Motion components | Animations paused / suppressed | Suppressed across all components | **PASS (VERIFIED)** | P2 |
 
 ---
 
-## D. BUG & ISSUE REGISTER (REMEDIATED & OPEN)
+## D. FACTUAL REACT BITS COMPONENT INVENTORY
 
-### `ISSUE-P0-01`: Vercel Deployment Root Excludes Serverless `/api` Function
-- **Severity**: **P0 (Critical)**
-- **Category**: Deployment / Architecture
-- **Affected Files**: `app/api/ai.js`, `app/vercel.json`, `vercel.json`
-- **Root Cause**: In Vercel Project Settings, the Root Directory is set to `app`. `api/ai.js` was previously located only at the Git root (`../api/ai.js` relative to `app`), causing Vercel's SPA rewrite to intercept `/api/ai`.
-- **Fix Implemented**:
-  1. Created `app/api/ai.js` with the self-contained multi-provider serverless handler.
-  2. Created `app/vercel.json` configuring explicit rewrite: `[ { "source": "/api/(.*)", "destination": "/api/$1" } ]`.
-- **Status**: **FIXED IN REPO** (Will take effect upon Vercel deployment of this branch).
-
----
-
-### `ISSUE-P0-02`: Validation Order-of-Operations Bug in `api/ai.js`
-- **Severity**: **P0 (Critical)**
-- **Category**: Backend / API Contract
-- **Affected Files**: `api/ai.js`, `app/api/ai.js`, `test/api-test.mjs`
-- **Root Cause**: The provider existence check (`if (!hasProvider)`) executed prior to input payload validation (`if (!topic)` and `if (!sanitized.length)`).
-- **Fix Implemented**: Reordered payload schema validation ahead of the provider availability check. Added edge-case assertions (whitespace topics, whitespace chat, invalid actions, non-array answers) to `test/api-test.mjs`.
-- **Verification Evidence**: `node test/api-test.mjs` executed and passed all 6 test suites with exit code 0.
-- **Status**: **FIXED & VERIFIED**.
-
----
-
-### `ISSUE-P0-03`: Incomplete Supabase Database Schema
-- **Severity**: **P0 (Critical)**
-- **Category**: Database / Data Integrity
-- **Affected Files**: `supabase_schema.sql`, `server/supabase_schema.sql`
-- **Root Cause**: `supabase_schema.sql` only defined `interviews` without `role` and omitted `questions` and `results`.
-- **Fix Implemented**: Updated both `supabase_schema.sql` and `server/supabase_schema.sql` with:
-  - `public.interviews` (with `id`, `title`, `role`, `user_id`, `created_at`)
-  - `public.questions` (with `id`, `interview_id`, `question`, `options`, `correct_answer`, `explanation`, `created_at`)
-  - `public.results` (with `id`, `interview_id`, `score`, `feedback`, `user_id`, `created_at`)
-  - Indexes on `created_at` and `interview_id` foreign keys.
-  - Idempotent Row Level Security (RLS) policies for select, insert, and update.
-- **Deployment Action Required**: Apply `supabase_schema.sql` via Supabase SQL Editor or CLI migration tool.
-- **Status**: **FIXED IN REPO & READY FOR DEPLOYMENT**.
-
----
-
-### `ISSUE-P1-01`: Faux Streaming & Chat Context Truncation
-- **Severity**: **P1 (High)**
-- **Category**: AI Integration / UX
-- **Affected Files**: `app/src/api.ts:314-333`
-- **Status**: **OPEN (PATCH SPECIFIED)**
-- **Patch Proposal for `app/src/api.ts`** (Pending User Approval):
-  ```typescript
-  // Patch proposal for askStream in app/src/api.ts:
-  export async function askStream(
-    questionOrMessages: string | Array<{ role: string; content: string }>,
-    mode: 'chat' | 'interview' = 'chat',
-    onChunk?: (chunk: string) => void,
-  ): Promise<string> {
-    const messagesPayload = Array.isArray(questionOrMessages)
-      ? questionOrMessages
-      : [{ role: 'user', content: questionOrMessages.trim() }];
-    const res = await postJSON<{ response?: string }>('/api/ai', {
-      action: 'chat',
-      messages: messagesPayload,
-    });
-    const text = res.response || '';
-    if (onChunk) onChunk(text);
-    return text;
-  }
-  ```
-
----
-
-### `ISSUE-P1-02`: Inert Authentication & Protected Routes
-- **Severity**: **P1 (High)**
-- **Category**: Security / Authorization
-- **Affected Files**: `app/src/context/AuthContext.tsx`, `app/src/components/ProtectedRoute.tsx`
-- **Status**: **SPECIFICATION REQUIRED**. PrepMind currently runs in guest-first mode. Full authentication flow requires user registration, login UI, password reset, and Supabase auth state listeners.
-
----
-
-### `ISSUE-P1-03`: Express Server Missing Dependency in `server/node_modules`
-- **Severity**: **P1 (High)**
-- **Category**: Backend / Build
-- **Affected Files**: `server/package.json`
-- **Status**: **BLOCKED BY DEPENDENCY RESTRICTIONS**. `@supabase/supabase-js` is declared in `server/package.json`, but `npm install` has not been run in `server/`. Run `npm --prefix server install` when authorized.
-
----
-
-## E. EDGE-CASE TEST MATRIX
-
-| Category | Test Case | Scenario / Input | Expected Result | Observed Result | Status |
+| Component | In Reference Clone | In Prompt Appendix | In Production App | Classification Status | Integration Location |
 |---|---|---|---|---|---|
-| **Input** | Empty Topic in MCQ | `POST /api/ai` with `topic: ""` | 400 Bad Request with descriptive message | HTTP 400 (`Topic is required`) | **PASS** |
-| **Input** | Whitespace-only Topic | `POST /api/ai` with `topic: "   "` | 400 Bad Request | HTTP 400 | **PASS** |
-| **Input** | Whitespace-only Message | Send `"   "` in Chat | Disabled submit button; 400 if sent | Rejected with 400 | **PASS** |
-| **Input** | Unsupported Action | `POST /api/ai` with `action: "foo"` | 400 Bad Request | HTTP 400 (`Unsupported action: foo`) | **PASS** |
-| **Input** | HTML / Script Injection | User inputs `<script>alert(1)</script>` | Escaped text, no script execution | Sanitized safely in markdown parser | **PASS** |
-| **Network**| AI Provider Offline | All provider keys missing / invalid | Clean fallback to deterministic drills | Returns HTTP 503 on valid input | **PASS** |
-| **Network**| Database Offline | Supabase credentials missing | Local storage fallback mode | Falls back to guest cache mode | **PASS** |
-| **Lifecycle**| Page Refresh on Practice | User refreshes mid-drill | Form resets cleanly to initial state | Resets cleanly without crash | **PASS** |
-| **Lifecycle**| Empty LocalStorage | Clear all `localStorage` keys | Shows clean empty states | Shows clean empty states | **PASS** |
-| **Lifecycle**| Reduced Motion Enabled | System prefers reduced motion | Canvas animations suppressed | Hyperspeed, ClickSpark, DodgeField idle | **PASS** |
-| **Display**| 375px Mobile Viewport | Small mobile device width | Zero horizontal overflow; bottom dock active | Clean layout; zero overflow | **PASS** |
+| `AnimatedList` | Yes | No | Yes | **Ported & Integrated** | `app/src/pages/Progress.tsx` (drills history list) |
+| `ClickSpark` | Yes | Yes (user snippet) | Yes | **Ported & Integrated** | `app/src/components/Layout.tsx` (global interactive micro-spark) |
+| `DodgeField` | Yes | Yes | Yes | **Ported & Integrated** | `app/src/pages/Progress.tsx` (empty state only, disabled on reduced motion) |
+| `GlideSelect` | Yes | No | Yes | **Ported & Integrated** | `app/src/pages/Home.tsx`, `Practice.tsx` (exam & difficulty picker) |
+| `Hyperspeed` | Yes | Yes | Yes | **Ported & Integrated** | `app/src/pages/Home.tsx` (lazy loaded, desktop only, non-blocking) |
+| `LatticeLoader` | Yes | No | Yes | **Ported & Integrated** | `app/src/pages/Practice.tsx` (bound to real question generation state) |
+| `PillNav` | Yes | No | Yes | **Ported & Integrated** | `app/src/components/Header.tsx` (main SPA navigation) |
+| `PixelCard` | Yes | No | Yes | **Ported & Integrated** | `app/src/pages/Home.tsx` (core feature cards) |
+| `RotatingText` | Yes | No | Yes | **Ported & Integrated** | `app/src/pages/Home.tsx` (dynamic headline keyword cycling) |
+| `ScrollExpand` | Yes | Yes (handover) | Yes | **Ported & Tested** | `app/src/components/reactbits/ScrollExpand.tsx` (standalone/available) |
+| `SlingButton` | Yes | No | Yes | **Ported & Integrated** | `app/src/pages/Chat.tsx` (chat submission button) |
+| `StarBorder` | Yes | No | Yes | **Ported & Integrated** | `app/src/pages/Home.tsx` (primary CTA border glow) |
+| `Stepper` | Yes | No | Yes | **Ported & Integrated** | `app/src/pages/Home.tsx` (study workflow phase progression) |
+| `SwipeToast` | Yes | Yes | Yes | **Ported & Tested** | `app/src/components/reactbits/SwipeToast.tsx` (standalone/available) |
+| `TextType` | Yes | No | Yes | **Ported & Integrated** | `app/src/pages/Home.tsx` (typewriter hero title effect) |
+| `ThoughtLine` | Yes | Yes | Yes | **Ported & Integrated** | `app/src/pages/Chat.tsx`, `Practice.tsx` (bound to real AI loading state) |
+| `WarmTooltip` | Yes | No | Yes | **Ported & Tested** | `app/src/components/reactbits/WarmTooltip.tsx` (standalone/available) |
+| `TechText` | No | Yes | Yes | **Ported & Available** | `app/src/components/reactbits/TechText.jsx` + `.css` (standalone) |
+| `SpecularButton` | No | Yes | Yes | **Ported & Available** | `app/src/components/reactbits/SpecularButton.jsx` + `.css` (standalone) |
+| `LetterGlitch` | No | Mentioned | No | **Source File Required** | Not present in reference clone or prompt appendix |
 
 ---
 
-## F. AI PROVIDERS & STREAMING AUDIT
+## E. AI PROVIDERS & STREAMING AUDIT
 
 ### 1. Cascade Execution Path
 $$\text{Groq (Primary)} \longrightarrow \text{NVIDIA NIM (Secondary)} \longrightarrow \text{Google Gemini (Tertiary)}$$
@@ -193,111 +134,65 @@ $$\text{Groq (Primary)} \longrightarrow \text{NVIDIA NIM (Secondary)} \longright
 
 ---
 
-## G. MANDATORY STAGE — SEO TECHNICAL AUDIT & VERIFICATION
+## F. SECURITY, PRIVACY & DATA INTEGRITY
 
-### 1. SEO Summary Table
-| ID | Asset / Route | Severity | Fix Implemented | Verification Result | Status |
-|---|---|---|---|---|---|
-| `SEO-01` | `robots.txt` | **P1** | Created `app/public/robots.txt` and root `robots.txt` allowing public routes, disallowing private (`/progress`, `/profile`, `/api/`), and blocking AI scrapers (`GPTBot`, `Google-Extended`, `CCBot`). | Verified in `app/dist/robots.txt` | **FIXED & VERIFIED** |
-| `SEO-02` | `sitemap.xml` | **P1** | Created `app/public/sitemap.xml` and root `sitemap.xml` with indexable canonical URLs (`/`, `/practice`, `/chat`). | Verified in `app/dist/sitemap.xml` | **FIXED & VERIFIED** |
-| `SEO-03` | `index.html` | **P2** | Added robots meta (`index, follow`), theme color (`#0A0B0D`), Open Graph, Twitter cards, and Schema.org `WebApplication` JSON-LD. | Verified in `app/dist/index.html` | **FIXED & VERIFIED** |
-| `SEO-04` | Private Routes | **P2** | Excluded `/progress` and `/profile` from sitemap and disallowed in `robots.txt`. | Verified directives in `robots.txt` | **FIXED & VERIFIED** |
-
-### 2. Route-by-Route SEO Inventory
-| Route | Intended Audience | Indexability | Canonical URL | Title Tag | Meta Description |
-|---|---|---|---|---|---|
-| `/` | Public | **Yes (Index)** | `https://prep-weblearning.vercel.app/` | `PrepMind AI – AI-Powered Exam Preparation Platform` | 135 chars, descriptive |
-| `/practice` | Public | **Yes (Index)** | `https://prep-weblearning.vercel.app/practice` | `PrepMind AI – Technical Practice Drills` | In Sitemap |
-| `/chat` | Public | **Yes (Index)** | `https://prep-weblearning.vercel.app/chat` | `PrepMind AI – AI Study Assistant` | In Sitemap |
-| `/progress` | Authenticated | **No (Disallow)** | `https://prep-weblearning.vercel.app/progress` | N/A (Dynamic User Screen) | Blocked in `robots.txt` |
-| `/profile` | Authenticated | **No (Disallow)** | `https://prep-weblearning.vercel.app/profile` | N/A (Private Preferences) | Blocked in `robots.txt` |
+1. **CORS Configuration**: `Access-Control-Allow-Origin: *` is currently active on serverless endpoints. This is standard for public APIs but should be restricted to the verified production origin once multi-origin access is finalized.
+2. **XSS Protection**: Code blocks and user prompts in `Chat.tsx` and `Practice.tsx` undergo regex parsing and entity escaping before rendering.
+3. **Database Ownership**: Idempotent RLS policies in `supabase_schema.sql` allow anonymous guest reads/inserts while supporting `user_id uuid references auth.users(id)` for authenticated user isolation once Supabase Auth is enabled.
 
 ---
 
-## H. AUTOMATED TEST REPORT
+## G. AUTOMATED TEST REPORT
 
 | Test Suite / Command | Execution Directory | Exit Code | Result | Key Observations |
 |---|---|---|---|---|
 | `node test/api-test.mjs` | `D:\PrepMind` | `0` | **PASS** | All 6 test suites passed. Input validation rejects empty/whitespace payloads with 400. |
 | `npx tsc --noEmit` | `D:\PrepMind\app` | `0` | **PASS** | 0 TypeScript compilation errors. |
-| `npm run build` | `D:\PrepMind\app` | `0` | **PASS** | Vite production build succeeded in 3.17s. Verified assets and PWA service worker. |
+| `npm run build` | `D:\PrepMind\app` | `0` | **PASS** | Vite production build succeeded in 4.72s. Verified assets and PWA service worker. |
 
 ---
 
-## I. PRODUCTION RELEASE GATE & REMAINING ACTIONS
+## H. POST-PUSH VERIFICATION & TWO-PROJECT RECONCILIATION
 
-### 1. Release Gate Criteria
-- [x] P0 Input Validation Order resolved and verified (`node test/api-test.mjs` exit 0).
-- [x] P0 Vercel Serverless Routing resolved in repository (`app/api/ai.js` and `app/vercel.json` created).
-- [x] P0 Supabase Schema reconciled and documented (`supabase_schema.sql` updated).
-- [x] Mandatory SEO assets created, configured, and verified in production build.
-- [x] TypeScript and Vite production build pass cleanly.
-- [x] Protected file `app/src/api.ts` preserved untouched.
-- [ ] Manual Action: Deploy to Vercel and verify `https://prep-weblearning.vercel.app/api/ai` returns JSON.
-- [ ] Manual Action: Apply `supabase_schema.sql` in Supabase project dashboard.
-- [ ] Manual Action: Configure `GROQ_API_KEY`, `NVIDIA_API_KEY`, `GEMINI_API_KEY` in Vercel environment settings.
-
----
-
-## J. FINAL GO / NO-GO RECOMMENDATION
-
-### **VERDICT: CONDITIONAL GO FOR PRODUCTION DEPLOYMENT**
-
-**Justification**:  
-All code-level P0 blockers within repository scope have been remediated, verified, and bundled. The application is ready to be committed, pushed to branch `ui-terminal-dark`, and deployed to Vercel. 
-
-Once deployed, the user must perform two external administrative actions:
-1. Apply the updated `supabase_schema.sql` migration in the Supabase project.
-2. Verify that AI provider API keys (`GROQ_API_KEY`, `NVIDIA_API_KEY`, `GEMINI_API_KEY`) are set in the Vercel dashboard environment variables.
-
----
-
-## K. POST-PUSH VERIFICATION AUDIT (COMMIT 730b6e7)
-
-**Audit Timestamp:** October 11, 2026 20:56 IST  
-**Verified Commit:** `730b6e7713a4de1ccc1a200b5ecd5b850c482375`  
-**Verified Branch:** `ui-terminal-dark`  
+**Audit Timestamp:** October 11, 2026<br>
+**Verified Commits:** `730b6e7` and `e47e9b9`<br>
+**Verified Branch:** `ui-terminal-dark`
 
 ### 1. Git State & Remote Synchronization
-- **Branch**: `ui-terminal-dark` (Tracking remote `origin/ui-terminal-dark` at commit `730b6e7`).
+- **Branch**: `ui-terminal-dark` (Tracking `origin/ui-terminal-dark`).
 - **Remote**: `https://github.com/sahaya-savari/PrepMind.git`.
-- **Working Tree**: Clean. Unstaged user changes in `app/src/api.ts` and untracked `.agents/skills/terminal-dark/`, `api-review.txt` strictly preserved untouched.
+- **Working Tree**: Clean. Unstaged user modifications in protected `app/src/api.ts` and untracked `.agents/skills/terminal-dark/`, `api-review.txt` strictly preserved untouched.
 
-### 2. Router & Handler Consistency Analysis
-- **Handlers**: `app/api/ai.js` and root `api/ai.js` have 100% synchronized, identical logic. Vercel routes to `app/api/ai.js` when Root Directory is `app`, or root `api/ai.js` when Root Directory is `.`. No duplicate execution or rewrite loops exist.
-- **Routing Configuration**: `app/vercel.json` provides `{ "source": "/api/(.*)", "destination": "/api/$1" }`.
-- **Proposed Enhancement for SPA Fallback**: To ensure direct browser refresh on `/practice`, `/chat`, `/progress`, `/profile` does not return 404 if Vercel overrides framework rewrites, `app/vercel.json` should include the SPA catch-all rule:
-  ```json
-  {
-    "version": 2,
-    "rewrites": [
-      { "source": "/api/(.*)", "destination": "/api/$1" },
-      { "source": "/(.*)", "destination": "/index.html" }
-    ]
-  }
-  ```
-
-### 3. Live Production Endpoint Probe (`https://prep-weblearning.vercel.app/`)
+### 2. Live Production Endpoint Probe (`https://prep-weblearning.vercel.app/`)
 Probed live endpoints via non-billable HTTP requests:
 - `GET /api/ai`: HTTP 200, `Content-Type: text/html; charset=utf-8` (SPA HTML shell).
 - `GET /robots.txt`: HTTP 200, `Content-Type: text/plain; charset=utf-8` (Legacy robots file).
 - `GET /sitemap.xml`: HTTP 200, `Content-Type: text/html; charset=utf-8` (SPA HTML fallback).
 - `HEAD /`: `last-modified: Sun, 11 Oct 2026 04:00:27 GMT`, `age: 41085` seconds (~11.4 hours old).
-- **Finding**: The production domain `prep-weblearning.vercel.app` is currently serving an 11-hour-old deployment built from branch `main` (commit `03ba926`). Commit `730b6e7` was pushed to branch `ui-terminal-dark`. In Vercel, non-production branches generate Preview deployments. To update the live production domain, branch `ui-terminal-dark` must either be merged into `main` or set as the Production Branch in the Vercel project settings.
+- **Finding**: The production domain `prep-weblearning.vercel.app` is currently serving an 11-hour-old deployment built from branch `main` (commit `03ba926`). Commits on `ui-terminal-dark` have not yet been deployed to the live domain. Merging `ui-terminal-dark` into `main` or setting `ui-terminal-dark` as the production branch in Vercel will promote the remediated build.
 
-### 4. Supabase Database Schema Verification
+### 3. Supabase Database Schema Verification
 - `supabase_schema.sql` and `server/supabase_schema.sql` are 100% byte-for-byte identical (`git diff` clean).
 - Foreign keys (`references public.interviews(id) on delete cascade`) and indexes on `interview_id` and `created_at` are verified.
 - Idempotent `ADD COLUMN IF NOT EXISTS` and `DROP POLICY IF EXISTS ... CREATE POLICY ...` ensure non-destructive execution.
+- **Status:** Prepared and reviewed; pending user execution in Supabase Dashboard.
 
-### 5. Backend Server Dependency Verification
+### 4. Backend Server Dependency Verification
 - `@supabase/supabase-js` is declared in `server/package.json` line 11.
 - In `server/package-lock.json`, the dependency is NOT resolved, and `server/node_modules/` does not exist.
 - Root cause: `npm install` has not been executed in `server/` since the dependency was added to `package.json`.
 - Required action: Run `npm --prefix server install` when package modifications are authorized.
 
-### 6. Rerun Automated Verification
-- `node test/api-test.mjs`: **PASS (Exit code 0)** — All 6 test suites passed.
-- `npx tsc --noEmit` in `app/`: **PASS (Exit code 0)** — 0 compilation errors.
-- `npm run build` in `app/`: **PASS (Exit code 0)** — Bundled in 8.51s; PWA service worker and static assets verified.
+---
 
+## I. FINAL GO / NO-GO RECOMMENDATION
+
+### **VERDICT: CONDITIONAL GO FOR PRODUCTION DEPLOYMENT**
+
+**Justification**:
+All code-level P0 blockers, Vercel routing rules, and React Bits components within repository scope have been remediated, verified, and bundled. The application is ready for production deployment.
+
+**Pending External Administrative Actions**:
+1. Apply the updated `supabase_schema.sql` migration in the Supabase project dashboard.
+2. Configure AI provider API keys (`GROQ_API_KEY`, `NVIDIA_API_KEY`, `GEMINI_API_KEY`) in Vercel environment variables.
+3. Merge `ui-terminal-dark` into `main` (or configure Vercel production branch) to promote the changes to `https://prep-weblearning.vercel.app/`.
