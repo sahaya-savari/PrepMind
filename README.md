@@ -8,9 +8,9 @@ Adaptive practice questions · Socratic AI tutoring · Concept deep dives · Not
 for CAT, GATE, UPSC, JEE, NEET and custom exams.
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_Site-black?style=for-the-badge)](https://prep-weblearning.vercel.app/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](#license)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 [![Open Source](https://img.shields.io/badge/Open_Source-Yes-2ea44f?style=for-the-badge&logo=github)](https://github.com/sahaya-savari/PrepMind)
-[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](#contributing)
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](CONTRIBUTING.md)
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -21,7 +21,7 @@ for CAT, GATE, UPSC, JEE, NEET and custom exams.
 [![Google Gemini](https://img.shields.io/badge/AI-Google_Gemini-8E75C2?logo=google&logoColor=white)](https://ai.google.dev/)
 [![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 
-[Live App](https://prep-weblearning.vercel.app/) · [Getting Started](#getting-started) · [Contributing](#contributing) · [Report an Issue](https://github.com/sahaya-savari/PrepMind/issues)
+[Live App](https://prep-weblearning.vercel.app/) · [Architecture](docs/ARCHITECTURE.md) · [API Reference](docs/API_REFERENCE.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -37,7 +37,7 @@ for CAT, GATE, UPSC, JEE, NEET and custom exams.
 - [System Architecture](#system-architecture)
 - [Repository Structure](#repository-structure)
 - [Database Schema](#database-schema)
-- [API Endpoints](#api-endpoints-express-server)
+- [API Endpoints](#api-endpoints)
 - [Getting Started](#getting-started)
 - [Running Without API Keys](#running-without-api-keys)
 - [Deployment](#deployment)
@@ -82,12 +82,6 @@ It is built to **keep working when things go wrong**: if AI quotas run out or da
 | 🛡️ | **Offline & Degraded Fallback Mode** | Zero-lockout design: if external API quotas or Supabase credentials are unavailable, the platform automatically falls back to deterministic synthetic generators and offline `localStorage` storage. |
 | 🎙️ | **Voice & Audio Synthesis (Companion App)** | Speech synthesis and speech recognition integration via the Web Speech API. |
 
-<!-- Add screenshots here once available:
-![Dashboard](./docs/screenshots/dashboard.png)
-![Practice](./docs/screenshots/practice.png)
-![AI Tutor](./docs/screenshots/chat.png)
--->
-
 ---
 
 ## How It Works
@@ -108,9 +102,9 @@ It is built to **keep working when things go wrong**: if AI quotas run out or da
 | Component | Technology | Description |
 | :--- | :--- | :--- |
 | **Primary App (`/app`)** | **React 18** + **TypeScript** | Modern Single Page Application (SPA) deployed to production |
-| **Bundler & Tooling** | **Vite 5** | Lightning-fast HMR and optimized production bundles |
-| **Styling** | **Tailwind CSS 3.4** | Modern, responsive dark-mode and glassmorphic user interface |
-| **Icons & Animations** | **Lucide React** + **Framer Motion** | Polished micro-interactions and iconography |
+| **Bundler & Tooling** | **Vite 5** | Lightning-fast HMR, SWC compiler, and PWA service worker generation |
+| **Styling** | **Tailwind CSS 3.4** | Terminal-Dark / Midnight design tokens with smooth transitions |
+| **Icons & Animations** | **Lucide React** + **Framer Motion** | Polished micro-interactions, responsive mobile dock, and iconography |
 | **State & Navigation** | **React Context API** | Modular state for user authentication, exams, and sessions |
 | **Companion App (`/`)** | **Vanilla HTML5 / CSS3 / ES6+** | Lightweight, framework-free alternative with Web Speech API |
 
@@ -119,10 +113,10 @@ It is built to **keep working when things go wrong**: if AI quotas run out or da
 | Component | Technology | Description |
 | :--- | :--- | :--- |
 | **API Server (`/server`)** | **Node.js** + **Express 4** | Protected REST API with Bearer token authentication and rate limiting |
-| **Serverless Proxy (`/api`)** | **Vercel Serverless Functions** | Secure zero-leakage proxy forwarding requests to Gemini API |
-| **AI / LLM Engine** | **Google Gemini API** (`gemini-2.5-flash` / `1.5-flash`) | Contextual reasoning, MCQ generation, and study tutoring |
+| **Serverless Proxy (`/api`)**| **Vercel Serverless Functions** | Dual-discovery proxy forwarding requests securely to Groq, NVIDIA, or Gemini |
+| **AI / LLM Providers** | **Groq**, **NVIDIA NIM**, **Gemini** | High-performance cascade for reasoning, MCQ generation, and study tutoring |
 | **Database & Auth** | **Supabase (PostgreSQL)** | Persistent storage for interviews, notes, and user progress with RLS |
-| **Deployment & Hosting** | **Vercel** | CI/CD deployment with edge CDN caching |
+| **Deployment & Hosting**| **Vercel** | CI/CD edge deployment with SPA rewrite precedence |
 
 ---
 
@@ -135,8 +129,12 @@ graph TD
     Client["Client Browser (React 18 SPA)"] -->|Frontend State| LS["Local Storage (Offline Cache)"]
     Client -->|Zero Client Keys| VercelAPI["Vercel Serverless Function (/api/ai.js)"]
     Client -->|Authenticated REST| ExpressAPI["Express Backend (/server)"]
+    
+    VercelAPI -->|1. Try Primary| Groq["Groq Cloud API (openai/gpt-oss-120b)"]
+    Groq -.->|Failover| Nvidia["NVIDIA NIM (nemotron-3.5-lightning-30b-a3b)"]
+    Nvidia -.->|Tertiary| Gemini["Google Gemini API (gemini-2.5-flash)"]
+    Gemini -.->|Offline| OfflineBank["Deterministic Question Bank"]
 
-    VercelAPI -->|Private GEMINI_API_KEY| Gemini["Google Gemini API (gemini-2.5-flash)"]
     ExpressAPI -->|Gemini API Key| Gemini
     ExpressAPI -->|Database & Auth| Supabase[("Supabase PostgreSQL")]
 
@@ -144,8 +142,10 @@ graph TD
     Supabase -->|Notes & Progress| Client
 ```
 
-1. **Security-first AI communication:** frontend clients never hold raw LLM API keys. All queries route through serverless proxies or Express middleware.
-2. **Resilient failure handling:** if external API quotas are hit or credentials are not configured, automatic fallbacks generate mock exam structures and save results locally without disrupting the user experience.
+1. **Security-First AI Communication**: Frontend clients never hold raw LLM API keys. All queries route through serverless proxies or Express middleware.
+2. **Resilient Failure Handling**: If external API quotas are hit or credentials are not configured, automatic fallbacks generate mock exam structures and save results locally without disrupting the user experience.
+
+> For in-depth architecture specifications and timeout policies, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
@@ -192,9 +192,11 @@ PrepMind/
 │   └── local-dev-api.mjs       # Local developer API mock harness
 │
 ├── docs/                       # Production readiness & QA specifications
-│   ├── PRODUCTION_UPGRADE_PLAN.md
-│   ├── PRODUCTION_READINESS_PRD.md
-│   └── PRODUCTION_READINESS_CHECKLIST.md
+│   ├── ARCHITECTURE.md         # In-depth system architecture & data flow
+│   ├── API_REFERENCE.md        # Complete endpoint & action payload documentation
+│   ├── PRODUCTION_UPGRADE_PLAN.md # 10-phase upgrade plan
+│   ├── PRODUCTION_READINESS_PRD.md # Production readiness PRD and audit findings
+│   └── PRODUCTION_READINESS_CHECKLIST.md # Quality and security audit checklist
 │
 ├── js/                         # Companion Vanilla JS modules
 │   ├── api.js                  # Client API fetchers
@@ -209,6 +211,12 @@ PrepMind/
 ├── robots.txt                  # Web crawler access configuration
 ├── og-image.png                # Social preview image (1200x630)
 ├── package.json                # Root package configuration with unified dev/test scripts
+├── CONTRIBUTING.md             # Contributor guidelines and workflow
+├── CODE_OF_CONDUCT.md         # Contributor Covenant v2.1 code of conduct
+├── SECURITY.md                 # Vulnerability disclosure policy
+├── SUPPORT.md                  # Support channels and issue templates
+├── CHANGELOG.md                # Version history and release notes
+├── LICENSE                     # MIT License
 └── README.md                   # Project documentation
 ```
 
@@ -216,7 +224,7 @@ PrepMind/
 
 ## Database Schema
 
-The database is built on **PostgreSQL (Supabase)** with Row-Level Security (RLS) enabled. See [`supabase_schema.sql`](./supabase_schema.sql) for the complete schema:
+The database is built on **PostgreSQL (Supabase)** with Row-Level Security (RLS) enabled. See [`supabase_schema.sql`](supabase_schema.sql) for the complete schema:
 
 ```sql
 create extension if not exists "pgcrypto";
@@ -254,7 +262,15 @@ create table if not exists public.results (
 
 ---
 
-## API Endpoints (Express Server)
+## API Endpoints
+
+### Serverless AI Proxy (`/api/ai`)
+- `GET /api/ai` — Health check & provider status enumeration
+- `POST /api/ai` with `action: "generate_mcq"` — Generates targeted exam MCQs
+- `POST /api/ai` with `action: "chat"` — Multi-turn Socratic study tutoring
+- `POST /api/ai` with `action: "evaluate"` — Deterministic scoring & feedback
+
+### Express Server (`/server`)
 
 | Method | Endpoint | Auth Required | Description |
 | :--- | :--- | :---: | :--- |
@@ -264,6 +280,8 @@ create table if not exists public.results (
 | `POST` | `/api/ask` | Bearer Token | Direct LLM conversational query |
 | `POST` | `/api/store` | Bearer Token | Stores user notes into Supabase |
 | `POST` | `/api/query-context` | Bearer Token | RAG-lite query utilizing stored notes as context |
+
+> For request/response schemas, JSON payloads, and error codes, see [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md).
 
 ---
 
@@ -343,7 +361,7 @@ Run these from the repository root:
 | :--- | :--- |
 | `npm test` | Run the AI provider orchestration and offline fallback test suite |
 | `npm run build` | Build the production Vite bundle |
-| `npm run typecheck` | Run TypeScript typecheck |
+| `npm run typecheck` | Run TypeScript typecheck across the frontend |
 | `npm run server:dev` | Run the lightweight local dev API harness (port 5000) |
 
 ---
@@ -391,7 +409,7 @@ The Express server is deployed separately from the Vercel frontend, on any Node.
 - Supabase tables use Row-Level Security (RLS)
 - Never commit `.env` files or real keys to the repository
 
-**Reporting a vulnerability:** please do not post exploit details publicly. Use the **Security** tab of the repository and click **Report a vulnerability**, or open a GitHub Issue with the title prefix `[Security]` and no sensitive details.
+> For our vulnerability disclosure procedure and security guarantees, see [`SECURITY.md`](SECURITY.md).
 
 ---
 
@@ -431,16 +449,7 @@ PrepMind AI is open source and contributions are welcome, from bug reports and d
 5. Commit with a clear message (for example `feat: add timer per question` or `fix: handle empty notes`)
 6. Push your branch and open a **Pull Request** describing what changed and why
 
-### Guidelines
-
-- Keep pull requests focused: one feature or fix per PR
-- Do not commit secrets, `.env` files or API keys
-- Keep the offline fallback mode working for any feature that calls an AI or database service
-- For big changes, open an issue first so we can discuss the approach
-
-### Reporting bugs
-
-[Open an issue](https://github.com/sahaya-savari/PrepMind/issues) with steps to reproduce, what you expected, what happened, and your browser and Node.js version.
+> For full developer guidelines, code conventions, and pull request checklist, see [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ### Contributors
 
