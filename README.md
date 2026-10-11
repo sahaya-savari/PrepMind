@@ -4,10 +4,13 @@
 
 **An intelligent, resilient AI-powered exam preparation and personalized learning platform.**
 
-Adaptive practice questions, real-time AI tutoring, structured concept breakdowns, syllabus navigation, and progress analytics for exams like CAT, GATE, UPSC, JEE, and more.
+Adaptive practice questions · Socratic AI tutoring · Concept deep dives · Notes retrieval · Progress analytics
+for CAT, GATE, UPSC, JEE, NEET and custom exams.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?logo=vercel&logoColor=white)](https://prep-weblearning.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-prep--weblearning.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://prep-weblearning.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](#license)
+[![Open Source](https://img.shields.io/badge/Open_Source-Yes-2ea44f?style=for-the-badge&logo=github)](https://github.com/sahaya-savari/PrepMind)
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](#contributing)
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -18,7 +21,7 @@ Adaptive practice questions, real-time AI tutoring, structured concept breakdown
 [![Google Gemini](https://img.shields.io/badge/AI-Google_Gemini-8E75C2?logo=google&logoColor=white)](https://ai.google.dev/)
 [![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 
-[**Live App**](https://prep-weblearning.vercel.app/) · [**GitHub Repository**](https://github.com/sahaya-savari/PrepMind) · [**Getting Started**](#getting-started)
+[Live App](https://prep-weblearning.vercel.app/) · [Getting Started](#getting-started) · [Contributing](#contributing) · [Report an Issue](https://github.com/sahaya-savari/PrepMind/issues)
 
 </div>
 
@@ -26,15 +29,43 @@ Adaptive practice questions, real-time AI tutoring, structured concept breakdown
 
 ## Table of Contents
 
+- [Overview](#overview)
+- [Core Principles](#core-principles)
 - [Key Features](#key-features)
+- [How It Works](#how-it-works)
 - [Tech Stack](#tech-stack)
 - [System Architecture](#system-architecture)
 - [Repository Structure](#repository-structure)
 - [Database Schema](#database-schema)
 - [API Endpoints](#api-endpoints-express-server)
 - [Getting Started](#getting-started)
+- [Running Without API Keys](#running-without-api-keys)
 - [Deployment](#deployment)
+- [Security](#security)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Acknowledgements](#acknowledgements)
 - [License](#license)
+
+---
+
+## Overview
+
+PrepMind AI helps students prepare for competitive exams with practice questions, an AI tutor, structured concept breakdowns, syllabus navigation and progress tracking, all in one platform.
+
+It is built to **keep working when things go wrong**: if AI quotas run out or database credentials are missing, the app falls back to built-in question generators and local storage instead of locking the student out.
+
+> [!NOTE]
+> AI-generated questions and explanations can contain mistakes. Always verify important facts and formulas against official study material.
+
+## Core Principles
+
+| | Principle |
+|---|---|
+| 🛡️ | **Resilient:** automatic fallback to offline generators and local storage |
+| 🔐 | **Secure by design:** frontend clients never hold raw LLM API keys |
+| 🎯 | **Learning-first:** the tutor guides students through problems instead of just giving answers |
+| 🔓 | **Open source:** MIT licensed, and contributions are welcome |
 
 ---
 
@@ -53,7 +84,20 @@ Adaptive practice questions, real-time AI tutoring, structured concept breakdown
 
 <!-- Add screenshots here once available:
 ![Dashboard](./docs/screenshots/dashboard.png)
+![Practice](./docs/screenshots/practice.png)
+![AI Tutor](./docs/screenshots/chat.png)
 -->
+
+---
+
+## How It Works
+
+1. **Choose an exam:** pick CAT, GATE, UPSC, JEE, NEET or enter a custom exam.
+2. **Get your roadmap:** syllabus paths, strategy recommendations and a study plan are prepared for you.
+3. **Practice:** generate topic-wise MCQs at your chosen difficulty and get instant scoring with solutions.
+4. **Ask the tutor:** chat with the Socratic AI tutor tuned to your exam's syllabus.
+5. **Use your notes:** upload or paste notes and ask questions against them.
+6. **Track progress:** review accuracy, attempts, weak areas and trends.
 
 ---
 
@@ -100,8 +144,8 @@ graph TD
     Supabase -->|Notes & Progress| Client
 ```
 
-1. **Security-First AI Communication:** Frontend clients never hold raw LLM API keys. All queries route through serverless proxies or Express middleware.
-2. **Resilient Failure Handling:** If external API quotas are hit or credentials are not configured, automatic fallbacks generate mock exam structures and save results locally without disrupting the user experience.
+1. **Security-first AI communication:** frontend clients never hold raw LLM API keys. All queries route through serverless proxies or Express middleware.
+2. **Resilient failure handling:** if external API quotas are hit or credentials are not configured, automatic fallbacks generate mock exam structures and save results locally without disrupting the user experience.
 
 ---
 
@@ -304,6 +348,19 @@ Run these from the repository root:
 
 ---
 
+## Running Without API Keys
+
+Both the Gemini key and Supabase are optional for local development. If they are missing or a quota is exhausted, PrepMind AI switches to its fallback mode:
+
+| Missing | What happens |
+|---|---|
+| Gemini API key / quota exhausted | Deterministic synthetic question generators are used |
+| Supabase credentials | Progress and results are saved in browser `localStorage` |
+
+This lets you explore and develop the app without setting up any external service.
+
+---
+
 ## Deployment
 
 ### Deploying to Vercel
@@ -327,11 +384,87 @@ The Express server is deployed separately from the Vercel frontend, on any Node.
 
 ---
 
+## Security
+
+- Raw LLM API keys are never shipped to the browser; AI calls go through the serverless proxy or the Express backend
+- Express API routes require a Bearer token and are rate limited
+- Supabase tables use Row-Level Security (RLS)
+- Never commit `.env` files or real keys to the repository
+
+**Reporting a vulnerability:** please do not post exploit details publicly. Use the **Security** tab of the repository and click **Report a vulnerability**, or open a GitHub Issue with the title prefix `[Security]` and no sensitive details.
+
+---
+
+## Roadmap
+
+> [!NOTE]
+> These are plans, not promises. Priorities may change.
+
+- [ ] Frontend UI redesign (in progress)
+- [ ] Timer per question
+- [ ] Score history graph
+- [ ] Weak-topic detection
+- [ ] Dashboard UX improvements
+
+Have an idea? [Open an issue](https://github.com/sahaya-savari/PrepMind/issues) to discuss it.
+
+---
+
+## Contributing
+
+PrepMind AI is open source and contributions are welcome, from bug reports and docs fixes to new features.
+
+### Quick start
+
+1. **Fork** the repository and clone your fork
+2. Create a branch:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. Make your changes, following the existing code style
+4. Run the quality checks from the repository root:
+   ```bash
+   npm test
+   npm run typecheck
+   npm run build
+   ```
+5. Commit with a clear message (for example `feat: add timer per question` or `fix: handle empty notes`)
+6. Push your branch and open a **Pull Request** describing what changed and why
+
+### Guidelines
+
+- Keep pull requests focused: one feature or fix per PR
+- Do not commit secrets, `.env` files or API keys
+- Keep the offline fallback mode working for any feature that calls an AI or database service
+- For big changes, open an issue first so we can discuss the approach
+
+### Reporting bugs
+
+[Open an issue](https://github.com/sahaya-savari/PrepMind/issues) with steps to reproduce, what you expected, what happened, and your browser and Node.js version.
+
+### Contributors
+
+<a href="https://github.com/sahaya-savari/PrepMind/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=sahaya-savari/PrepMind" alt="Contributors" />
+</a>
+
+---
+
+## Acknowledgements
+
+PrepMind AI is built on the work of these open-source projects and services:
+
+[React](https://react.dev/) · [TypeScript](https://www.typescriptlang.org/) · [Vite](https://vitejs.dev/) · [Tailwind CSS](https://tailwindcss.com/) · [Framer Motion](https://www.framer.com/motion/) · [Lucide](https://lucide.dev/) · [Express](https://expressjs.com/) · [Supabase](https://supabase.com/) · [Google Gemini API](https://ai.google.dev/)
+
+---
+
 ## License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
 <div align="center">
+
+If PrepMind AI helps you, consider giving the repository a ⭐
 
 **Built by [Sahaya Savari F](https://github.com/sahaya-savari)**
 
