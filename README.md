@@ -87,27 +87,38 @@ graph TD
 ```
 PrepMind/
 ├── app/                        # Primary React + TypeScript production application
+│   ├── api/
+│   │   └── ai.js               # Serverless proxy discovered when Vercel root is app/
+│   ├── public/                 # Static assets, sitemap.xml, robots.txt, og-image.png
 │   ├── src/
-│   │   ├── components/         # Reusable UI components (Navbar, Sidebar, Modals)
-│   │   ├── context/            # ExamContext, AuthContext
-│   │   ├── pages/              # Home, Practice, Chat, Learn, Progress, Notes
-│   │   ├── lib/                # Supabase client initialization
-│   │   ├── api.ts              # Centralized backend & Supabase integration
+│   │   ├── components/         # Layout, UI tokens, React Bits, and shared components
+│   │   ├── context/            # ExamContext, AuthContext, ThemeContext
+│   │   ├── data/               # Deterministic fallback question bank
+│   │   ├── hooks/              # useAuth and custom application hooks
+│   │   ├── lib/                # Supabase client initialization & Tailwind cn utils
+│   │   ├── pages/              # Home, Practice, Chat, Progress, Profile
+│   │   ├── api.ts              # Protected centralized API & database integration layer
+│   │   ├── config.ts           # Runtime environment & feature flag constants
 │   │   ├── storage.ts          # LocalStorage caching & fallback engine
 │   │   ├── App.tsx             # Root application and route controller
-│   │   └── main.tsx            # Application entrypoint
-│   ├── package.json            # Frontend dependencies
-│   ├── vite.config.ts          # Vite build configuration
+│   │   ├── main.tsx            # Application entrypoint
+│   │   └── index.css           # Design tokens, midnight palette, typography
+│   ├── package.json            # Frontend dependencies & build scripts
+│   ├── vite.config.ts          # Vite build configuration (SWC + PWA)
+│   ├── vercel.json             # App-level SPA routing & serverless rewrites
 │   └── tailwind.config.js      # Tailwind CSS design system tokens
 │
 ├── server/                     # Express.js REST API backend
+│   ├── routes/                 # Modular API routes (chat, exam, notes, progress)
+│   ├── services/               # Backend business logic (examService, memoryService, ragService)
 │   ├── server.js               # Express application, routes, and rate-limiting
 │   ├── db.js                   # Supabase connection setup
+│   ├── supabase_schema.sql     # PostgreSQL database schema with RLS
 │   ├── package.json            # Server dependencies
 │   └── .env.example            # Backend environment variables template
 │
 ├── api/                        # Vercel Serverless Functions
-│   └── ai.js                   # Secure proxy for Google Gemini API
+│   └── ai.js                   # Secure proxy discovered when Vercel root is repository root
 │
 ├── test/                       # Automated test suites
 │   ├── api-test.mjs            # AI provider orchestration & validation tests
@@ -118,17 +129,19 @@ PrepMind/
 │   ├── PRODUCTION_READINESS_PRD.md
 │   └── PRODUCTION_READINESS_CHECKLIST.md
 │
-├── js/                         # Original Vanilla JS modules (Companion App)
-│   ├── app.js                  # Core controller
+├── js/                         # Companion Vanilla JS modules
 │   ├── api.js                  # Client API fetchers
-│   ├── practice.js             # MCQ execution logic
-│   ├── voice.js                # Web Speech API speech recognition and synthesis
-│   └── state.js                # In-memory reactive state manager
+│   ├── state.js                # In-memory reactive state manager
+│   └── ui.js                   # UI controller and DOM interactions
 │
 ├── css/                        # Custom CSS stylesheets (Companion App)
 ├── index.html                  # Companion Vanilla JS app entry point
 ├── supabase_schema.sql         # PostgreSQL schema (interviews, questions, results) with RLS
-├── package.json                # Root package configuration
+├── vercel.json                 # Root Vercel SPA routing & serverless rewrites
+├── sitemap.xml                 # Search engine canonical XML sitemap
+├── robots.txt                  # Web crawler access configuration
+├── og-image.png                # Social preview image (1200x630)
+├── package.json                # Root package configuration with unified dev/test scripts
 └── README.md                   # Project documentation
 ```
 
@@ -252,6 +265,26 @@ From the project root:
 npx serve .
 ```
 Open [http://localhost:3000](http://localhost:3000) to view the lightweight Vanilla JS interface.
+
+---
+
+### 5. Automated Tests & Quality Gates
+
+Run quality verification directly from the repository root:
+
+```bash
+# Run AI provider orchestration and offline fallback test suite
+npm test
+
+# Build the production Vite bundle
+npm run build
+
+# Run TypeScript typecheck
+npm run typecheck
+
+# Run lightweight local dev API harness (port 5000)
+npm run server:dev
+```
 
 ---
 

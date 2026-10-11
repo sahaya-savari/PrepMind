@@ -4,9 +4,15 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "split": "node split.js",
-    "server": "node server.js",
-    "dev:server": "nodemon server.js"
+    "dev": "npm --prefix app run dev",
+    "build": "npm --prefix app run build",
+    "typecheck": "npm --prefix app run typecheck",
+    "test": "node test/api-test.mjs",
+    "test:api": "node test/api-test.mjs",
+    "server": "node server/server.js",
+    "dev:server": "nodemon server/server.js",
+    "server:dev": "node test/local-dev-api.mjs",
+    "split": "node split.js"
   },
   "dependencies": {
     "axios": "^1.6.8",
