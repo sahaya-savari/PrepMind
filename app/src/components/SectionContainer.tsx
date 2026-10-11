@@ -22,7 +22,7 @@ function SectionContainer({ title, badge, description, children }: SectionContai
         <div className="h-px flex-1 bg-midnight-border" />
       </div>
       <div className="space-y-1">
-        <h2 className="text-xl sm:text-2xl font-bold font-display text-ink-primary tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-semibold font-display text-ink-primary tracking-tight">
           {title}
         </h2>
         {description && <p className="text-ink-secondary text-sm max-w-2xl">{description}</p>}

@@ -193,7 +193,7 @@ function Practice() {
           <BookOpen size={12} />
           <span>Interactive Practice Module</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-ink-primary">
+        <h1 className="text-2xl sm:text-3xl font-semibold font-display tracking-tight text-ink-primary">
           Exam Practice & MCQs
         </h1>
         <p className="text-xs sm:text-sm text-ink-secondary max-w-2xl">
@@ -205,7 +205,7 @@ function Practice() {
       <div className="rounded-xl border border-midnight-border bg-midnight-surface p-5 sm:p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-midnight-border pb-4">
           <div>
-            <h2 className="text-lg font-bold font-display text-ink-primary">
+            <h2 className="text-lg font-semibold font-display text-ink-primary">
               Adaptive Practice Drill
             </h2>
             <p className="text-xs text-ink-secondary">
@@ -274,7 +274,7 @@ function Practice() {
             type="button"
             onClick={handleGenerateMcq}
             disabled={mcqLoading}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold bg-midnight-accent text-[#0B0D12] hover:bg-midnight-accentHover transition-colors disabled:opacity-50 min-h-[40px]"
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold bg-ink-primary text-midnight-bg hover:bg-[#d1d4d9] transition-colors disabled:opacity-50 min-h-[40px]"
           >
             <Sparkles size={14} />
             <span>Generate Question</span>
@@ -346,7 +346,7 @@ function Practice() {
                     optionStyles =
                       'border-midnight-positive bg-midnight-positive/10 text-ink-primary ring-1 ring-midnight-positive/40';
                     badgeStyles =
-                      'bg-midnight-positive text-[#0B0D12] font-bold border-midnight-positive';
+                      'bg-midnight-positive text-midnight-bg font-bold border-midnight-positive';
                   } else if (isWrongSelection) {
                     optionStyles =
                       'border-midnight-error bg-midnight-error/10 text-ink-primary ring-1 ring-midnight-error/40';
@@ -361,7 +361,7 @@ function Practice() {
                   optionStyles =
                     'border-midnight-accent bg-midnight-accentSoft text-ink-primary ring-1 ring-midnight-accent';
                   badgeStyles =
-                    'bg-midnight-accent text-[#0B0D12] font-bold border-midnight-accent';
+                    'bg-midnight-accent text-midnight-bg font-bold border-midnight-accent';
                 }
 
                 return (
@@ -401,7 +401,7 @@ function Practice() {
                 type="button"
                 onClick={handleEvaluate}
                 disabled={mcqLoading || !mcqChoice}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-xs font-bold bg-midnight-accent text-[#0B0D12] hover:bg-midnight-accentHover transition-colors disabled:opacity-50"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-xs font-semibold bg-ink-primary text-midnight-bg hover:bg-[#d1d4d9] transition-colors disabled:opacity-50"
               >
                 <span>Evaluate Answer</span>
               </button>
@@ -450,7 +450,7 @@ function Practice() {
       <div className="rounded-xl border border-midnight-border bg-midnight-surface p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-midnight-border pb-3">
           <div>
-            <h3 className="text-base font-bold font-display text-ink-primary">
+            <h3 className="text-base font-semibold font-display text-ink-primary">
               Recent Practice History
             </h3>
             <p className="text-xs text-ink-secondary">
@@ -516,7 +516,7 @@ function Practice() {
       <div className="rounded-xl border border-midnight-border bg-midnight-surface p-5 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-midnight-border pb-3">
           <div>
-            <h3 className="text-base font-bold font-display text-ink-primary">
+            <h3 className="text-base font-semibold font-display text-ink-primary">
               Seeded Prompts & Interview Questions
             </h3>
             <p className="text-xs text-ink-secondary">

@@ -27,7 +27,7 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="container-shell py-12">
           <div className="rounded-xl border border-midnight-border bg-midnight-surface p-6 sm:p-8 space-y-4 max-w-lg mx-auto text-center">
-            <h1 className="text-xl font-bold font-display text-ink-primary">
+            <h1 className="text-xl font-semibold font-display text-ink-primary">
               Something went wrong.
             </h1>
             <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
@@ -36,7 +36,7 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="pt-2">
               <button
                 type="button"
-                className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-bold bg-midnight-accent text-[#0B0D12] hover:bg-midnight-accentHover transition-colors"
+                className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-semibold bg-ink-primary text-midnight-bg hover:bg-[#d1d4d9] transition-colors"
                 onClick={() => this.setState({ hasError: false })}
               >
                 Try Again

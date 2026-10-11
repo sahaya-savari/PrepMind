@@ -41,7 +41,7 @@ export function CardHeader({
             {icon} <span>{subtitle}</span>
           </div>
         )}
-        <h3 className="text-base sm:text-lg font-bold font-display text-ink-primary tracking-tight truncate">
+        <h3 className="text-base sm:text-lg font-semibold font-display text-ink-primary tracking-tight truncate">
           {title}
         </h3>
       </div>

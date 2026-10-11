@@ -2,49 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-/* PrepMind Midnight Design Tokens */
+/* PrepMind Terminal-Dark Design Tokens */
 :root,
 .theme-dark {
   color-scheme: dark;
-  --bg: #0B0D12;
-  --surface: #121620;
-  --surface-elevated: #191F2B;
-  --surface-subtle: #202737;
-  --text-primary: #F3F5FA;
-  --text-secondary: #A3ADBD;
-  --text-muted: #7C8799;
-  --border: #293243;
-  --accent: #A5A0FF;
-  --accent-hover: #BDB8FF;
-  --accent-soft: #242440;
-  --positive: #78D9B0;
-  --warning: #F0BE72;
-  --error: #FF858D;
-  --info: #82C7F4;
+  --bg: #0A0B0D;
+  --surface: #101216;
+  --surface-elevated: #16181D;
+  --surface-subtle: #1A1D24;
+  --strong-border: #2A2E37;
+  --text-primary: #E6E8EB;
+  --text-secondary: #9BA1AC;
+  --text-muted: #7B818B;
+  --border: #1E2127;
+  --accent: #C792EA;
+  --accent-hover: #D4A9F0;
+  --accent-soft: #C792EA18;
+  --positive: #C3E88D;
+  --warning: #F78C6C;
+  --error: #F07178;
+  --info: #82AAFF;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Manrope', 'Inter', -apple-system, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
 .theme-light,
 [data-theme='light'] {
   color-scheme: light;
-  --bg: #F6F7FB;
+  --bg: #F7F8FA;
   --surface: #FFFFFF;
   --surface-elevated: #FFFFFF;
-  --surface-subtle: #EEF0F7;
-  --text-primary: #171A27;
-  --text-secondary: #51596B;
-  --text-muted: #687286;
-  --border: #E0E4ED;
-  --accent: #5146C8;
-  --accent-hover: #4036B3;
-  --accent-soft: #ECEAFF;
-  --positive: #176B4B;
-  --warning: #85510A;
-  --error: #B42336;
-  --info: #175D92;
+  --surface-subtle: #EDEEF2;
+  --strong-border: #D5D8DF;
+  --text-primary: #1A1C20;
+  --text-secondary: #555B67;
+  --text-muted: #737982;
+  --border: #E0E2E8;
+  --accent: #9B59B6;
+  --accent-hover: #8340A0;
+  --accent-soft: #9B59B618;
+  --positive: #4E8A3E;
+  --warning: #B35E30;
+  --error: #C13840;
+  --info: #3A6FC9;
 }
 
 body {
@@ -113,7 +115,7 @@ body {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #0B0D12;
+  color: var(--bg);
   background-color: var(--accent);
   border: 1px solid transparent;
   transition: background-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
@@ -130,11 +132,8 @@ body {
 }
 
 .soft-button:focus-visible {
-  outline: none;
-  ring: 2px;
-  ring-color: var(--accent);
-  ring-offset: 2px;
-  ring-offset-color: var(--bg);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .button-secondary {
@@ -217,7 +216,7 @@ body {
 
 /* Tab Active State */
 .tab-active {
-  color: #0B0D12;
+  color: var(--bg);
   background-color: var(--accent);
   border-color: transparent;
 }
@@ -240,7 +239,7 @@ body {
 .markdown-safe h2,
 .markdown-safe h3,
 .markdown-safe h4 {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-weight: 700;
   color: var(--text-primary);
   margin-top: 0.5rem;

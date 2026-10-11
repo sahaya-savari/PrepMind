@@ -250,7 +250,7 @@ function Chat() {
               </span>
             )}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-ink-primary">
+          <h1 className="text-2xl sm:text-3xl font-semibold font-display tracking-tight text-ink-primary">
             Conceptual AI Tutor
           </h1>
           <p className="text-xs sm:text-sm text-ink-secondary">
@@ -318,7 +318,7 @@ function Chat() {
               <MessageSquare size={22} />
             </div>
             <div className="space-y-1">
-              <h2 className="text-base sm:text-lg font-bold font-display text-ink-primary">
+              <h2 className="text-base sm:text-lg font-semibold font-display text-ink-primary">
                 What concept would you like to master today?
               </h2>
               <p className="text-xs sm:text-sm text-ink-secondary max-w-md mx-auto">
@@ -437,7 +437,7 @@ function Chat() {
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold bg-midnight-accent text-[#0B0D12] hover:bg-midnight-accentHover transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold bg-ink-primary text-midnight-bg hover:bg-[#d1d4d9] transition-colors disabled:opacity-50"
             >
               <span>Send Message</span>
               <Send size={13} />

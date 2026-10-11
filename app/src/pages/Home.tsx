@@ -189,7 +189,7 @@ function Home() {
             PrepMind Midnight Learning Engine
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-display tracking-tight text-ink-primary leading-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold font-display tracking-tight text-ink-primary leading-tight">
             Distraction-free preparation for high-stakes examinations.
           </h1>
 
@@ -224,7 +224,7 @@ function Home() {
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent ${
                     isSelected
-                      ? 'bg-midnight-accent text-[#0B0D12] shadow-sm font-bold'
+                      ? 'bg-ink-primary text-midnight-bg shadow-sm font-bold'
                       : 'bg-midnight-subtle border border-midnight-border text-ink-secondary hover:text-ink-primary hover:border-midnight-accent/50'
                   }`}
                 >
@@ -243,7 +243,7 @@ function Home() {
               <div className="h-10 w-10 rounded-lg bg-midnight-accentSoft border border-midnight-accent/30 flex items-center justify-center text-midnight-accent">
                 <Brain size={20} />
               </div>
-              <h2 className="text-lg font-bold font-display text-ink-primary group-hover:text-midnight-accent transition-colors">
+              <h2 className="text-lg font-semibold font-display text-ink-primary group-hover:text-midnight-accent transition-colors">
                 Adaptive MCQ Practice
               </h2>
               <p className="text-xs text-ink-secondary leading-relaxed">
@@ -252,7 +252,7 @@ function Home() {
             </div>
             <a
               href="/practice"
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold bg-midnight-accent text-[#0B0D12] hover:bg-midnight-accentHover transition-colors text-center"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold bg-ink-primary text-midnight-bg hover:bg-[#d1d4d9] transition-colors text-center"
             >
               <span>Start Practice Session</span>
               <ArrowRight size={14} />
@@ -265,7 +265,7 @@ function Home() {
               <div className="h-10 w-10 rounded-lg bg-midnight-subtle border border-midnight-border flex items-center justify-center text-ink-primary">
                 <BookOpen size={20} />
               </div>
-              <h2 className="text-lg font-bold font-display text-ink-primary group-hover:text-midnight-accent transition-colors">
+              <h2 className="text-lg font-semibold font-display text-ink-primary group-hover:text-midnight-accent transition-colors">
                 Socratic AI Study Tutor
               </h2>
               <p className="text-xs text-ink-secondary leading-relaxed">
@@ -287,7 +287,7 @@ function Home() {
               <div className="h-10 w-10 rounded-lg bg-midnight-positive/10 border border-midnight-positive/30 flex items-center justify-center text-midnight-positive">
                 <CheckCircle2 size={20} />
               </div>
-              <h2 className="text-lg font-bold font-display text-ink-primary group-hover:text-midnight-positive transition-colors">
+              <h2 className="text-lg font-semibold font-display text-ink-primary group-hover:text-midnight-positive transition-colors">
                 Performance Analytics
               </h2>
               <p className="text-xs text-ink-secondary leading-relaxed">
@@ -381,7 +381,7 @@ function Home() {
           <AnimatedCard className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold font-display text-ink-primary">
+                <h3 className="text-base font-semibold font-display text-ink-primary">
                   Create Preparation Session
                 </h3>
                 <p className="text-xs text-ink-secondary">
@@ -452,7 +452,7 @@ function Home() {
           <AnimatedCard className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold font-display text-ink-primary">
+                <h3 className="text-base font-semibold font-display text-ink-primary">
                   Recent Sessions
                 </h3>
                 <p className="text-xs text-ink-secondary">
@@ -521,7 +521,7 @@ function Home() {
           <AnimatedCard className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold font-display text-ink-primary">
+                <h3 className="text-base font-semibold font-display text-ink-primary">
                   Question Runway
                 </h3>
                 <p className="text-xs text-ink-secondary">
@@ -575,7 +575,7 @@ function Home() {
           <AnimatedCard className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold font-display text-ink-primary">
+                <h3 className="text-base font-semibold font-display text-ink-primary">
                   Persist Performance
                 </h3>
                 <p className="text-xs text-ink-secondary">

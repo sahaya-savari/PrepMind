@@ -21,7 +21,7 @@ function Profile() {
     <div className="space-y-8 max-w-4xl mx-auto">
       {/* Header */}
       <header className="border-b border-midnight-border pb-4">
-        <h1 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-ink-primary">
+        <h1 className="text-2xl sm:text-3xl font-semibold font-display tracking-tight text-ink-primary">
           Student Profile
         </h1>
         <p className="text-xs sm:text-sm text-ink-secondary">
@@ -35,7 +35,7 @@ function Profile() {
           <User size={26} />
         </div>
         <div className="space-y-0.5">
-          <div className="text-base sm:text-lg font-bold font-display text-ink-primary">
+          <div className="text-base sm:text-lg font-semibold font-display text-ink-primary">
             PrepMind Scholar
           </div>
           <div className="text-xs text-ink-muted">
@@ -85,7 +85,7 @@ function StatCard({ icon, label, value, sub }: StatProps) {
         </div>
         {icon}
       </div>
-      <div className="text-xl sm:text-2xl font-bold font-display text-ink-primary truncate tabular-nums">
+      <div className="text-xl sm:text-2xl font-semibold font-display text-ink-primary truncate tabular-nums">
         {value}
       </div>
       {sub && <div className="text-xs text-ink-muted">{sub}</div>}

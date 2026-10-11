@@ -23,7 +23,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants: Record<ButtonVariant, string> = {
       primary:
-        'bg-midnight-accent text-[#0B0D12] hover:bg-midnight-accentHover shadow-sm',
+        'bg-ink-primary text-midnight-bg hover:bg-[#d1d4d9] shadow-sm',
       secondary:
         'bg-midnight-subtle border border-midnight-border text-ink-primary hover:bg-midnight-elevated hover:border-midnight-accent/60',
       outline:

@@ -9,7 +9,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['Manrope', 'Inter', '-apple-system', 'sans-serif'],
+        display: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
@@ -18,6 +18,7 @@ export default {
           surface: 'var(--surface)',
           elevated: 'var(--surface-elevated)',
           subtle: 'var(--surface-subtle)',
+          strongBorder: 'var(--strong-border)',
           border: 'var(--border)',
           accent: 'var(--accent)',
           accentHover: 'var(--accent-hover)',

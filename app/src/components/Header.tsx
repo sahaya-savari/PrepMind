@@ -20,14 +20,14 @@ function Header() {
         {/* Brand link */}
         <Link
           to="/"
-          className="flex items-center gap-3 text-lg font-bold font-display text-ink-primary group outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent focus-visible:ring-offset-2 focus-visible:ring-offset-midnight-bg rounded-lg"
+          className="flex items-center gap-3 text-lg font-semibold font-display text-ink-primary group outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent focus-visible:ring-offset-2 focus-visible:ring-offset-midnight-bg rounded-lg"
           aria-label="PrepMind AI - Home"
         >
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-midnight-accentSoft border border-midnight-accent/40 text-midnight-accent font-bold text-sm shadow-sm group-hover:bg-midnight-accent/25 transition-colors">
             PM
           </span>
           <div className="leading-tight">
-            <div className="font-display font-extrabold tracking-tight text-base sm:text-lg text-ink-primary group-hover:text-midnight-accent transition-colors">
+            <div className="font-display font-semibold tracking-tight text-base sm:text-lg text-ink-primary group-hover:text-midnight-accent transition-colors">
               PrepMind AI
             </div>
             <div className="text-ink-muted text-[11px] font-sans font-normal hidden sm:block">
@@ -49,7 +49,7 @@ function Header() {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent ${
                   isActive
-                    ? 'bg-midnight-accent text-[#0B0D12] shadow-sm font-bold'
+                    ? 'bg-ink-primary text-midnight-bg shadow-sm font-bold'
                     : 'text-ink-secondary hover:text-ink-primary hover:bg-midnight-elevated'
                 }`
               }

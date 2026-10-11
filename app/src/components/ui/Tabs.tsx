@@ -42,7 +42,7 @@ export function Tabs({
             className={cn(
               'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent focus-visible:ring-offset-1 focus-visible:ring-offset-midnight-bg min-h-[36px]',
               isActive
-                ? 'bg-midnight-accent text-[#0B0D12] shadow-sm font-bold'
+                ? 'bg-ink-primary text-midnight-bg shadow-sm font-bold'
                 : 'text-ink-secondary hover:text-ink-primary hover:bg-midnight-elevated/60'
             )}
           >
@@ -52,7 +52,7 @@ export function Tabs({
               <span
                 className={cn(
                   'px-1.5 py-0.2 rounded-full text-[10px] font-mono',
-                  isActive ? 'bg-[#0B0D12]/20 text-[#0B0D12]' : 'bg-midnight-border text-ink-muted'
+                  isActive ? 'bg-midnight-bg/20 text-midnight-bg' : 'bg-midnight-border text-ink-muted'
                 )}
               >
                 {tab.count}
