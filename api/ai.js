@@ -233,6 +233,40 @@ export default async function handler(req, res) {
     });
   }
 
+  // Pre-validate input payload before checking provider configuration
+  let topic = '';
+  let difficulty = 'Intermediate';
+  let sanitizedMessages = [];
+
+  if (action === 'generate_mcq') {
+    topic = (body.topic || '').toString().trim().slice(0, 200);
+    difficulty = (body.difficulty || 'Intermediate').toString().trim().slice(0, 50);
+    if (!topic) {
+      return sendJson(res, 400, { error: 'Topic is required for MCQ generation' });
+    }
+  } else if (action === 'chat') {
+    const rawMessages = Array.isArray(body.messages)
+      ? body.messages
+      : body.message
+      ? [{ role: 'user', content: String(body.message) }]
+      : [];
+
+    sanitizedMessages = rawMessages
+      .filter((m) => m && typeof m.role === 'string' && typeof m.content === 'string')
+      .map((m) => ({
+        role: ['user', 'assistant', 'system'].includes(m.role) ? m.role : 'user',
+        content: m.content.trim().slice(0, 4000),
+      }))
+      .filter((m) => m.content.length > 0)
+      .slice(-20);
+
+    if (!sanitizedMessages.length) {
+      return sendJson(res, 400, { error: 'Invalid request: messages array or message string required' });
+    }
+  } else {
+    return sendJson(res, 400, { error: `Unsupported action: ${action}` });
+  }
+
   if (!hasProvider) {
     return sendJson(res, 503, {
       error: 'AI service unconfigured: Neither GROQ_API_KEY, NVIDIA_API_KEY, nor GEMINI_API_KEY is configured in environment.',
@@ -313,12 +347,6 @@ export default async function handler(req, res) {
   try {
     // 1. MCQ GENERATION
     if (action === 'generate_mcq') {
-      const topic = (body.topic || '').toString().trim().slice(0, 200);
-      const difficulty = (body.difficulty || 'Intermediate').toString().trim().slice(0, 50);
-      if (!topic) {
-        return sendJson(res, 400, { error: 'Topic is required for MCQ generation' });
-      }
-
       const systemPrompt =
         'You are an expert exam question creator. Output ONLY a valid JSON object matching this schema: {"questions": [{"question": "string", "options": ["Option A", "Option B", "Option C", "Option D"], "answer": "Option A", "explanation": "string"}]}. Do not include markdown code ticks, conversational text, or preamble.';
 
@@ -349,31 +377,12 @@ export default async function handler(req, res) {
     }
 
     // 2. STUDY CHAT / CONVERSATION
-    const rawMessages = Array.isArray(body.messages)
-      ? body.messages
-      : body.message
-      ? [{ role: 'user', content: String(body.message) }]
-      : [];
-
-    const sanitized = rawMessages
-      .filter((m) => m && typeof m.role === 'string' && typeof m.content === 'string')
-      .map((m) => ({
-        role: ['user', 'assistant', 'system'].includes(m.role) ? m.role : 'user',
-        content: m.content.trim().slice(0, 4000),
-      }))
-      .filter((m) => m.content.length > 0)
-      .slice(-20);
-
-    if (!sanitized.length) {
-      return sendJson(res, 400, { error: 'Invalid request: messages array or message string required' });
-    }
-
     const systemPrompt =
       'You are PrepMind AI, an intelligent, empathetic study mentor and exam preparation tutor. Guide students clearly using first-principles explanations, step-by-step reasoning, and practical test-taking strategies.';
 
-    const systemMessage = sanitized.find((m) => m.role === 'system');
+    const systemMessage = sanitizedMessages.find((m) => m.role === 'system');
     const finalSystem = systemMessage?.content || systemPrompt;
-    const conversation = sanitized.filter((m) => m.role !== 'system');
+    const conversation = sanitizedMessages.filter((m) => m.role !== 'system');
 
     const result = await runWithCascade({
       messages: conversation,

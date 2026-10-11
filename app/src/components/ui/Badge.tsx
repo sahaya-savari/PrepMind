@@ -42,7 +42,7 @@ export function Badge({ children, variant = 'accent', dot = false, className }: 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border transition-colors',
+        'inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold border transition-colors',
         current.container,
         className
       )}

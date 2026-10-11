@@ -24,7 +24,7 @@ export function Tabs({
       role="tablist"
       aria-orientation="horizontal"
       className={cn(
-        'inline-flex items-center gap-1 rounded-xl border border-midnight-border bg-midnight-subtle/70 p-1',
+        'inline-flex items-center gap-1 rounded-lg border border-midnight-border bg-midnight-subtle/70 p-1',
         className
       )}
     >
@@ -40,9 +40,9 @@ export function Tabs({
             tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent focus-visible:ring-offset-1 focus-visible:ring-offset-midnight-bg min-h-[36px]',
+              'flex items-center gap-2 rounded-md px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent focus-visible:ring-offset-2 focus-visible:ring-offset-midnight-bg min-h-[36px]',
               isActive
-                ? 'bg-midnight-accent text-[#0B0D12] shadow-sm font-bold'
+                ? 'bg-ink-primary text-midnight-bg'
                 : 'text-ink-secondary hover:text-ink-primary hover:bg-midnight-elevated/60'
             )}
           >
@@ -51,8 +51,8 @@ export function Tabs({
             {tab.count !== undefined && (
               <span
                 className={cn(
-                  'px-1.5 py-0.2 rounded-full text-[10px] font-mono',
-                  isActive ? 'bg-[#0B0D12]/20 text-[#0B0D12]' : 'bg-midnight-border text-ink-muted'
+                  'px-1.5 py-0.2 rounded-md text-[10px] font-mono',
+                  isActive ? 'bg-midnight-bg/20 text-midnight-bg' : 'bg-midnight-border text-ink-muted'
                 )}
               >
                 {tab.count}

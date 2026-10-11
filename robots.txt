@@ -1,0 +1,21 @@
+# Robots.txt for PrepMind AI (https://prep-weblearning.vercel.app/)
+User-agent: *
+Allow: /
+Allow: /practice
+Allow: /chat
+Disallow: /progress
+Disallow: /profile
+Disallow: /api/
+
+# AI Training Crawlers Management (preserve search indexing)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+# Canonical XML Sitemap
+Sitemap: https://prep-weblearning.vercel.app/sitemap.xml

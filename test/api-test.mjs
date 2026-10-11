@@ -54,19 +54,35 @@ await handler({ method: 'POST', body: { action: 'generate_mcq', topic: '' } }, c
 assert.strictEqual(mockStatus, 400, 'Empty topic should yield 400');
 assert(mockResponse?.error?.includes('Topic is required'), 'Should return clear error for missing topic');
 
+// 2a-ii: Whitespace-only topic for MCQ
+await handler({ method: 'POST', body: { action: 'generate_mcq', topic: '     ' } }, createMockRes());
+assert.strictEqual(mockStatus, 400, 'Whitespace-only topic should yield 400');
+
 // 2b: Empty messages for Chat
 await handler({ method: 'POST', body: { action: 'chat', messages: [] } }, createMockRes());
 assert.strictEqual(mockStatus, 400, 'Empty messages should yield 400');
+
+// 2b-ii: Messages with only empty/whitespace content
+await handler({ method: 'POST', body: { action: 'chat', messages: [{ role: 'user', content: '   ' }] } }, createMockRes());
+assert.strictEqual(mockStatus, 400, 'Whitespace-only chat message should yield 400');
 
 // 2c: Empty answers for Evaluation
 await handler({ method: 'POST', body: { action: 'evaluate', answers: [] } }, createMockRes());
 assert.strictEqual(mockStatus, 400, 'Empty answers should yield 400');
 
-// 2d: Unsupported HTTP method
+// 2c-ii: Non-array answers for Evaluation
+await handler({ method: 'POST', body: { action: 'evaluate', answers: 'invalid' } }, createMockRes());
+assert.strictEqual(mockStatus, 400, 'Non-array answers should yield 400');
+
+// 2d: Unsupported action
+await handler({ method: 'POST', body: { action: 'unsupported_test_action' } }, createMockRes());
+assert.strictEqual(mockStatus, 400, 'Unsupported action should yield 400');
+
+// 2e: Unsupported HTTP method
 await handler({ method: 'PUT', body: {} }, createMockRes());
 assert.strictEqual(mockStatus, 405, 'Non-GET/POST/OPTIONS should yield 405');
 
-console.log('✓ Test 2 Passed: Malformed and invalid requests safely rejected with 400/405.\n');
+console.log('✓ Test 2 Passed: Malformed, whitespace-only, and invalid requests safely rejected with 400/405.\n');
 
 // ----------------------------------------------------
 // Test 3: Deterministic Answer Evaluation & Scoring

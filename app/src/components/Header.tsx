@@ -1,90 +1,95 @@
-import { Link, NavLink } from 'react-router-dom';
-import { MessageCircle, Brain, BarChart3, Home, Sun, Moon } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useExam } from '../context/ExamContext';
+import { PillNav, NavItem } from './reactbits/PillNav';
 
-const navItems = [
-  { to: '/', label: 'Home', icon: <Home size={16} /> },
-  { to: '/practice', label: 'Practice', icon: <Brain size={16} /> },
-  { to: '/chat', label: 'AI Tutor', icon: <MessageCircle size={16} /> },
-  { to: '/progress', label: 'Progress', icon: <BarChart3 size={16} /> },
+const navItems: NavItem[] = [
+  { id: '/', path: '/', label: 'Overview', icon: <Home size={13} /> },
+  { id: '/practice', path: '/practice', label: 'Practice', icon: <Brain size={13} /> },
+  { id: '/chat', path: '/chat', label: 'AI Tutor', icon: <MessageCircle size={13} /> },
+  { id: '/progress', path: '/progress', label: 'Progress', icon: <BarChart3 size={13} /> },
+  { id: '/profile', path: '/profile', label: 'Profile', icon: <User size={13} /> },
 ];
 
 function Header() {
   const { theme, toggleTheme } = useTheme();
   const { exam } = useExam();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Normalize current path for active pill matching
+  const currentPath = location.pathname === '' ? '/' : location.pathname;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-midnight-border bg-midnight-surface/90 backdrop-blur-md transition-colors">
-      <div className="container-shell flex items-center justify-between gap-4 py-3 sm:py-3.5">
-        {/* Brand link */}
+    <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--bg)]/95 backdrop-blur-md transition-colors">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-6 px-4 sm:px-6 py-3">
+        {/* Brand Link with verified brand mark */}
         <Link
           to="/"
-          className="flex items-center gap-3 text-lg font-bold font-display text-ink-primary group outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent focus-visible:ring-offset-2 focus-visible:ring-offset-midnight-bg rounded-lg"
+          className="flex items-center gap-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded-lg cursor-pointer shrink-0 group"
           aria-label="PrepMind AI - Home"
         >
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-midnight-accentSoft border border-midnight-accent/40 text-midnight-accent font-bold text-sm shadow-sm group-hover:bg-midnight-accent/25 transition-colors">
-            PM
-          </span>
-          <div className="leading-tight">
-            <div className="font-display font-extrabold tracking-tight text-base sm:text-lg text-ink-primary group-hover:text-midnight-accent transition-colors">
-              PrepMind AI
-            </div>
-            <div className="text-ink-muted text-[11px] font-sans font-normal hidden sm:block">
-              Exam Preparation Platform
-            </div>
+          <div className="w-8 h-8 rounded-md bg-[var(--surface)] border border-[var(--border-strong)] flex items-center justify-center overflow-hidden shadow-sm transition-colors group-hover:border-[var(--accent)] shrink-0">
+            <img
+              src="/assets/brand/prep-mind-mark.svg"
+              alt="PrepMind AI Brand Mark"
+              className="w-full h-full object-contain p-0.5"
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-base sm:text-lg font-bold tracking-tight text-[var(--text-primary)] leading-tight">
+              PrepMind <span className="text-[var(--accent)] text-xs font-mono tracking-wider">AI</span>
+            </span>
+            <span className="text-[10px] font-mono tracking-wider uppercase text-[var(--text-muted)] -mt-0.5 hidden sm:inline">
+              Terminal Drills
+            </span>
           </div>
         </Link>
 
-        {/* Center: Desktop Navigation Bar */}
-        <nav
-          className="hidden md:flex items-center gap-1 rounded-xl border border-midnight-border bg-midnight-subtle/80 p-1 shadow-sm"
-          aria-label="Main navigation"
-        >
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent ${
-                  isActive
-                    ? 'bg-midnight-accent text-[#0B0D12] shadow-sm font-bold'
-                    : 'text-ink-secondary hover:text-ink-primary hover:bg-midnight-elevated'
-                }`
-              }
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+        {/* Center: Desktop Navigation Bar with PillNav */}
+        <div className="hidden md:flex items-center justify-center flex-1">
+          <PillNav
+            items={navItems}
+            activeId={currentPath}
+            onSelect={(item) => navigate(item.path)}
+          />
+        </div>
 
-        {/* Right: Selected Exam & Theme Controls */}
-        <div className="flex items-center gap-2.5">
+        {/* Right: Selected Exam, Theme Switch & Quick Practice */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {exam && (
             <Link
-              to="/"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-midnight-subtle border border-midnight-border text-ink-primary hover:border-midnight-accent/50 transition-colors focus-visible:ring-2 focus-visible:ring-midnight-accent outline-none max-w-[180px]"
-              title="Current selected exam target (click to switch)"
+              to="/profile"
+              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none max-w-[160px]"
+              title="Target exam profile"
             >
-              <span className="h-2 w-2 rounded-full bg-midnight-positive animate-pulse shrink-0" aria-hidden />
-              <span className="text-ink-muted text-[11px] hidden sm:inline">Exam:</span>
-              <span className="truncate font-semibold text-xs">{exam}</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--positive)] animate-pulse shrink-0" aria-hidden />
+              <span className="truncate">{exam}</span>
             </Link>
           )}
 
           <button
+            type="button"
             onClick={toggleTheme}
             aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-midnight-border bg-midnight-subtle text-ink-secondary hover:text-ink-primary hover:bg-midnight-elevated transition focus-visible:ring-2 focus-visible:ring-midnight-accent outline-none"
+            className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none cursor-pointer"
             title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
           >
             {theme === 'dark' ? (
-              <Sun size={17} className="text-midnight-warning" />
+              <Sun size={15} className="text-[var(--warning)]" />
             ) : (
-              <Moon size={17} className="text-midnight-accent" />
+              <Moon size={15} className="text-[var(--accent)]" />
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/practice')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-semibold rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap shadow-sm min-h-[32px] sm:min-h-[36px]"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline">Drill</span>
           </button>
         </div>
       </div>

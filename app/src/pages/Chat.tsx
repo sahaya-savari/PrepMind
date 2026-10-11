@@ -1,117 +1,72 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import React, { FormEvent, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useExam } from '../context/ExamContext';
 import {
   MessageSquare,
   Sparkles,
-  Send,
-  Square,
   RotateCcw,
   Download,
   Trash2,
   AlertCircle,
+  Square,
+  Terminal,
+  User,
 } from 'lucide-react';
-import LoadingSpinner from '../components/LoadingSpinner';
+import { ThoughtLine } from '../components/reactbits/ThoughtLine';
+import { SlingButton } from '../components/reactbits/SlingButton';
+import { CodeBlock } from '../components/shared/CodeBlock';
 import { askStream, ChatMessage } from '../api';
 
 const STORAGE_KEY = 'prepmind_chat_v2';
 const MAX_HISTORY = 15;
 
-const STARTER_PROMPTS = [
-  'Explain how the JavaScript event loop works with microtasks vs macrotasks',
+const SUGGESTION_CHIPS = [
+  'Explain how the JavaScript event loop handles microtasks vs macrotasks',
   'What is the fundamental trade-off between optimistic and pessimistic concurrency?',
   'How does B-Tree indexing speed up relational database queries under the hood?',
-  'Give me a 3-question conceptual drill on React rendering and reconciliation',
+  'Walk through consistent hashing with virtual nodes and rebalancing',
 ];
 
-const renderMarkdownSafe = (text: string) => {
-  const escape = (s: string) =>
-    s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+// Helper to split message content into text and code blocks
+interface ContentPart {
+  type: 'text' | 'code';
+  content: string;
+  lang?: string;
+  filename?: string;
+}
 
-  const lines = escape(text || '').split(/\r?\n/);
-  let html = '';
-  let listType = '';
-  let inCode = false;
+const parseMessageParts = (raw: string): ContentPart[] => {
+  const parts: ContentPart[] = [];
+  const codeBlockRegex = /```([a-zA-Z0-9_\-\.]*)\n([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match;
 
-  const applyInline = (val: string) =>
-    val
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
-
-  const closeList = () => {
-    if (listType === 'ul') html += '</ul>';
-    if (listType === 'ol') html += '</ol>';
-    listType = '';
-  };
-
-  for (const raw of lines) {
-    const line = raw.trim();
-
-    if (line.startsWith('```')) {
-      if (inCode) {
-        html += '</code></pre>';
-        inCode = false;
-      } else {
-        closeList();
-        inCode = true;
-        html += '<pre><code>';
-      }
-      continue;
+  while ((match = codeBlockRegex.exec(raw)) !== null) {
+    if (match.index > lastIndex) {
+      const text = raw.substring(lastIndex, match.index).trim();
+      if (text) parts.push({ type: 'text', content: text });
     }
-
-    if (inCode) {
-      html += `${raw}\n`;
-      continue;
-    }
-
-    if (!line) {
-      closeList();
-      continue;
-    }
-
-    const heading = line.match(/^(#{1,6})\s+(.*)$/);
-    if (heading) {
-      closeList();
-      const level = Math.min(6, heading[1].length);
-      html += `<h${level}>${applyInline(heading[2])}</h${level}>`;
-      continue;
-    }
-
-    const bullet = line.match(/^[-*]\s+(.*)$/);
-    if (bullet) {
-      if (listType !== 'ul') {
-        closeList();
-        html += '<ul>';
-        listType = 'ul';
-      }
-      html += `<li>${applyInline(bullet[1])}</li>`;
-      continue;
-    }
-
-    const numbered = line.match(/^\d+\.\s+(.*)$/);
-    if (numbered) {
-      if (listType !== 'ol') {
-        closeList();
-        html += '<ol>';
-        listType = 'ol';
-      }
-      html += `<li>${applyInline(numbered[1])}</li>`;
-      continue;
-    }
-
-    closeList();
-    html += `<p>${applyInline(line)}</p>`;
+    const lang = match[1] || 'typescript';
+    const filename = lang.includes('.') ? lang : undefined;
+    parts.push({
+      type: 'code',
+      content: match[2].trim(),
+      lang: filename ? filename.split('.').pop() : lang,
+      filename,
+    });
+    lastIndex = match.index + match[0].length;
   }
 
-  if (inCode) html += '</code></pre>';
-  closeList();
-  return html || '<p></p>';
+  if (lastIndex < raw.length) {
+    const text = raw.substring(lastIndex).trim();
+    if (text) parts.push({ type: 'text', content: text });
+  }
+
+  if (parts.length === 0 && raw) {
+    parts.push({ type: 'text', content: raw });
+  }
+
+  return parts;
 };
 
 function Chat() {
@@ -130,6 +85,7 @@ function Chat() {
   const [error, setError] = useState('');
   const [trimmed, setTrimmed] = useState(false);
   const [lastPrompt, setLastPrompt] = useState('');
+
   const cancelRef = useRef(false);
   const chatRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -141,7 +97,9 @@ function Chat() {
   };
 
   useEffect(() => {
-    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
   }, [messages, loading]);
 
   useEffect(() => {
@@ -157,10 +115,10 @@ function Chat() {
     inputRef.current?.focus();
   };
 
-  const sendMessage = async (e: FormEvent) => {
-    e.preventDefault();
+  const sendMessage = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     const content = input.trim();
-    if (!content) return;
+    if (!content || loading) return;
 
     cancelRef.current = false;
     const userMsg: ChatMessage = { role: 'user', content };
@@ -219,7 +177,7 @@ function Chat() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'prepmind-study-chat.json';
+    a.download = `prepmind_chat_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -227,53 +185,47 @@ function Chat() {
   const retryLast = () => {
     if (lastPrompt) {
       setInput(lastPrompt);
-      setTimeout(() => {
-        const form = document.getElementById('chat-form');
-        form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-      }, 0);
+      sendMessage();
     }
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-midnight-border pb-4">
+    <div className="space-y-5 max-w-5xl mx-auto">
+      {/* 1. CHAT HEADER */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--border)]">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-midnight-accentSoft border border-midnight-accent/30 text-midnight-accent">
-              <Sparkles size={12} />
-              <span>Socratic AI Study Tutor</span>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+              AI Study Assistant
+            </h1>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--accent)]">
+              {exam || 'Target Syllabus'}
             </span>
-            {exam && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-midnight-subtle text-ink-secondary border border-midnight-border">
-                Target: {exam}
-              </span>
-            )}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-ink-primary">
-            Conceptual AI Tutor
-          </h1>
-          <p className="text-xs sm:text-sm text-ink-secondary">
-            Multi-model study assistant powered by Groq, NVIDIA NIM, and Gemini cascade.
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+            Real-time Socratic dialogue, conceptual proofs, and architectural trade-off analysis.
           </p>
         </div>
 
+        {/* Action Controls */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={exportChat}
-            disabled={!messages.length}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold bg-midnight-subtle border border-midnight-border text-ink-secondary hover:text-ink-primary hover:bg-midnight-elevated transition-colors disabled:opacity-40"
-            title="Export conversation as JSON"
-          >
-            <Download size={13} />
-            <span>Export</span>
-          </button>
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={exportChat}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-colors cursor-pointer"
+              title="Export chat history as JSON"
+            >
+              <Download size={13} />
+              <span>Export</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={clearChat}
-            disabled={loading || !messages.length}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold bg-midnight-subtle border border-midnight-border text-ink-secondary hover:text-midnight-error hover:bg-midnight-elevated transition-colors disabled:opacity-40"
+            disabled={messages.length === 0}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--error)] hover:border-[var(--error)]/40 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             title="Clear all messages"
           >
             <Trash2 size={13} />
@@ -284,15 +236,16 @@ function Chat() {
 
       {/* Notifications */}
       {error && (
-        <div className="text-xs p-3 rounded-lg bg-midnight-warning/10 border border-midnight-warning/30 text-midnight-warning flex items-center justify-between">
+        <div className="text-xs p-3 rounded-lg bg-[var(--surface-elevated)] border border-[var(--warning)]/40 text-[var(--warning)] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle size={14} className="shrink-0" />
             <span>{error}</span>
           </div>
           {lastPrompt && (
             <button
+              type="button"
               onClick={retryLast}
-              className="inline-flex items-center gap-1 underline font-semibold hover:text-ink-primary ml-2"
+              className="inline-flex items-center gap-1 underline font-semibold hover:text-[var(--text-primary)] ml-2 cursor-pointer"
             >
               <RotateCcw size={12} />
               <span>Retry</span>
@@ -302,40 +255,41 @@ function Chat() {
       )}
 
       {trimmed && (
-        <div className="text-xs text-midnight-warning bg-midnight-warning/10 border border-midnight-warning/20 p-2 rounded-lg">
+        <div className="text-xs text-[var(--warning)] bg-[var(--surface-elevated)] border border-[var(--warning)]/20 p-2 rounded-lg">
           Conversation context optimized to the latest {MAX_HISTORY} messages for performance.
         </div>
       )}
 
-      {/* Message History Container */}
+      {/* 2. MESSAGE STREAM CONTAINER */}
       <div
         ref={chatRef}
-        className="min-h-[420px] max-h-[62vh] overflow-y-auto p-4 sm:p-6 rounded-xl border border-midnight-border bg-midnight-surface shadow-card space-y-4"
+        className="min-h-[420px] max-h-[64vh] overflow-y-auto p-4 sm:p-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-4"
       >
         {messages.length === 0 && (
           <div className="py-10 px-4 text-center space-y-5">
-            <div className="w-12 h-12 mx-auto rounded-xl bg-midnight-accentSoft border border-midnight-accent/30 flex items-center justify-center text-midnight-accent">
+            <div className="w-12 h-12 mx-auto rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-strong)] flex items-center justify-center text-[var(--accent)]">
               <MessageSquare size={22} />
             </div>
             <div className="space-y-1">
-              <h2 className="text-base sm:text-lg font-bold font-display text-ink-primary">
-                What concept would you like to master today?
+              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
+                What concept would you like to explore today?
               </h2>
-              <p className="text-xs sm:text-sm text-ink-secondary max-w-md mx-auto">
-                Ask conceptual derivations, request step-by-step algorithmic proofs, or paste code to analyze.
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] max-w-md mx-auto">
+                Request algorithmic proofs, debug code snippets, or drill conceptual invariants.
               </p>
             </div>
 
-            <div className="grid gap-2.5 sm:grid-cols-2 max-w-xl mx-auto pt-2 text-left">
-              {STARTER_PROMPTS.map((prompt) => (
+            {/* Starter Suggestion Chips */}
+            <div className="grid gap-2.5 sm:grid-cols-2 max-w-2xl mx-auto pt-2 text-left">
+              {SUGGESTION_CHIPS.map((chip) => (
                 <button
-                  key={prompt}
+                  key={chip}
                   type="button"
-                  onClick={() => handlePromptClick(prompt)}
-                  className="p-3.5 rounded-lg border border-midnight-border bg-midnight-subtle hover:bg-midnight-elevated hover:border-midnight-accent/40 text-xs text-ink-secondary hover:text-ink-primary transition-all duration-150 text-left leading-relaxed flex items-center justify-between group outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent"
+                  onClick={() => handlePromptClick(chip)}
+                  className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--accent)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-left leading-relaxed flex items-center justify-between group cursor-pointer"
                 >
-                  <span className="line-clamp-2">{prompt}</span>
-                  <span className="text-midnight-accent opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1.5 font-bold">
+                  <span className="line-clamp-2">{chip}</span>
+                  <span className="text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1.5 font-bold">
                     →
                   </span>
                 </button>
@@ -346,6 +300,8 @@ function Chat() {
 
         {messages.map((m, idx) => {
           const isUser = m.role === 'user';
+          const parts = parseMessageParts(m.content);
+
           return (
             <motion.div
               key={idx}
@@ -355,30 +311,46 @@ function Chat() {
               className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[92%] sm:max-w-[82%] px-4 py-3 rounded-xl border text-xs sm:text-sm leading-relaxed ${
+                className={`max-w-[92%] sm:max-w-[84%] px-4 py-3.5 rounded-xl border text-xs sm:text-sm leading-relaxed ${
                   isUser
-                    ? 'bg-midnight-accentSoft border-midnight-accent/35 text-ink-primary rounded-br-sm'
-                    : 'bg-midnight-elevated border-midnight-border text-ink-primary rounded-bl-sm shadow-sm'
+                    ? 'bg-[var(--surface-elevated)] border-[var(--accent)]/40 text-[var(--text-primary)] rounded-br-sm'
+                    : 'bg-[var(--surface-elevated)] border-[var(--border-strong)] text-[var(--text-primary)] rounded-bl-sm'
                 }`}
               >
-                {!isUser && (
-                  <div className="flex items-center gap-2 pb-2 mb-2 border-b border-midnight-border text-[11px] font-semibold text-midnight-accent">
-                    <span className="w-1.5 h-1.5 rounded-full bg-midnight-positive" />
-                    <span>PrepMind Tutor</span>
+                {!isUser ? (
+                  <div className="flex items-center gap-2 pb-2 mb-2 border-b border-[var(--border)] text-[11px] font-semibold text-[var(--accent)] font-mono">
+                    <Terminal className="w-3.5 h-3.5 text-[var(--accent)]" />
+                    <span>PrepMind AI Tutor</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 pb-1 mb-1 text-[11px] font-mono text-[var(--text-muted)]">
+                    <User className="w-3 h-3" />
+                    <span>You</span>
                   </div>
                 )}
 
-                {isUser ? (
-                  <div className="whitespace-pre-wrap break-words">{m.content}</div>
-                ) : (
-                  <div
-                    className="markdown-safe prose-invert break-words"
-                    dangerouslySetInnerHTML={{ __html: renderMarkdownSafe(m.content) }}
-                  />
-                )}
+                <div className="space-y-2">
+                  {parts.map((p, pIdx) => {
+                    if (p.type === 'code') {
+                      return (
+                        <CodeBlock
+                          key={pIdx}
+                          code={p.content}
+                          language={p.lang || 'typescript'}
+                          filename={p.filename}
+                        />
+                      );
+                    }
+                    return (
+                      <div key={pIdx} className="whitespace-pre-wrap break-words leading-relaxed">
+                        {p.content}
+                      </div>
+                    );
+                  })}
+                </div>
 
                 {idx === messages.length - 1 && !isUser && loading && (
-                  <span className="inline-block w-1.5 h-3.5 ml-1 bg-midnight-accent animate-pulse align-middle" />
+                  <span className="inline-block w-1.5 h-3.5 ml-1 bg-[var(--accent)] animate-pulse align-middle" />
                 )}
               </div>
             </motion.div>
@@ -386,17 +358,24 @@ function Chat() {
         })}
 
         {loading && (
-          <div className="flex items-center gap-2.5 p-3 rounded-lg bg-midnight-subtle border border-midnight-border w-fit text-xs text-ink-secondary">
-            <LoadingSpinner label="Formulating Socratic response" />
+          <div className="pt-2">
+            <ThoughtLine
+              working={true}
+              label="Streaming Socratic response..."
+              steps={[
+                'Parsing technical query',
+                'Synthesizing architectural reasoning',
+                'Streaming formulated explanation',
+              ]}
+            />
           </div>
         )}
       </div>
 
-      {/* Input Composer */}
+      {/* 3. INPUT COMPOSER WITH SLINGBUTTON */}
       <form
-        id="chat-form"
         onSubmit={sendMessage}
-        className="rounded-xl border border-midnight-border bg-midnight-surface p-4 shadow-card space-y-3"
+        className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-3"
       >
         <textarea
           ref={inputRef}
@@ -405,21 +384,19 @@ function Chat() {
           onKeyDown={(e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
               e.preventDefault();
-              if (input.trim() && !loading) sendMessage(e as any);
+              if (input.trim() && !loading) sendMessage();
             }
           }}
-          className="w-full min-h-[88px] px-3.5 py-2.5 rounded-lg border border-midnight-border bg-midnight-subtle text-ink-primary placeholder:text-ink-muted focus:border-midnight-accent focus:outline-none focus:ring-1 focus:ring-midnight-accent text-xs sm:text-sm resize-none"
-          placeholder="Ask a technical concept, syllabus topic, or derivation (Ctrl + Enter to send)..."
+          rows={3}
+          className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] text-xs sm:text-sm resize-none"
+          placeholder="Ask a conceptual derivation, algorithm trade-off, or proof (Ctrl + Enter to send)..."
           aria-label="Ask study tutor"
           disabled={loading}
         />
 
         <div className="flex items-center justify-between gap-3 pt-1">
-          <span className="text-[11px] text-ink-muted hidden sm:inline">
-            Press <kbd className="px-1.5 py-0.5 rounded bg-midnight-subtle border border-midnight-border font-mono text-[10px] text-ink-secondary">Ctrl + Enter</kbd> to send
-          </span>
-          <span className="text-[11px] text-ink-muted sm:hidden">
-            Groq + NIM + Gemini
+          <span className="text-[11px] font-mono text-[var(--text-muted)] hidden sm:inline">
+            Press <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border)] text-[10px] text-[var(--text-secondary)]">Ctrl + Enter</kbd> to send
           </span>
 
           <div className="flex items-center gap-2">
@@ -427,21 +404,20 @@ function Chat() {
               <button
                 type="button"
                 onClick={cancelStream}
-                className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold bg-midnight-error/15 border border-midnight-error/30 text-midnight-error hover:bg-midnight-error/25 transition-colors"
+                className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold bg-[var(--surface-elevated)] border border-[var(--error)]/40 text-[var(--error)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
               >
                 <Square size={12} />
                 <span>Stop</span>
               </button>
             )}
 
-            <button
-              type="submit"
+            <SlingButton
+              onSend={() => sendMessage()}
               disabled={loading || !input.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold bg-midnight-accent text-[#0B0D12] hover:bg-midnight-accentHover transition-colors disabled:opacity-50"
-            >
-              <span>Send Message</span>
-              <Send size={13} />
-            </button>
+              isSending={loading}
+              label="Send Message"
+              aria-label="Send message to AI Tutor"
+            />
           </div>
         </div>
       </form>

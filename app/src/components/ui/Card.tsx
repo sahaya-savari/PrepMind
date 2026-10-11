@@ -11,7 +11,7 @@ export function Card({ className, elevated = false, children }: CardProps) {
     <div
       className={cn(
         'rounded-xl border border-midnight-border transition-colors duration-150',
-        elevated ? 'bg-midnight-elevated shadow-card' : 'bg-midnight-surface',
+        elevated ? 'bg-midnight-elevated' : 'bg-midnight-surface',
         className
       )}
     >
@@ -41,7 +41,7 @@ export function CardHeader({
             {icon} <span>{subtitle}</span>
           </div>
         )}
-        <h3 className="text-base sm:text-lg font-bold font-display text-ink-primary tracking-tight truncate">
+        <h3 className="text-base sm:text-lg font-semibold font-display text-ink-primary tracking-tight truncate">
           {title}
         </h3>
       </div>
