@@ -41,81 +41,186 @@ function resolveApiUrl(path: string): string {
   return cleanPath;
 }
 
-export async function getJSON<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = resolveApiUrl(path);
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+// Unified request timeout (Phase 1 target: 10–15s).
+const REQUEST_TIMEOUT_MS = 15000;
+const RETRY_DELAY_MS = 400;
+const MAX_ATTEMPTS = 2; // 1 retry on transient failures
 
-  try {
-    const token = import.meta.env.VITE_API_TOKEN;
-    const res = await fetch(url, {
-      ...options,
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-      },
-      signal: options.signal || controller.signal,
-    });
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      let errMsg = `Request failed (${res.status})`;
-      try {
-        const parsed = JSON.parse(errText);
-        if (parsed?.error) errMsg = typeof parsed.error === 'string' ? parsed.error : parsed.error.message || errMsg;
-      } catch {
-        if (errText) errMsg = errText;
-      }
-      throw new Error(errMsg);
-    }
-
-    return (await res.json()) as T;
-  } finally {
-    clearTimeout(timeoutId);
+export class HttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'HttpError';
+    this.status = status;
   }
 }
 
-export async function postJSON<T>(path: string, body: unknown, options: RequestInit = {}): Promise<T> {
-  const url = resolveApiUrl(path);
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000);
-
-  try {
-    const token = import.meta.env.VITE_API_TOKEN;
-    const res = await fetch(url, {
-      ...options,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-      },
-      body: JSON.stringify(body),
-      signal: options.signal || controller.signal,
-    });
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      let errMsg = `Request failed (${res.status})`;
-      try {
-        const parsed = JSON.parse(errText);
-        if (parsed?.error) errMsg = typeof parsed.error === 'string' ? parsed.error : parsed.error.message || errMsg;
-      } catch {
-        if (errText) errMsg = errText;
-      }
-      throw new Error(errMsg);
-    }
-
-    return (await res.json()) as T;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+function messageForStatus(status: number, fallback: string): string {
+  if (status === 401) return 'Unauthorized (401) — check your API token.';
+  if (status === 429) return 'Too many requests (429) — please slow down and try again.';
+  if (status === 500) return 'Server error (500) — the AI service failed to respond.';
+  return fallback;
 }
 
-export async function safeJsonFetch(url: string, options: RequestInit = {}) {
+async function readErrorMessage(res: Response): Promise<string> {
+  const errText = await res.text().catch(() => '');
+  let errMsg = `Request failed (${res.status})`;
+  try {
+    const parsed = JSON.parse(errText);
+    if (parsed?.error) errMsg = typeof parsed.error === 'string' ? parsed.error : parsed.error.message || errMsg;
+  } catch {
+    if (errText) errMsg = errText;
+  }
+  return messageForStatus(res.status, errMsg);
+}
+
+export interface RequestOptions extends RequestInit {
+  retry?: boolean | number;
+}
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function requestJSON<T>(
+  method: 'GET' | 'POST',
+  path: string,
+  body: unknown,
+  options: RequestOptions = {},
+): Promise<T> {
+  const url = resolveApiUrl(path);
+  const token = import.meta.env.VITE_API_TOKEN;
+
+  const customHeaders: Record<string, string> = {};
+  if (options.headers) {
+    if (options.headers instanceof Headers) {
+      options.headers.forEach((value, key) => {
+        customHeaders[key] = value;
+      });
+    } else if (Array.isArray(options.headers)) {
+      options.headers.forEach(([key, value]) => {
+        customHeaders[key] = value;
+      });
+    } else {
+      Object.assign(customHeaders, options.headers);
+    }
+  }
+
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...customHeaders,
+  };
+  if (method === 'POST' && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const callerSignal = options.signal;
+  const isIdempotent = method === 'GET';
+  const maxAttempts =
+    typeof options.retry === 'number'
+      ? Math.max(1, options.retry)
+      : typeof options.retry === 'boolean'
+      ? (options.retry ? MAX_ATTEMPTS : 1)
+      : (isIdempotent ? MAX_ATTEMPTS : 1);
+
+  const requestBody =
+    body === undefined
+      ? undefined
+      : typeof body === 'string'
+      ? body
+      : JSON.stringify(body);
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    if (callerSignal?.aborted) {
+      throw callerSignal.reason ?? new DOMException('This operation was aborted', 'AbortError');
+    }
+
+    const controller = new AbortController();
+    let timedOut = false;
+
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      controller.abort(new DOMException('Request timed out', 'TimeoutError'));
+    }, REQUEST_TIMEOUT_MS);
+
+    let onCallerAbort: (() => void) | undefined;
+    if (callerSignal) {
+      onCallerAbort = () => {
+        controller.abort(callerSignal.reason);
+      };
+      callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+    }
+
+    try {
+      const res = await fetch(url, {
+        ...options,
+        method,
+        headers,
+        ...(method === 'POST' && requestBody !== undefined ? { body: requestBody } : {}),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const errMsg = await readErrorMessage(res);
+        const retryable = res.status === 429 || res.status >= 500;
+        if (retryable && attempt < maxAttempts) {
+          lastError = new HttpError(errMsg, res.status);
+          clearTimeout(timeoutId);
+          if (callerSignal && onCallerAbort) {
+            callerSignal.removeEventListener('abort', onCallerAbort);
+          }
+          await delay(RETRY_DELAY_MS);
+          continue;
+        }
+        throw new HttpError(errMsg, res.status);
+      }
+
+      return (await res.json()) as T;
+    } catch (err) {
+      const finalErr =
+        timedOut && !(err instanceof HttpError)
+          ? (err instanceof Error && err.name === 'TimeoutError'
+              ? err
+              : new DOMException('Request timed out', 'TimeoutError'))
+          : err;
+
+      lastError = finalErr;
+
+      // Never retry HTTP errors we already decided on, user-initiated aborts, or timeouts.
+      if (finalErr instanceof HttpError || callerSignal?.aborted || timedOut) {
+        throw finalErr;
+      }
+
+      if (attempt < maxAttempts) {
+        clearTimeout(timeoutId);
+        if (callerSignal && onCallerAbort) {
+          callerSignal.removeEventListener('abort', onCallerAbort);
+        }
+        await delay(RETRY_DELAY_MS);
+        continue;
+      }
+      throw finalErr;
+    } finally {
+      clearTimeout(timeoutId);
+      if (callerSignal && onCallerAbort) {
+        callerSignal.removeEventListener('abort', onCallerAbort);
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Request failed');
+}
+
+export function getJSON<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return requestJSON<T>('GET', path, undefined, options);
+}
+
+export function postJSON<T>(path: string, body: unknown, options: RequestOptions = {}): Promise<T> {
+  return requestJSON<T>('POST', path, body, options);
+}
+
+export async function safeJsonFetch(url: string, options: RequestOptions = {}) {
   const method = (options.method || 'GET').toUpperCase();
   if (method === 'POST') {
     let body = options.body;
