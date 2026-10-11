@@ -1,6 +1,14 @@
+<div align="center">
+
 # PrepMind AI 🧠
 
+**An intelligent, resilient AI-powered exam preparation and personalized learning platform.**
+
+Adaptive practice questions, real-time AI tutoring, structured concept breakdowns, syllabus navigation, and progress analytics for exams like CAT, GATE, UPSC, JEE, and more.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?logo=vercel&logoColor=white)](https://prep-weblearning.vercel.app/)
+
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.2-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -9,36 +17,50 @@
 [![Express](https://img.shields.io/badge/Express-4.19-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![Google Gemini](https://img.shields.io/badge/AI-Google_Gemini-8E75C2?logo=google&logoColor=white)](https://ai.google.dev/)
 [![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
-[![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?logo=vercel&logoColor=white)](https://prep-weblearning.vercel.app/)
 
-> **An intelligent, resilient AI-powered exam preparation and personalized learning platform.**  
-> PrepMind AI delivers adaptive practice questions, real-time interactive AI tutoring, structured concept breakdowns, syllabus navigation, and progress analytics across exams like CAT, GATE, UPSC, JEE, and more.
+[**Live App**](https://prep-weblearning.vercel.app/) · [**GitHub Repository**](https://github.com/sahaya-savari/PrepMind) · [**Getting Started**](#getting-started)
 
----
-
-## 🔗 Quick Links
-
-- **Live Production App**: [https://prep-weblearning.vercel.app/](https://prep-weblearning.vercel.app/)
-- **GitHub Repository**: [https://github.com/sahaya-savari/PrepMind](https://github.com/sahaya-savari/PrepMind)
+</div>
 
 ---
 
-## 🌟 Key Features
+## Table of Contents
 
-* **🎯 Instant Exam Onboarding & Dashboard**: Select from predefined competitive exams (CAT, GATE, UPSC, JEE, NEET) or enter custom exams. Automatically prepares customized syllabus paths, strategy recommendations, and study roadmaps.
-* **⚡ Smart MCQ Practice Engine**: Generates topic-wise questions with customizable difficulty levels (`Easy`, `Medium`, `Hard`). Provides immediate scoring, step-by-step solutions, and trick explanations.
-* **🤖 Socratic AI Study Tutor (Chat)**: Interactive conversational assistant tailored to the active exam syllabus. Guides students through complex problem-solving rather than just providing static answers.
-* **💡 Concept Breakdown & Deep Dives**: Multi-level explanations dissecting core formulas, underlying theory, common traps, and mental shortcuts.
-* **📚 Notes & Knowledge Retrieval (RAG-lite)**: Upload or paste study notes to query contextual answers powered by recent notes context in Supabase.
-* **📊 Analytics & Mastery Tracking**: Visualizes question accuracy, total attempts, weak areas, and trends with persistent local and cloud storage.
-* **🛡️ Offline & Degraded Fallback Mode**: Zero-lockout design—if external API quotas or Supabase credentials are unavailable, the platform automatically falls back to deterministic synthetic generators and offline `localStorage` storage.
-* **🎙️ Voice & Audio Synthesis (Companion App)**: Speech synthesis and speech recognition integration via the Web Speech API.
+- [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [System Architecture](#system-architecture)
+- [Repository Structure](#repository-structure)
+- [Database Schema](#database-schema)
+- [API Endpoints](#api-endpoints-express-server)
+- [Getting Started](#getting-started)
+- [Deployment](#deployment)
+- [License](#license)
 
 ---
 
-## 🛠️ Tech Stack
+## Key Features
+
+| | Feature | Description |
+|---|---|---|
+| 🎯 | **Instant Exam Onboarding & Dashboard** | Select from predefined competitive exams (CAT, GATE, UPSC, JEE, NEET) or enter custom exams. Automatically prepares customized syllabus paths, strategy recommendations, and study roadmaps. |
+| ⚡ | **Smart MCQ Practice Engine** | Generates topic-wise questions with customizable difficulty levels (`Easy`, `Medium`, `Hard`). Provides immediate scoring, step-by-step solutions, and trick explanations. |
+| 🤖 | **Socratic AI Study Tutor (Chat)** | Interactive conversational assistant tailored to the active exam syllabus. Guides students through complex problem-solving rather than just providing static answers. |
+| 💡 | **Concept Breakdown & Deep Dives** | Multi-level explanations dissecting core formulas, underlying theory, common traps, and mental shortcuts. |
+| 📚 | **Notes & Knowledge Retrieval (RAG-lite)** | Upload or paste study notes to query contextual answers powered by recent notes context in Supabase. |
+| 📊 | **Analytics & Mastery Tracking** | Visualizes question accuracy, total attempts, weak areas, and trends with persistent local and cloud storage. |
+| 🛡️ | **Offline & Degraded Fallback Mode** | Zero-lockout design: if external API quotas or Supabase credentials are unavailable, the platform automatically falls back to deterministic synthetic generators and offline `localStorage` storage. |
+| 🎙️ | **Voice & Audio Synthesis (Companion App)** | Speech synthesis and speech recognition integration via the Web Speech API. |
+
+<!-- Add screenshots here once available:
+![Dashboard](./docs/screenshots/dashboard.png)
+-->
+
+---
+
+## Tech Stack
 
 ### Frontend
+
 | Component | Technology | Description |
 | :--- | :--- | :--- |
 | **Primary App (`/app`)** | **React 18** + **TypeScript** | Modern Single Page Application (SPA) deployed to production |
@@ -49,17 +71,18 @@
 | **Companion App (`/`)** | **Vanilla HTML5 / CSS3 / ES6+** | Lightweight, framework-free alternative with Web Speech API |
 
 ### Backend & Cloud Services
+
 | Component | Technology | Description |
 | :--- | :--- | :--- |
 | **API Server (`/server`)** | **Node.js** + **Express 4** | Protected REST API with Bearer token authentication and rate limiting |
-| **Serverless Proxy (`/api`)**| **Vercel Serverless Functions** | Secure zero-leakage proxy forwarding requests to Gemini API |
+| **Serverless Proxy (`/api`)** | **Vercel Serverless Functions** | Secure zero-leakage proxy forwarding requests to Gemini API |
 | **AI / LLM Engine** | **Google Gemini API** (`gemini-2.5-flash` / `1.5-flash`) | Contextual reasoning, MCQ generation, and study tutoring |
 | **Database & Auth** | **Supabase (PostgreSQL)** | Persistent storage for interviews, notes, and user progress with RLS |
-| **Deployment & Hosting**| **Vercel** | CI/CD deployment with edge CDN caching |
+| **Deployment & Hosting** | **Vercel** | CI/CD deployment with edge CDN caching |
 
 ---
 
-## 📐 System Architecture
+## System Architecture
 
 PrepMind AI implements a dual-tier client architecture with secure backend orchestration:
 
@@ -68,7 +91,7 @@ graph TD
     Client["Client Browser (React 18 SPA)"] -->|Frontend State| LS["Local Storage (Offline Cache)"]
     Client -->|Zero Client Keys| VercelAPI["Vercel Serverless Function (/api/ai.js)"]
     Client -->|Authenticated REST| ExpressAPI["Express Backend (/server)"]
-    
+
     VercelAPI -->|Private GEMINI_API_KEY| Gemini["Google Gemini API (gemini-2.5-flash)"]
     ExpressAPI -->|Gemini API Key| Gemini
     ExpressAPI -->|Database & Auth| Supabase[("Supabase PostgreSQL")]
@@ -77,12 +100,12 @@ graph TD
     Supabase -->|Notes & Progress| Client
 ```
 
-1. **Security-First AI Communication**: Frontend clients never hold raw LLM API keys. All queries route through serverless proxies or Express middleware.
-2. **Resilient Failure Handling**: If external API quotas are hit or credentials are not configured, automatic fallbacks generate mock exam structures and save results locally without disrupting the user experience.
+1. **Security-First AI Communication:** Frontend clients never hold raw LLM API keys. All queries route through serverless proxies or Express middleware.
+2. **Resilient Failure Handling:** If external API quotas are hit or credentials are not configured, automatic fallbacks generate mock exam structures and save results locally without disrupting the user experience.
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 PrepMind/
@@ -147,9 +170,9 @@ PrepMind/
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
-The database is built on **PostgreSQL (Supabase)** with Row-Level Security (RLS) enabled. See [`supabase_schema.sql`](file:///d:/PrepMind/supabase_schema.sql) for the complete schema:
+The database is built on **PostgreSQL (Supabase)** with Row-Level Security (RLS) enabled. See [`supabase_schema.sql`](./supabase_schema.sql) for the complete schema:
 
 ```sql
 create extension if not exists "pgcrypto";
@@ -187,7 +210,7 @@ create table if not exists public.results (
 
 ---
 
-## 🔌 API Endpoints (Express Server)
+## API Endpoints (Express Server)
 
 | Method | Endpoint | Auth Required | Description |
 | :--- | :--- | :---: | :--- |
@@ -200,15 +223,14 @@ create table if not exists public.results (
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-* **Node.js**: v18.0.0 or higher
-* **npm**: v9.0.0 or higher
-* *(Optional)* A [Google AI Studio Gemini API Key](https://aistudio.google.com/)
-* *(Optional)* A [Supabase Project](https://supabase.com/)
 
----
+- **Node.js** v18.0.0 or higher
+- **npm** v9.0.0 or higher
+- *(Optional)* A [Google AI Studio Gemini API Key](https://aistudio.google.com/)
+- *(Optional)* A [Supabase Project](https://supabase.com/)
 
 ### 1. Clone the Repository
 
@@ -217,8 +239,6 @@ git clone https://github.com/sahaya-savari/PrepMind.git
 cd PrepMind
 ```
 
----
-
 ### 2. Run the React Production App (`/app`)
 
 ```bash
@@ -226,9 +246,11 @@ cd app
 npm install
 npm run dev
 ```
+
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-To configure environment variables for the React app, create `app/.env`:
+Create `app/.env`:
+
 ```env
 VITE_API_URL=http://localhost:5000
 VITE_API_TOKEN=your_backend_secret_token
@@ -236,7 +258,8 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_KEY=your_supabase_anon_key
 ```
 
----
+> [!WARNING]
+> Every `VITE_` variable is embedded in the browser bundle and visible to anyone using the app. Never put a private secret in one. Only the Supabase **anon** key is safe to expose, and only with RLS enabled.
 
 ### 3. Run the Backend Server (`/server`)
 
@@ -245,9 +268,11 @@ cd ../server
 npm install
 npm run dev
 ```
-The server will start on [http://localhost:5000](http://localhost:5000).
+
+The server starts on [http://localhost:5000](http://localhost:5000).
 
 Create `server/.env`:
+
 ```env
 PORT=5000
 API_TOKEN=your_backend_secret_token
@@ -256,39 +281,30 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_service_role_or_anon_key
 ```
 
----
-
 ### 4. (Optional) Run the Vanilla JS Companion App
 
 From the project root:
+
 ```bash
 npx serve .
 ```
-Open [http://localhost:3000](http://localhost:3000) to view the lightweight Vanilla JS interface.
 
----
+Open [http://localhost:3000](http://localhost:3000) to view the lightweight Vanilla JS interface.
 
 ### 5. Automated Tests & Quality Gates
 
-Run quality verification directly from the repository root:
+Run these from the repository root:
 
-```bash
-# Run AI provider orchestration and offline fallback test suite
-npm test
-
-# Build the production Vite bundle
-npm run build
-
-# Run TypeScript typecheck
-npm run typecheck
-
-# Run lightweight local dev API harness (port 5000)
-npm run server:dev
-```
+| Command | Purpose |
+| :--- | :--- |
+| `npm test` | Run the AI provider orchestration and offline fallback test suite |
+| `npm run build` | Build the production Vite bundle |
+| `npm run typecheck` | Run TypeScript typecheck |
+| `npm run server:dev` | Run the lightweight local dev API harness (port 5000) |
 
 ---
 
-## ☁️ Deployment
+## Deployment
 
 ### Deploying to Vercel
 
@@ -296,13 +312,27 @@ npm run server:dev
 2. Import the project into your **Vercel Dashboard**.
 3. Set the **Root Directory** to `app` (for the React application) or deploy the root repository.
 4. Add the following **Environment Variables** in Vercel Project Settings:
-   - `GEMINI_API_KEY`: Your Google Gemini API key.
-   - `VITE_SUPABASE_URL`: (Optional) Your Supabase URL.
-   - `VITE_SUPABASE_KEY`: (Optional) Your Supabase Anon Key.
+   - `GEMINI_API_KEY`: Your Google Gemini API key
+   - `VITE_SUPABASE_URL`: *(Optional)* Your Supabase URL
+   - `VITE_SUPABASE_KEY`: *(Optional)* Your Supabase anon key
 5. Deploy! Vercel will automatically provision the application and edge endpoints.
+
+### Deploying the Express Backend (`/server`)
+
+The Express server is deployed separately from the Vercel frontend, on any Node.js host.
+
+1. Set the server's environment variables on your host: `API_TOKEN`, `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`.
+2. Point the frontend's `VITE_API_URL` to your deployed server URL.
+3. Check that `GET /api/health` responds before connecting the frontend.
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+<div align="center">
+
+**Built by [Sahaya Savari F](https://github.com/sahaya-savari)**
+
+</div>
