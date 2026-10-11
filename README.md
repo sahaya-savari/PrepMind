@@ -114,6 +114,7 @@ PrepMind/
 │   └── local-dev-api.mjs       # Local developer API mock harness
 │
 ├── docs/                       # Production readiness & QA specifications
+│   ├── PRODUCTION_UPGRADE_PLAN.md
 │   ├── PRODUCTION_READINESS_PRD.md
 │   └── PRODUCTION_READINESS_CHECKLIST.md
 │

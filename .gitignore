@@ -33,3 +33,9 @@ Thumbs.db
 .agents/
 *.tmp
 api-review.txt
+
+# Python Bytecode & Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
