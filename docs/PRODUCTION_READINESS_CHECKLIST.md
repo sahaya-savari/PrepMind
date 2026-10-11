@@ -9,7 +9,7 @@
 ## 1. Release Gating Checklist
 
 ### P0 Critical Blockers
-- [x] `DEP-001` | **Vercel Serverless Function Routing** | `/api/ai` must be bundled by Vercel rather than falling back to SPA HTML shell. | *Status: **FIXED IN REPO** (`app/api/ai.js` and `app/vercel.json` created)*
+- [x] `DEP-001` | **Vercel Serverless Function Routing** | `/api/ai` must be bundled by Vercel rather than falling back to SPA HTML shell. | *Status: **FIXED IN REPO** (`app/api/ai.js` and `app/vercel.json` created with SPA fallback)*
 - [x] `API-001` | **Validation Order in `api/ai.js`** | Empty topic/message must return HTTP 400 Bad Request before checking API provider existence. | *Status: **FIXED & VERIFIED** (`node test/api-test.mjs` PASS, exit 0)*
 - [x] `DATA-001`| **Supabase Schema Completeness** | Add `questions`, `results` tables, `role` and `user_id` columns, indexes, and RLS to `supabase_schema.sql`. | *Status: **FIXED IN REPO** (Ready for Supabase application)*
 
@@ -30,8 +30,9 @@
 ### P3 Low Priority (Polish & Maintainability)
 - [x] `BLD-001` | **TypeScript Type Checking** | Zero TypeScript compilation errors in frontend. | *Status: **PASS** (`npx tsc --noEmit` exit 0)*
 - [x] `BLD-002` | **Production Bundle Compilation** | Vite production bundle builds without errors. | *Status: **PASS** (`npm run build` exit 0)*
+- [x] `UI-001`  | **React Bits Component Suite** | All 17 components from `D:\clone-prepmind` ported into `app/src/components/reactbits`. | *Status: **PASS***
 - [x] `A11-001` | **Keyboard Navigation & Skip Link** | Accessible skip link to `#main-content` and visible focus states. | *Status: **PASS***
-- [x] `A11-002` | **Reduced Motion Safety** | Honors `prefers-reduced-motion` in all 7 animated components. | *Status: **PASS***
+- [x] `A11-002` | **Reduced Motion Safety** | Honors `prefers-reduced-motion` in all animated components. | *Status: **PASS***
 
 ---
 
@@ -40,10 +41,10 @@
 | Test Suite | Target | Result | Failure Summary / Root Cause |
 |---|---|---|---|
 | `npx tsc --noEmit` | `app/` | **PASS** | 0 compilation errors. |
-| `npm run build` | `app/` | **PASS** | Succeeded in 3.17s; bundles `dist/`. |
+| `npm run build` | `app/` | **PASS** | Succeeded in 8.51s; bundles `dist/`. |
 | `node test/api-test.mjs` | Root | **PASS** | All 6 test suites passed. Validation rejects malformed inputs with 400. |
 | `node server/server.js` | Root | **BLOCKED** | Missing `node_modules` in `server/` (requires `npm install` in `server/`). |
-| Vercel Deployment Check | Vercel | **PENDING** | `app/api/ai.js` and `app/vercel.json` committed; requires Git push to trigger Vercel build. |
+| Vercel Deployment Check | Vercel | **PENDING** | `app/api/ai.js` and `app/vercel.json` committed; requires Git push / merge to trigger Vercel build. |
 
 ---
 

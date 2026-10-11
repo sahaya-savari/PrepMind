@@ -249,3 +249,55 @@ All code-level P0 blockers within repository scope have been remediated, verifie
 Once deployed, the user must perform two external administrative actions:
 1. Apply the updated `supabase_schema.sql` migration in the Supabase project.
 2. Verify that AI provider API keys (`GROQ_API_KEY`, `NVIDIA_API_KEY`, `GEMINI_API_KEY`) are set in the Vercel dashboard environment variables.
+
+---
+
+## K. POST-PUSH VERIFICATION AUDIT (COMMIT 730b6e7)
+
+**Audit Timestamp:** October 11, 2026 20:56 IST  
+**Verified Commit:** `730b6e7713a4de1ccc1a200b5ecd5b850c482375`  
+**Verified Branch:** `ui-terminal-dark`  
+
+### 1. Git State & Remote Synchronization
+- **Branch**: `ui-terminal-dark` (Tracking remote `origin/ui-terminal-dark` at commit `730b6e7`).
+- **Remote**: `https://github.com/sahaya-savari/PrepMind.git`.
+- **Working Tree**: Clean. Unstaged user changes in `app/src/api.ts` and untracked `.agents/skills/terminal-dark/`, `api-review.txt` strictly preserved untouched.
+
+### 2. Router & Handler Consistency Analysis
+- **Handlers**: `app/api/ai.js` and root `api/ai.js` have 100% synchronized, identical logic. Vercel routes to `app/api/ai.js` when Root Directory is `app`, or root `api/ai.js` when Root Directory is `.`. No duplicate execution or rewrite loops exist.
+- **Routing Configuration**: `app/vercel.json` provides `{ "source": "/api/(.*)", "destination": "/api/$1" }`.
+- **Proposed Enhancement for SPA Fallback**: To ensure direct browser refresh on `/practice`, `/chat`, `/progress`, `/profile` does not return 404 if Vercel overrides framework rewrites, `app/vercel.json` should include the SPA catch-all rule:
+  ```json
+  {
+    "version": 2,
+    "rewrites": [
+      { "source": "/api/(.*)", "destination": "/api/$1" },
+      { "source": "/(.*)", "destination": "/index.html" }
+    ]
+  }
+  ```
+
+### 3. Live Production Endpoint Probe (`https://prep-weblearning.vercel.app/`)
+Probed live endpoints via non-billable HTTP requests:
+- `GET /api/ai`: HTTP 200, `Content-Type: text/html; charset=utf-8` (SPA HTML shell).
+- `GET /robots.txt`: HTTP 200, `Content-Type: text/plain; charset=utf-8` (Legacy robots file).
+- `GET /sitemap.xml`: HTTP 200, `Content-Type: text/html; charset=utf-8` (SPA HTML fallback).
+- `HEAD /`: `last-modified: Sun, 11 Oct 2026 04:00:27 GMT`, `age: 41085` seconds (~11.4 hours old).
+- **Finding**: The production domain `prep-weblearning.vercel.app` is currently serving an 11-hour-old deployment built from branch `main` (commit `03ba926`). Commit `730b6e7` was pushed to branch `ui-terminal-dark`. In Vercel, non-production branches generate Preview deployments. To update the live production domain, branch `ui-terminal-dark` must either be merged into `main` or set as the Production Branch in the Vercel project settings.
+
+### 4. Supabase Database Schema Verification
+- `supabase_schema.sql` and `server/supabase_schema.sql` are 100% byte-for-byte identical (`git diff` clean).
+- Foreign keys (`references public.interviews(id) on delete cascade`) and indexes on `interview_id` and `created_at` are verified.
+- Idempotent `ADD COLUMN IF NOT EXISTS` and `DROP POLICY IF EXISTS ... CREATE POLICY ...` ensure non-destructive execution.
+
+### 5. Backend Server Dependency Verification
+- `@supabase/supabase-js` is declared in `server/package.json` line 11.
+- In `server/package-lock.json`, the dependency is NOT resolved, and `server/node_modules/` does not exist.
+- Root cause: `npm install` has not been executed in `server/` since the dependency was added to `package.json`.
+- Required action: Run `npm --prefix server install` when package modifications are authorized.
+
+### 6. Rerun Automated Verification
+- `node test/api-test.mjs`: **PASS (Exit code 0)** — All 6 test suites passed.
+- `npx tsc --noEmit` in `app/`: **PASS (Exit code 0)** — 0 compilation errors.
+- `npm run build` in `app/`: **PASS (Exit code 0)** — Bundled in 8.51s; PWA service worker and static assets verified.
+
