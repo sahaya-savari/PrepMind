@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none" role="img" aria-labelledby="prepMindMarkTitle prepMindMarkDesc">
+  <title id="prepMindMarkTitle">PrepMind AI Architectural Brand Mark</title>
+  <desc id="prepMindMarkDesc">Editorial geometric seal featuring interlocking architectural facets in Tamarind, Camel Coat, Rubine, and Warm Ivory.</desc>
+  <defs>
+    <!-- Subtle linear gradients using exact heritage brand palette -->
+    <linearGradient id="tamarindGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B1319" />
+      <stop offset="100%" stop-color="#280B0F" />
+    </linearGradient>
+    <linearGradient id="camelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F2EADF" />
+      <stop offset="50%" stop-color="#C6B39A" />
+      <stop offset="100%" stop-color="#7B694E" />
+    </linearGradient>
+    <linearGradient id="rubineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8D3A3C" />
+      <stop offset="100%" stop-color="#3B1319" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Architectural Diamond / Frame -->
+  <rect x="14" y="14" width="92" height="92" rx="20" fill="url(#tamarindGrad)" stroke="#C6B39A" stroke-width="1.75" />
+  
+  <!-- Subtle Internal Architectural Grid Lines -->
+  <circle cx="60" cy="60" r="42" stroke="#7B694E" stroke-width="0.75" stroke-dasharray="2 3" opacity="0.6" />
+  <circle cx="60" cy="60" r="30" stroke="#C6B39A" stroke-width="0.75" opacity="0.4" />
+
+  <!-- Corner Echelon Accents -->
+  <path d="M26 20 L20 20 L20 26" stroke="#C6B39A" stroke-width="1.5" stroke-linecap="round" />
+  <path d="M94 20 L100 20 L100 26" stroke="#C6B39A" stroke-width="1.5" stroke-linecap="round" />
+  <path d="M20 94 L20 100 L26 100" stroke="#C6B39A" stroke-width="1.5" stroke-linecap="round" />
+  <path d="M100 94 L100 100 L94 100" stroke="#C6B39A" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- Central Interlocking Geometric Monogram 'P' & 'M' -->
+  <!-- Left Column / Serif Stem of 'P' -->
+  <path d="M42 36 L42 84 M38 36 L48 36 M38 84 L48 84" stroke="url(#camelGrad)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Upper Loop of 'P' in Rubine Accent -->
+  <path d="M42 36 H56 C64 36 68 41 68 48 C68 55 64 60 56 60 H42" stroke="url(#rubineGrad)" stroke-width="2.25" stroke-linecap="round" fill="none" />
+  
+  <!-- Architectural Chevron Apex of 'M' -->
+  <path d="M52 60 L62 48 L72 60 L82 44 L82 84" stroke="url(#camelGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M78 84 L86 84" stroke="url(#camelGrad)" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Core Knowledge Diamond Focal Point -->
+  <polygon points="60,26 63,30 60,34 57,30" fill="#8D3A3C" stroke="#F2EADF" stroke-width="0.75" />
+  <circle cx="60" cy="60" r="2" fill="#F2EADF" />
+</svg>

@@ -35,18 +35,22 @@
   --surface: #FFFFFF;
   --surface-elevated: #FFFFFF;
   --surface-subtle: #EDEEF2;
-  --strong-border: #D5D8DF;
+  --strong-border: #CDD0D5;
   --text-primary: #1A1C20;
-  --text-secondary: #555B67;
-  --text-muted: #737982;
-  --border: #E0E2E8;
-  --accent: #9B59B6;
-  --accent-hover: #8340A0;
-  --accent-soft: #9B59B618;
-  --positive: #4E8A3E;
-  --warning: #B35E30;
-  --error: #C13840;
-  --info: #3A6FC9;
+  --text-secondary: #525866;
+  --text-muted: #5F6672;
+  --border: #E2E4E9;
+  --accent: #7C3AED;
+  --accent-hover: #6D28D9;
+  --accent-soft: rgba(124, 58, 237, 0.08);
+  --positive: #166534;
+  --warning: #A04A08;
+  --error: #B91C1C;
+  --info: #1D4ED8;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
 body {
@@ -86,7 +90,7 @@ body {
 .card-surface {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 0.875rem;
+  border-radius: 0.75rem;
   color: var(--text-primary);
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
@@ -94,15 +98,20 @@ body {
 .card-elevated {
   background-color: var(--surface-elevated);
   border: 1px solid var(--border);
-  border-radius: 0.875rem;
+  border-radius: 0.75rem;
   color: var(--text-primary);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
 }
 
 .glass-card {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 0.875rem;
+  border-radius: 0.75rem;
+}
+
+/* Global Focus Ring (Section 15: 2px ring in accent, 2px offset) */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Button & Interaction Tokens */
@@ -111,7 +120,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 0.625rem;
+  border-radius: 0.5rem;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;

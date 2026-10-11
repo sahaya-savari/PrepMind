@@ -36,7 +36,7 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="pt-2">
               <button
                 type="button"
-                className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-semibold bg-ink-primary text-midnight-bg hover:bg-[#d1d4d9] transition-colors"
+                className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-semibold bg-ink-primary text-midnight-bg hover:opacity-90 active:opacity-100 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-midnight-accent focus-visible:ring-offset-2 focus-visible:ring-offset-midnight-bg"
                 onClick={() => this.setState({ hasError: false })}
               >
                 Try Again

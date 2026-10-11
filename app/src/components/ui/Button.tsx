@@ -12,8 +12,8 @@ export type ButtonProps = ComponentProps<'button'> & {
 
 const sizeMap: Record<ButtonSize, string> = {
   sm: 'px-3 py-1.5 text-xs rounded-lg min-h-[36px]',
-  md: 'px-4 py-2.5 text-sm rounded-xl min-h-[42px]',
-  lg: 'px-5 py-3 text-base rounded-xl min-h-[48px]',
+  md: 'px-4 py-2.5 text-sm rounded-lg min-h-[42px]',
+  lg: 'px-5 py-3 text-base rounded-lg min-h-[48px]',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -23,7 +23,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants: Record<ButtonVariant, string> = {
       primary:
-        'bg-ink-primary text-midnight-bg hover:bg-[#d1d4d9] shadow-sm',
+        'bg-ink-primary text-midnight-bg hover:opacity-90 active:opacity-100 transition-opacity',
       secondary:
         'bg-midnight-subtle border border-midnight-border text-ink-primary hover:bg-midnight-elevated hover:border-midnight-accent/60',
       outline:

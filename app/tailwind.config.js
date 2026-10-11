@@ -35,12 +35,16 @@ export default {
         },
       },
       boxShadow: {
-        card: '0 4px 20px -2px rgba(0, 0, 0, 0.25)',
-        elevated: '0 12px 32px -4px rgba(0, 0, 0, 0.35)',
+        card: 'none',
+        elevated: 'none',
       },
       borderRadius: {
-        xl: '0.875rem',
-        '2xl': '1.125rem',
+        sm: '2px', // 2 inline code
+        md: '6px', // 6 tabs and chips
+        lg: '8px', // 8 buttons and inputs
+        panel: '10px', // 10 nested panel
+        xl: '12px', // 12 inner surface
+        '2xl': '16px', // 16 outer frame
       },
     },
   },
