@@ -6,7 +6,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { AIMessage } from '../api';
+import { AIMessage, fetchUserProfile, syncUserProfile } from '../api';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import {
   User,
@@ -50,6 +50,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const isConfigured = isSupabaseConfigured();
 
+  // Load cloud profile from public.profiles table and merge with local state
+  const loadCloudProfile = useCallback(async (userId: string, currentLocal: UserData) => {
+    try {
+      const cloud = await fetchUserProfile(userId);
+      if (cloud) {
+        const merged: UserData = {
+          ...currentLocal,
+          exam: cloud.selected_exam || currentLocal.exam,
+          recentExams: Array.isArray(cloud.exam_history) && cloud.exam_history.length > 0
+            ? cloud.exam_history
+            : currentLocal.recentExams,
+          notes: Array.isArray(cloud.completed_topics) && cloud.completed_topics.length > 0
+            ? cloud.completed_topics
+            : currentLocal.notes,
+          progress: {
+            total: Math.max(currentLocal.progress.total, cloud.practice_stats?.total || 0),
+            correct: Math.max(currentLocal.progress.correct, cloud.practice_stats?.correct || 0),
+            sessions: Math.max(currentLocal.progress.sessions || 0, cloud.practice_stats?.sessions || 0),
+          },
+          chatHistory: Array.isArray(cloud.chat_history) && cloud.chat_history.length > 0
+            ? cloud.chat_history
+            : currentLocal.chatHistory,
+        };
+        setData(merged);
+        saveUserData(userId, merged);
+      }
+    } catch (err) {
+      console.warn('[PrepMind] Remote profile merge fallback:', err);
+    }
+  }, []);
+
   // Load initial session: checks Supabase first if configured, then local storage
   useEffect(() => {
     let isMounted = true;
@@ -70,7 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
             setUser(mappedUser);
             saveUser(mappedUser);
-            setData(loadUserData(mappedUser.id));
+            const initialLocal = loadUserData(mappedUser.id);
+            setData(initialLocal);
+            loadCloudProfile(mappedUser.id, initialLocal);
             setLoading(false);
             return;
           }
@@ -80,7 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const existing = loadUser();
         if (existing && isMounted) {
           setUser(existing);
-          setData(loadUserData(existing.id));
+          const initialLocal = loadUserData(existing.id);
+          setData(initialLocal);
+          if (!existing.isGuest && isConfigured) {
+            loadCloudProfile(existing.id, initialLocal);
+          }
         }
       } catch (err) {
         console.warn('[PrepMind] Auth initialization warning:', err);
@@ -108,7 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
             setUser(mapped);
             saveUser(mapped);
-            setData(loadUserData(mapped.id));
+            const initialLocal = loadUserData(mapped.id);
+            setData(initialLocal);
+            loadCloudProfile(mapped.id, initialLocal);
           } else {
             // Do not clear local guest users when Supabase fires initial null
             if (user && !user.isGuest && !isConfigured) {
@@ -127,12 +166,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isMounted = false;
       subscription?.unsubscribe?.();
     };
-  }, []);
+  }, [isConfigured, loadCloudProfile]);
 
   const persistData = useCallback((next: UserData) => {
     if (!user) return;
     setData(next);
     saveUserData(user.id, next);
+
+    // Sync to Supabase profiles cloud table when authenticated
+    if (!user.isGuest && supabase) {
+      syncUserProfile({
+        id: user.id,
+        selected_exam: next.exam || null,
+        exam_history: next.recentExams || [],
+        completed_topics: next.notes || [],
+        practice_stats: {
+          total: next.progress?.total || 0,
+          correct: next.progress?.correct || 0,
+          sessions: next.progress?.sessions || 0,
+        },
+        chat_history: next.chatHistory || [],
+      }).catch(() => {});
+    }
   }, [user]);
 
   const login = useCallback(
@@ -233,8 +288,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // 2. Local registration fallback
+      const localId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
       const newUser: User = {
-        id: 'usr_' + Date.now().toString(36),
+        id: localId,
         name: cleanName,
         email: cleanEmail,
         isGuest: false,
@@ -249,8 +307,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const loginAsGuest = useCallback(() => {
+    const guestId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
     const guestUser: User = {
-      id: 'guest_' + Date.now().toString(36),
+      id: guestId,
       name: 'Guest Scholar',
       email: 'guest@prepmind.local',
       isGuest: true,

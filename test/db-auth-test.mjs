@@ -8,11 +8,17 @@ console.log('====================================================\n');
 console.log('[Test 1] Verifying Supabase SQL Schema structure...');
 import fs from 'node:fs';
 const sqlSchema = fs.readFileSync('supabase_schema.sql', 'utf8');
+assert(sqlSchema.includes('create table if not exists public.profiles'), 'Schema must define profiles table');
+assert(sqlSchema.includes('create table if not exists public.documents'), 'Schema must define documents table');
+assert(sqlSchema.includes('create table if not exists public.chunks'), 'Schema must define chunks table');
+assert(sqlSchema.includes('create table if not exists public.users'), 'Schema must define users table');
+assert(sqlSchema.includes('create table if not exists public.practice_history'), 'Schema must define practice_history table');
 assert(sqlSchema.includes('create table if not exists public.interviews'), 'Schema must define interviews table');
 assert(sqlSchema.includes('create table if not exists public.questions'), 'Schema must define questions table');
 assert(sqlSchema.includes('create table if not exists public.results'), 'Schema must define results table');
-assert(sqlSchema.includes('alter table public.interviews enable row level security'), 'Schema must enable RLS');
-console.log('✓ Test 1 Passed: Supabase schema includes interviews, questions, results, and RLS.\n');
+assert(sqlSchema.includes('grant usage on schema public to postgres, anon, authenticated, service_role'), 'Schema must grant usage to roles');
+assert(sqlSchema.includes('alter table public.profiles enable row level security'), 'Schema must enable RLS on profiles');
+console.log('✓ Test 1 Passed: Supabase schema includes profiles, users, documents, chunks, practice_history, and RLS.\n');
 
 // 2. Verify server routes resilience when Supabase is unconfigured
 console.log('[Test 2] Verifying server database route resilience...');

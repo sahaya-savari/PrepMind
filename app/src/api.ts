@@ -336,6 +336,102 @@ export async function saveResult(payload: { interviewId: string | number; score:
 
 export { getLocalResults, getLocalProgressInsights };
 
+// --- USER PROFILES & PRACTICE HISTORY (SUPABASE CLOUD SYNC) ---
+export interface CloudProfile {
+  id: string;
+  selected_exam?: string | null;
+  exam_history?: string[];
+  completed_topics?: string[];
+  practice_stats?: { total: number; correct: number; sessions?: number };
+  chat_history?: any[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface PracticeHistoryRow {
+  id: string;
+  user_id: string;
+  topic?: string;
+  score?: number;
+  created_at?: string;
+}
+
+export async function fetchUserProfile(userId: string): Promise<CloudProfile | null> {
+  if (!supabase || !userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, selected_exam, exam_history, completed_topics, practice_stats, chat_history')
+      .eq('id', userId)
+      .single();
+    if (!error && data) return data as CloudProfile;
+  } catch (err) {
+    console.warn('[PrepMind] fetchUserProfile remote error:', err);
+  }
+  return null;
+}
+
+export async function syncUserProfile(profile: Partial<CloudProfile> & { id: string }): Promise<boolean> {
+  if (!supabase || !profile.id) return false;
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: profile.id,
+        selected_exam: profile.selected_exam || null,
+        exam_history: profile.exam_history || [],
+        completed_topics: profile.completed_topics || [],
+        practice_stats: profile.practice_stats || { total: 0, correct: 0, sessions: 0 },
+        chat_history: profile.chat_history || [],
+        updated_at: new Date().toISOString(),
+      });
+    return !error;
+  } catch (err) {
+    console.warn('[PrepMind] syncUserProfile remote error:', err);
+    return false;
+  }
+}
+
+export async function recordPracticeHistory(payload: {
+  userId: string;
+  topic: string;
+  score: number;
+}): Promise<PracticeHistoryRow | null> {
+  if (!payload.userId) return null;
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('practice_history')
+        .insert({
+          user_id: payload.userId,
+          topic: payload.topic,
+          score: payload.score,
+        })
+        .select('*')
+        .single();
+      if (!error && data) return data as PracticeHistoryRow;
+    } catch (err) {
+      console.warn('[PrepMind] recordPracticeHistory remote error:', err);
+    }
+  }
+  return null;
+}
+
+export async function fetchPracticeHistory(userId: string): Promise<PracticeHistoryRow[]> {
+  if (!supabase || !userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('practice_history')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (!error && Array.isArray(data)) return data as PracticeHistoryRow[];
+  } catch (err) {
+    console.warn('[PrepMind] fetchPracticeHistory remote error:', err);
+  }
+  return [];
+}
+
 // --- AI OPERATIONS ---
 export async function askStream(
   question: string,

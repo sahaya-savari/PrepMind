@@ -24,6 +24,7 @@ import {
   generateQuestions,
   evaluateAnswers,
   saveResult,
+  recordPracticeHistory,
   type Interview,
   type QuestionRow,
 } from '../api';
@@ -45,7 +46,7 @@ const DIFFICULTY_OPTIONS: GlideOption<string>[] = [
 ];
 
 function Practice() {
-  const { updateProgress } = useAuth();
+  const { user, updateProgress } = useAuth();
   const { exam, setExam } = useExam();
 
   const [interviews, setInterviews] = useState<Interview[]>([]);
@@ -206,6 +207,16 @@ function Practice() {
         }).catch((err) => {
           console.warn('[PrepMind] saveResult background error:', err);
         });
+
+        if (user?.id) {
+          recordPracticeHistory({
+            userId: user.id,
+            topic: mcqTopic.trim(),
+            score,
+          }).catch((err) => {
+            console.warn('[PrepMind] recordPracticeHistory background error:', err);
+          });
+        }
       } catch {
         // Safe catch
       }

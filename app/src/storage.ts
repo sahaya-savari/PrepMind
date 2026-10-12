@@ -14,6 +14,7 @@ export type UserData = {
   progress: {
     total: number;
     correct: number;
+    sessions?: number;
   };
   chatHistory: AIMessage[];
   notes: string[];

@@ -33,6 +33,7 @@ Thumbs.db
 .agents/
 *.tmp
 api-review.txt
+supabase/.temp/
 
 # Python Bytecode & Cache
 __pycache__/
