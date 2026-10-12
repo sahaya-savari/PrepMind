@@ -1,5 +1,7 @@
 // Comprehensive Automated Test Suite for PrepMind RAG Engine, Storage, and Vector Retrieval
 import assert from 'node:assert';
+process.env.NODE_ENV = 'test';
+
 import ragHandler, {
   extractTextFromContent,
   chunkDocumentText,
@@ -76,7 +78,7 @@ console.log(`✓ Test 2 Passed: ${chunks.length} semantic chunks generated with 
 console.log('[Test 3] Verifying 768-dim embeddings format & cosine distance metrics...');
 
 const testQuery = 'Explain page tables and virtual address translation';
-const embedding = await generateSingleEmbedding(testQuery, '');
+const embedding = await generateSingleEmbedding(testQuery, '', { allowSyntheticFallback: true });
 
 assert.strictEqual(Array.isArray(embedding), true, 'Embedding must be an array');
 assert.strictEqual(embedding.length, 768, `Embedding must have exactly 768 dimensions (Gemini text-embedding-004 standard), got ${embedding.length}`);
@@ -86,7 +88,7 @@ const selfSim = computeCosineSimilarity(embedding, embedding);
 assert(Math.abs(selfSim - 1.0) < 1e-4, `Self-similarity must equal 1.0 (got ${selfSim})`);
 
 // Batch embeddings test
-const batchEmbeddings = await generateBatchEmbeddings([testQuery, 'Second test statement'], '');
+const batchEmbeddings = await generateBatchEmbeddings([testQuery, 'Second test statement'], '', { allowSyntheticFallback: true });
 assert.strictEqual(batchEmbeddings.length, 2, 'Batch embeddings must match count of inputs');
 assert.strictEqual(batchEmbeddings[0].length, 768, 'First batch embedding must be 768-dim');
 assert.strictEqual(batchEmbeddings[1].length, 768, 'Second batch embedding must be 768-dim');
@@ -153,7 +155,7 @@ const aliceChunks = [
     documentName: 'Alice_Confidential_Notes.pdf',
     userId: 'usr_alice',
     chunkText: 'Alice secret API key is SECRET_XYZ. Proprietary algorithm details here.',
-    embedding: await generateSingleEmbedding('Alice secret API key is SECRET_XYZ', ''),
+    embedding: await generateSingleEmbedding('Alice secret API key is SECRET_XYZ', '', { allowSyntheticFallback: true }),
   },
 ];
 
@@ -324,6 +326,29 @@ await ragHandler({ method: 'POST', body: { action: 'unknown_magic' } }, createMo
 assert.strictEqual(mockStatus, 400, 'Unknown action should return 400');
 console.log('✓ Test 8 Passed: Error handling and payload rejection verified.\n');
 
+// ----------------------------------------------------------------------------
+// Test 9: Production Mode Strictly Prohibits Synthetic Fallback Vectors
+// ----------------------------------------------------------------------------
+console.log('[Test 9] Verifying production prohibition of synthetic/fallback vectors...');
+process.env.NODE_ENV = 'production';
+delete process.env.GEMINI_API_KEY;
+
+await ragHandler({ method: 'POST', body: { action: 'retrieve', query: 'Quantum algorithms' } }, createMockRes());
+assert.strictEqual(mockStatus, 503, 'In production mode without GEMINI_API_KEY, RAG must return 503');
+assert(mockResponse?.error?.includes('Synthetic or fallback embeddings are strictly disabled in production'), 'Error must explicitly state synthetic vectors are prohibited in production');
+
+// Also verify generateSingleEmbedding throws in production without allowSyntheticFallback
+let threw = false;
+try {
+  await generateSingleEmbedding('Test query without key in prod', '');
+} catch (e) {
+  threw = true;
+  assert(e.message.includes('Synthetic fallback vectors are strictly disabled in production'));
+}
+assert.strictEqual(threw, true, 'generateSingleEmbedding must throw in production mode');
+process.env.NODE_ENV = 'test';
+console.log('✓ Test 9 Passed: Production RAG strictly rejects synthetic vectors and requires real GEMINI_API_KEY.\n');
+
 console.log('====================================================');
-console.log('       ALL 8 RAG & VECTOR TESTS PASSED!             ');
+console.log('       ALL 9 RAG & VECTOR TESTS PASSED!             ');
 console.log('====================================================');

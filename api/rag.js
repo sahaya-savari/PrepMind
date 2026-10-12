@@ -151,7 +151,7 @@ export function chunkDocumentText(
 // ----------------------------------------------------------------------------
 // 3. 768-DIMENSION EMBEDDING GENERATOR (Gemini text-embedding-004)
 // ----------------------------------------------------------------------------
-export async function generateSingleEmbedding(text, apiKey) {
+export async function generateSingleEmbedding(text, apiKey, { allowSyntheticFallback = false } = {}) {
   const clean = text.slice(0, 2048).trim();
 
   // If Gemini API key is provided, generate real vector via Google Generative AI
@@ -172,17 +172,26 @@ export async function generateSingleEmbedding(text, apiKey) {
       if (Array.isArray(vector) && vector.length === EMBEDDING_DIMENSIONS) {
         return vector;
       }
+      throw new Error(`Embedding model returned invalid dimensions: expected ${EMBEDDING_DIMENSIONS}`);
+    } else {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Gemini embedding API error (${res.status}): ${errText.slice(0, 300) || 'Upstream generation failure'}`);
     }
   }
 
-  // Deterministic 768-dimensional normalized unit vector fallback (for testing/offline mode)
-  return createDeterministicVector(clean, EMBEDDING_DIMENSIONS);
+  // Production requirement: NEVER use synthetic vectors in production.
+  // Synthetic vectors are ONLY permitted when allowSyntheticFallback is explicitly true (in isolated unit tests).
+  if (allowSyntheticFallback) {
+    return createDeterministicVector(clean, EMBEDDING_DIMENSIONS);
+  }
+
+  throw new Error('Embedding service unconfigured: GEMINI_API_KEY is required for production RAG. Synthetic fallback vectors are strictly disabled in production.');
 }
 
-export async function generateBatchEmbeddings(texts, apiKey) {
+export async function generateBatchEmbeddings(texts, apiKey, { allowSyntheticFallback = false } = {}) {
   const vectors = [];
   for (const t of texts) {
-    const vec = await generateSingleEmbedding(t, apiKey);
+    const vec = await generateSingleEmbedding(t, apiKey, { allowSyntheticFallback });
     vectors.push(vec);
   }
   return vectors;
@@ -268,6 +277,18 @@ export default async function handler(req, res) {
   const action = body.action || 'retrieve';
   const geminiKey = process.env.GEMINI_API_KEY || '';
 
+  const isTestEnvironment = process.env.NODE_ENV === 'test' || Boolean(req.headers?.['x-prepmind-test-mode']);
+  const allowSyntheticFallback = isTestEnvironment && !process.env.VERCEL && !process.env.PRODUCTION;
+
+  // Production security & integrity requirement: NEVER allow synthetic vectors in production
+  if (!geminiKey && !allowSyntheticFallback) {
+    return sendJson(res, 503, {
+      error: 'Embedding service unconfigured: GEMINI_API_KEY is required for production RAG. Synthetic or fallback embeddings are strictly disabled in production.',
+      model: GEMINI_EMBEDDING_MODEL,
+      dimensions: EMBEDDING_DIMENSIONS,
+    });
+  }
+
   try {
     // ------------------------------------------------------------------------
     // Action A: Ingest & Process Document into Vector Chunks
@@ -301,9 +322,9 @@ export default async function handler(req, res) {
         return sendJson(res, 422, { error: 'Could not extract any valid semantic chunks from document.' });
       }
 
-      // Generate 768-dim embeddings for all chunks
+      // Generate 768-dim embeddings for all chunks (real Gemini API in production)
       const texts = chunks.map((c) => c.chunkText);
-      const embeddings = await generateBatchEmbeddings(texts, geminiKey);
+      const embeddings = await generateBatchEmbeddings(texts, geminiKey, { allowSyntheticFallback });
 
       const processedChunks = chunks.map((c, idx) => ({
         ...c,
@@ -338,7 +359,7 @@ export default async function handler(req, res) {
         return sendJson(res, 400, { error: 'Question is required for retrieval' });
       }
 
-      const queryVector = await generateSingleEmbedding(question, geminiKey);
+      const queryVector = await generateSingleEmbedding(question, geminiKey, { allowSyntheticFallback });
 
       // Perform local ranking if chunks array provided in payload
       const scored = localChunks
