@@ -1,4 +1,5 @@
 import { PropsWithChildren } from 'react';
+import { Link } from 'react-router-dom';
 import Header from './Header';
 import { ThemeProvider } from '../context/ThemeContext';
 import { ClickSpark } from './reactbits/ClickSpark';
@@ -34,13 +35,13 @@ function Layout({ children }: PropsWithChildren) {
                 <span className="font-mono text-[11px] text-[var(--accent)]">Obsidian & Lilac</span>
               </div>
               <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
-                <a href="/practice" className="hover:text-[var(--text-primary)] transition-colors">Practice</a>
+                <Link to="/practice" className="hover:text-[var(--text-primary)] transition-colors">Practice</Link>
                 <span aria-hidden="true" className="text-[var(--border)]">·</span>
-                <a href="/chat" className="hover:text-[var(--text-primary)] transition-colors">AI Tutor</a>
+                <Link to="/chat" className="hover:text-[var(--text-primary)] transition-colors">AI Tutor</Link>
                 <span aria-hidden="true" className="text-[var(--border)]">·</span>
-                <a href="/progress" className="hover:text-[var(--text-primary)] transition-colors">Progress</a>
+                <Link to="/progress" className="hover:text-[var(--text-primary)] transition-colors">Progress</Link>
                 <span aria-hidden="true" className="text-[var(--border)]">·</span>
-                <a href="/profile" className="hover:text-[var(--text-primary)] transition-colors">Profile</a>
+                <Link to="/profile" className="hover:text-[var(--text-primary)] transition-colors">Profile</Link>
               </div>
             </div>
           </footer>

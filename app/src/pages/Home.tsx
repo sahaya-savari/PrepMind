@@ -40,40 +40,36 @@ const LazyHyperspeed = React.lazy(() =>
 type Status = 'idle' | 'ok' | 'error';
 
 const EXAM_OPTIONS: GlideOption[] = [
-  { value: 'GATE CSE', label: 'GATE CSE', badge: 'Tech' },
-  { value: 'CAT 2025', label: 'CAT 2025', badge: 'Aptitude' },
-  { value: 'TCS NQT', label: 'TCS NQT', badge: 'Placement' },
-  { value: 'UPSC CSE', label: 'UPSC CSE', badge: 'Govt' },
-  { value: 'JEE Advanced', label: 'JEE Adv', badge: 'Eng' },
-  { value: 'SBI PO', label: 'SBI PO', badge: 'Banking' },
+  { value: 'GATE CSE', label: 'GATE CSE' },
+  { value: 'CAT 2025', label: 'CAT 2025' },
+  { value: 'TCS NQT', label: 'TCS NQT' },
+  { value: 'UPSC CSE', label: 'UPSC CSE' },
+  { value: 'JEE Advanced', label: 'JEE Adv' },
+  { value: 'SBI PO', label: 'SBI PO' },
 ];
 
 const CORE_PILLARS = [
   {
     title: 'Adaptive Practice Drills',
     description: 'Precision multiple-choice scenarios with instant algorithmic evaluation, solution breakdowns, and feedback.',
-    tag: 'Active Recall',
     icon: Brain,
     variant: 'lilac' as const,
   },
   {
     title: 'Interactive AI Tutor',
     description: 'Context-aware conversational mentor equipped to debug algorithms, explain proofs, and analyze problem formulations.',
-    tag: 'Live Dialogue',
     icon: MessageCircle,
     variant: 'positive' as const,
   },
   {
     title: 'Performance Diagnostics',
     description: 'Comprehensive historical evaluation tracking, mastery scoring across tracks, and persistent session records.',
-    tag: 'Mastery Curves',
     icon: TrendingUp,
     variant: 'neutral' as const,
   },
   {
     title: 'Curriculum Alignment',
     description: 'Customizable target benchmarks for engineering competitive exams, placements, and systems architecture.',
-    tag: 'Syllabus Focus',
     icon: Layers,
     variant: 'lilac' as const,
   },
@@ -516,13 +512,10 @@ function Home() {
               <PixelCard key={pillar.title} variant={pillar.variant} className="h-full">
                 <div className="p-5 flex flex-col justify-between h-full space-y-4">
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]">
+                    <div className="flex items-center">
+                      <div className="p-2.5 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--accent)]">
                         <Icon className="w-4 h-4" />
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text-secondary)]">
-                        {pillar.tag}
-                      </span>
                     </div>
                     <h3 className="text-sm font-bold text-[var(--text-primary)]">
                       {pillar.title}

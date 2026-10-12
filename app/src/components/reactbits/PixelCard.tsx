@@ -34,6 +34,8 @@ export const VARIANT_COLORS: Record<string, string> = {
   pink: '#C792EA',
   purple: '#C792EA',
   green: '#C3E88D',
+  positive: '#C3E88D',
+  neutral: '#82AAFF',
 };
 
 /**

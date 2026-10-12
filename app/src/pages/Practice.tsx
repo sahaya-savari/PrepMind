@@ -40,9 +40,9 @@ const POPULAR_TOPICS = [
 ];
 
 const DIFFICULTY_OPTIONS: GlideOption<string>[] = [
-  { value: 'Beginner', label: 'Beginner', badge: 'Basic' },
-  { value: 'Intermediate', label: 'Intermediate', badge: 'Standard' },
-  { value: 'Advanced', label: 'Advanced', badge: 'Rigor' },
+  { value: 'Beginner', label: 'Beginner' },
+  { value: 'Intermediate', label: 'Intermediate' },
+  { value: 'Advanced', label: 'Advanced' },
 ];
 
 function Practice() {
