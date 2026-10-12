@@ -360,7 +360,7 @@ function Chat() {
               <select
                 value={selectedDocId}
                 onChange={(e) => setSelectedDocId(e.target.value)}
-                className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-md px-2 py-1 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] font-mono"
+                className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-md px-2 py-1 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] font-mono max-w-[170px] sm:max-w-xs truncate"
               >
                 <option value="all">All Indexed Materials ({readyDocs.length})</option>
                 {readyDocs.map((doc) => (
@@ -475,7 +475,7 @@ function Chat() {
               className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[92%] sm:max-w-[84%] px-4 py-3.5 rounded-xl border text-xs sm:text-sm leading-relaxed ${
+                className={`max-w-[95%] sm:max-w-[84%] px-3.5 sm:px-4 py-3 sm:py-3.5 rounded-xl border text-xs sm:text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
                   isUser
                     ? 'bg-[var(--surface-elevated)] border-[var(--accent)]/40 text-[var(--text-primary)] rounded-br-sm'
                     : 'bg-[var(--surface-elevated)] border-[var(--border-strong)] text-[var(--text-primary)] rounded-bl-sm'

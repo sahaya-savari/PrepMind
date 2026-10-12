@@ -133,7 +133,7 @@ function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm flex items-center justify-center gap-2 min-h-[40px] disabled:opacity-50"
+              className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm flex items-center justify-center gap-2 min-h-[44px] disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span>Authenticating...</span>
@@ -156,7 +156,7 @@ function Login() {
           <button
             type="button"
             onClick={handleGuestAccess}
-            className="w-full py-2.5 px-4 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:border-[var(--accent)] text-xs font-mono transition-colors cursor-pointer flex items-center justify-center gap-2 min-h-[40px]"
+            className="w-full py-2.5 px-4 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:border-[var(--accent)] text-xs font-mono transition-colors cursor-pointer flex items-center justify-center gap-2 min-h-[44px]"
           >
             <UserCheck className="w-4 h-4 text-[var(--positive)]" />
             <span>Continue as Guest (Instant Access)</span>

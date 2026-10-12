@@ -132,7 +132,7 @@ function ResetPassword() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm flex items-center justify-center gap-2 min-h-[40px] disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm flex items-center justify-center gap-2 min-h-[44px] disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <span>Dispatching Link...</span>
@@ -181,7 +181,7 @@ function ResetPassword() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm flex items-center justify-center gap-2 min-h-[40px] disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm flex items-center justify-center gap-2 min-h-[44px] disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <span>Updating Password...</span>

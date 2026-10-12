@@ -194,11 +194,11 @@ function Progress() {
       )}
 
       {/* 2. REAL METRIC KPI CARDS (DERIVED FROM APPLICATION STATE ONLY) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="p-3.5 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
           <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-            <span>Overall Accuracy</span>
-            <Target className="w-3.5 h-3.5 text-[var(--accent)]" />
+            <span className="truncate">Accuracy</span>
+            <Target className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] font-mono tabular-nums">
             {loading ? '...' : `${insights.accuracy}%`}
@@ -209,46 +209,46 @@ function Progress() {
               style={{ width: `${Math.min(100, Math.max(0, insights.accuracy))}%` }}
             />
           </div>
-          <div className="text-[11px] text-[var(--text-secondary)] font-mono">
+          <div className="text-[11px] text-[var(--text-secondary)] font-mono truncate">
             {insights.totalExams} recorded evaluations
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+        <div className="p-3.5 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
           <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-            <span>Priority Focus</span>
-            <AlertTriangle className="w-3.5 h-3.5 text-[var(--warning)]" />
+            <span className="truncate">Priority Focus</span>
+            <AlertTriangle className="w-3.5 h-3.5 text-[var(--warning)] shrink-0" />
           </div>
           <div className="text-lg sm:text-xl font-bold text-[var(--warning)] truncate">
             {loading ? '...' : insights.weakTopic}
           </div>
-          <div className="text-[11px] text-[var(--text-secondary)]">
+          <div className="text-[11px] text-[var(--text-secondary)] truncate">
             Lowest scoring discipline
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+        <div className="p-3.5 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
           <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-            <span>Primary Focus</span>
-            <Layers className="w-3.5 h-3.5 text-[var(--positive)]" />
+            <span className="truncate">Primary Focus</span>
+            <Layers className="w-3.5 h-3.5 text-[var(--positive)] shrink-0" />
           </div>
           <div className="text-lg sm:text-xl font-bold text-[var(--text-primary)] truncate">
             {loading ? '...' : insights.mostStudied}
           </div>
-          <div className="text-[11px] text-[var(--text-secondary)]">
+          <div className="text-[11px] text-[var(--text-secondary)] truncate">
             Most frequent drill topic
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+        <div className="p-3.5 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
           <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-            <span>Logged Drills</span>
-            <Award className="w-3.5 h-3.5 text-[var(--accent)]" />
+            <span className="truncate">Logged Drills</span>
+            <Award className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] font-mono tabular-nums">
             {loading ? '...' : insights.trend.length}
           </div>
-          <div className="text-[11px] text-[var(--text-secondary)] font-mono">
+          <div className="text-[11px] text-[var(--text-secondary)] font-mono truncate">
             Persistent database records
           </div>
         </div>

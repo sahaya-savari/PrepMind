@@ -380,7 +380,7 @@ function Home() {
 
           {/* Headline with RotatingText */}
           <div className="space-y-2">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.12]">
+            <h1 className="text-2xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.12]">
               Deliberate practice for{' '}
               <RotatingText
                 texts={['Interviews.', 'Competitive Exams.', 'Core Concepts.', 'Placements.']}
@@ -438,58 +438,58 @@ function Home() {
 
       {/* 2. REAL METRIC & SYSTEM STATUS RIBBON */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-colors">
+        <div className="p-3.5 sm:p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-colors">
           <div className="flex items-center gap-2 text-[var(--accent)] mb-1">
-            <Database className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)]">Saved Sessions</span>
+            <Database className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] truncate">Saved Sessions</span>
           </div>
           <div className="text-2xl font-bold font-mono tabular-nums text-[var(--text-primary)]">
             {interviews.length}
           </div>
-          <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">Database interview records</div>
+          <div className="text-[11px] text-[var(--text-secondary)] mt-0.5 truncate">Database interview records</div>
         </div>
 
-        <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-colors">
+        <div className="p-3.5 sm:p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-colors">
           <div className="flex items-center gap-2 text-[var(--positive)] mb-1">
-            <Brain className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)]">Active Syllabus</span>
+            <Brain className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] truncate">Active Syllabus</span>
           </div>
           <div className="text-xl font-bold truncate text-[var(--text-primary)]">
             {exam || 'GATE CSE'}
           </div>
-          <div className="text-[11px] text-[var(--positive)] mt-0.5">Benchmarked discipline</div>
+          <div className="text-[11px] text-[var(--positive)] mt-0.5 truncate">Benchmarked discipline</div>
         </div>
 
-        <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-colors">
+        <div className="p-3.5 sm:p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-colors">
           <div className="flex items-center gap-2 text-[var(--accent)] mb-1">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)]">Backend API</span>
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] truncate">Backend API</span>
           </div>
           <div className="text-sm font-semibold font-mono text-[var(--text-primary)] flex items-center gap-1.5 mt-1">
             <span
-              className={`w-2 h-2 rounded-full ${
+              className={`w-2 h-2 rounded-full shrink-0 ${
                 apiStatus === 'ok' ? 'bg-[var(--positive)]' : apiStatus === 'error' ? 'bg-[var(--error)]' : 'bg-[var(--warning)]'
               }`}
             />
-            <span>{apiStatus === 'ok' ? 'Connected' : apiStatus === 'error' ? 'Degraded' : 'Checking...'}</span>
+            <span className="truncate">{apiStatus === 'ok' ? 'Connected' : apiStatus === 'error' ? 'Degraded' : 'Checking...'}</span>
           </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-1">FastAPI gateway health</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1 truncate">FastAPI gateway health</div>
         </div>
 
-        <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-colors">
+        <div className="p-3.5 sm:p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-colors">
           <div className="flex items-center gap-2 text-[var(--accent)] mb-1">
-            <Database className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)]">Database Store</span>
+            <Database className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] truncate">Database Store</span>
           </div>
           <div className="text-sm font-semibold font-mono text-[var(--text-primary)] flex items-center gap-1.5 mt-1">
             <span
-              className={`w-2 h-2 rounded-full ${
+              className={`w-2 h-2 rounded-full shrink-0 ${
                 supabaseStatus === 'ok' ? 'bg-[var(--positive)]' : supabaseStatus === 'error' ? 'bg-[var(--error)]' : 'bg-[var(--warning)]'
               }`}
             />
-            <span>{supabaseStatus === 'ok' ? 'Connected' : supabaseStatus === 'error' ? 'Unavailable' : 'Checking...'}</span>
+            <span className="truncate">{supabaseStatus === 'ok' ? 'Connected' : supabaseStatus === 'error' ? 'Unavailable' : 'Checking...'}</span>
           </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-1">Supabase storage sync</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1 truncate">Supabase storage sync</div>
         </div>
       </section>
 

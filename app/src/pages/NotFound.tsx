@@ -25,7 +25,7 @@ function NotFound() {
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
           <Link
             to="/"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm min-h-[40px]"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm min-h-[44px]"
           >
             <Home className="w-4 h-4" />
             <span>Return to Overview</span>
@@ -33,7 +33,7 @@ function NotFound() {
 
           <Link
             to="/practice"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:border-[var(--accent)] text-xs font-mono transition-colors min-h-[40px]"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:border-[var(--accent)] text-xs font-mono transition-colors min-h-[44px]"
           >
             <Brain className="w-4 h-4 text-[var(--accent)]" />
             <span>Start Practice Drill</span>
@@ -41,7 +41,7 @@ function NotFound() {
 
           <Link
             to="/materials"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:border-[var(--accent)] text-xs font-mono transition-colors min-h-[40px]"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:border-[var(--accent)] text-xs font-mono transition-colors min-h-[44px]"
           >
             <BookOpen className="w-4 h-4 text-[var(--positive)]" />
             <span>Study Materials</span>

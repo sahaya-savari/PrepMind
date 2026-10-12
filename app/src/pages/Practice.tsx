@@ -389,7 +389,7 @@ function Practice() {
               </button>
             </div>
           ) : (
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-7 space-y-6">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-7 space-y-6">
               {/* Question Meta Header */}
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs pb-3 border-b border-[var(--border)]">
                 <div className="flex items-center gap-2 font-mono flex-wrap">
@@ -519,7 +519,7 @@ function Practice() {
                     type="button"
                     onClick={handleEvaluate}
                     disabled={!mcqChoice}
-                    className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer shadow-sm min-h-[40px]"
+                    className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer shadow-sm min-h-[44px]"
                   >
                     Validate Solution
                   </button>

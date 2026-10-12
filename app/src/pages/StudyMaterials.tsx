@@ -163,7 +163,7 @@ function StudyMaterials() {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {readyDocuments.length > 0 && (
             <button
               type="button"
@@ -240,7 +240,7 @@ function StudyMaterials() {
             Supported formats: PDF, TXT, Markdown (Max 10 MB per document)
           </p>
         </div>
-        <div className="flex items-center justify-center gap-4 pt-1 text-[10px] font-mono text-[var(--text-secondary)]">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 pt-1 text-[10px] font-mono text-[var(--text-secondary)]">
           <span className="inline-flex items-center gap-1">
             <Shield className="w-3 h-3 text-[var(--positive)]" />
             <span>Private User Bucket</span>
@@ -366,7 +366,7 @@ function StudyMaterials() {
                         type="button"
                         onClick={() => navigate('/chat')}
                         title="Open AI Chat grounded on this document"
-                        className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer text-xs flex items-center gap-1.5"
+                        className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer text-xs flex items-center justify-center gap-1.5 min-h-[36px]"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Ask AI</span>
@@ -377,7 +377,7 @@ function StudyMaterials() {
                       type="button"
                       onClick={() => handleDownload(doc)}
                       title="Download source material"
-                      className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                      className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                     >
                       <Download className="w-3.5 h-3.5" />
                     </button>
@@ -388,7 +388,7 @@ function StudyMaterials() {
                         onClick={() => handleReprocess(doc)}
                         disabled={isBusy}
                         title="Retry processing document"
-                        className="p-2 rounded-lg border border-[var(--warning)]/40 bg-[var(--surface-elevated)] hover:border-[var(--warning)] text-[var(--warning)] transition-colors cursor-pointer disabled:opacity-50"
+                        className="p-2 rounded-lg border border-[var(--warning)]/40 bg-[var(--surface-elevated)] hover:border-[var(--warning)] text-[var(--warning)] transition-colors cursor-pointer disabled:opacity-50 min-w-[36px] min-h-[36px] flex items-center justify-center"
                       >
                         <RotateCw className={`w-3.5 h-3.5 ${isBusy ? 'animate-spin' : ''}`} />
                       </button>
@@ -399,7 +399,7 @@ function StudyMaterials() {
                       onClick={() => handleDelete(doc)}
                       disabled={isBusy}
                       title="Delete study material and clear vector records"
-                      className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--error)]/40 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors cursor-pointer disabled:opacity-50"
+                      className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--error)]/40 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors cursor-pointer disabled:opacity-50 min-w-[36px] min-h-[36px] flex items-center justify-center"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
