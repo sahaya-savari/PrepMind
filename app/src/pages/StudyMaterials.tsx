@@ -25,6 +25,7 @@ import {
   Shield,
   Layers,
   HelpCircle,
+  Library,
 } from 'lucide-react';
 
 function StudyMaterials() {
@@ -42,7 +43,11 @@ function StudyMaterials() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadDocuments = async () => {
-    if (!user) return;
+    if (!user) {
+      setDocuments([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const docs = await fetchUserDocuments(user.id);
@@ -60,7 +65,14 @@ function StudyMaterials() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
+    if (!user) {
+      setError('Please sign in to upload and index study materials.');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
 
     setError(null);
     setSuccess(null);
@@ -165,14 +177,25 @@ function StudyMaterials() {
         {/* Action Controls */}
         <div className="flex items-center gap-2 flex-wrap">
           {readyDocuments.length > 0 && (
-            <button
-              type="button"
-              onClick={() => navigate('/chat')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors cursor-pointer"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Query in Chat</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => navigate('/chat')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Query in Chat</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('/notebooks')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              >
+                <Library className="w-3.5 h-3.5" />
+                <span>Open in Notebook</span>
+              </button>
+            </>
           )}
 
           <label className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:opacity-90 transition-opacity cursor-pointer shadow-sm">

@@ -40,7 +40,27 @@ export async function extractTextFromContent({ buffer, text, mimeType, filename 
       // Dynamic import of pdf-parse
       const pdfParseModule = await import('pdf-parse');
       const pdfParse = pdfParseModule.default || pdfParseModule;
+
+      try {
+        const fs = await import('node:fs');
+        const path = await import('node:path');
+        const workerPath = path.resolve('node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/pdf.worker.js');
+        if (fs.existsSync(workerPath)) {
+          let src = fs.readFileSync(workerPath, 'utf8');
+          if (src.includes('return new Stream(this.bytes.buffer, start, length, dict);')) {
+            src = src.replace(
+              'makeSubStream: function Stream_makeSubStream(start, length, dict) {\n      return new Stream(this.bytes.buffer, start, length, dict);\n    }',
+              'makeSubStream: function Stream_makeSubStream(start, length, dict) {\n      var baseOffset = this.bytes.byteOffset || 0;\n      return new Stream(this.bytes.buffer, baseOffset + start, length, dict);\n    }'
+            );
+            fs.writeFileSync(workerPath, src, 'utf8');
+          }
+        }
+      } catch (_) {
+        // Read-only environment, ignore
+      }
+
       const parsed = await pdfParse(buffer);
+
 
       const cleaned = cleanRawText(parsed.text || '');
       if (!cleaned || cleaned.length < 10) {
@@ -294,7 +314,7 @@ export default async function handler(req, res) {
     // Action A: Ingest & Process Document into Vector Chunks
     // ------------------------------------------------------------------------
     if (action === 'process_document') {
-      const { documentId, name, mimeType, text, fileBase64 } = body;
+      const { documentId, name, mimeType, text, fileBase64, notebookId } = body;
 
       if (!documentId) {
         return sendJson(res, 400, { error: 'documentId is required for processing' });
@@ -327,9 +347,11 @@ export default async function handler(req, res) {
       const embeddings = await generateBatchEmbeddings(texts, geminiKey, { allowSyntheticFallback });
 
       const processedChunks = chunks.map((c, idx) => ({
+        id: c.id || `${documentId}_${idx}`,
         ...c,
         documentId,
         documentName: name || 'Study Document',
+        notebookId: notebookId || null,
         embedding: embeddings[idx],
       }));
 
@@ -338,6 +360,7 @@ export default async function handler(req, res) {
       return sendJson(res, 200, {
         success: true,
         documentId,
+        notebookId: notebookId || null,
         chunkCount: processedChunks.length,
         pageCount: extracted.pageCount,
         characterCount: extracted.text.length,
@@ -354,6 +377,7 @@ export default async function handler(req, res) {
       const localChunks = Array.isArray(body.chunks) ? body.chunks : [];
       const threshold = typeof body.threshold === 'number' ? body.threshold : 0.2;
       const limit = typeof body.limit === 'number' ? Math.min(10, body.limit) : 4;
+      const notebookId = body.notebookId || null;
 
       if (!question) {
         return sendJson(res, 400, { error: 'Question is required for retrieval' });
@@ -361,18 +385,28 @@ export default async function handler(req, res) {
 
       const queryVector = await generateSingleEmbedding(question, geminiKey, { allowSyntheticFallback });
 
-      // Perform local ranking if chunks array provided in payload
-      const scored = localChunks
+      // Perform local ranking if chunks array provided in payload, respecting notebook & tenant boundaries
+      const reqUserId = body.userId || body.user_id;
+      const scopedChunks = localChunks.filter((c) => {
+        const chunkUserId = c.userId || c.user_id;
+        if (reqUserId && chunkUserId && chunkUserId !== reqUserId) return false;
+        const chunkNb = c.notebookId || c.notebook_id;
+        if (notebookId && chunkNb !== notebookId) return false;
+        return true;
+      });
+
+      const scored = scopedChunks
         .map((c) => {
           const sim = c.embedding
             ? computeCosineSimilarity(queryVector, c.embedding)
             : 0;
           return {
             id: c.id,
-            documentId: c.documentId,
-            documentName: c.documentName || 'Document',
-            chunkText: c.chunkText || c.text || '',
-            pageNumber: c.pageNumber || 1,
+            documentId: c.documentId || c.document_id,
+            documentName: c.documentName || c.document_name || 'Document',
+            notebookId: c.notebookId || c.notebook_id || null,
+            chunkText: c.chunkText || c.chunk_text || c.text || '',
+            pageNumber: c.pageNumber || c.page_number || 1,
             similarity: Number(sim.toFixed(4)),
           };
         })
@@ -385,6 +419,7 @@ export default async function handler(req, res) {
         queryVector,
         results: scored,
         matchCount: scored.length,
+        notebookId,
       });
     }
 
@@ -408,6 +443,53 @@ export default async function handler(req, res) {
         topic,
         contextLength: combinedContext.length,
         promptTemplate: `Based strictly on the following study material:\n\n${combinedContext}\n\nGenerate exactly 1 calibrated technical question.`,
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // Action D: NotebookLM Learning Tools (Summary, Notes, Flashcards, Quiz, Guide)
+    // ------------------------------------------------------------------------
+    if (action === 'notebook_tool') {
+      const toolType = body.tool || 'summary';
+      const passages = Array.isArray(body.passages) ? body.passages : [];
+      const notebookTitle = (body.notebookTitle || 'Study Notebook').trim();
+
+      if (!passages.length) {
+        return sendJson(res, 400, { error: 'Passages from notebook documents are required to generate learning materials.' });
+      }
+
+      const citations = passages.slice(0, 6).map((p) => ({
+        document_title: p.documentName || p.document_name || p.document_title || 'Document',
+        page_number: p.pageNumber || p.page_number || 1,
+        snippet: (p.chunkText || p.chunk_text || '').slice(0, 200).trim(),
+      }));
+
+      const contextText = passages
+        .slice(0, 6)
+        .map((p, i) => `[Source ${i + 1}: ${p.documentName || 'Document'}, p.${p.pageNumber || 1}]\n${p.chunkText || p.chunk_text || ''}`)
+        .join('\n\n---\n\n');
+
+      let instructions = '';
+      if (toolType === 'summary') {
+        instructions = 'Generate an Executive Summary of this notebook. Include: 1) High-level overview, 2) Key Pillars/Concepts, 3) Critical Takeaways. Preserve document citations where appropriate.';
+      } else if (toolType === 'notes') {
+        instructions = 'Generate structured Revision Notes for this notebook. Include concise bullet points, bold key terms, definitions, and technical formulas/tradeoffs with source references.';
+      } else if (toolType === 'flashcards') {
+        instructions = 'Generate 5 high-yield study flashcards based strictly on the material. Format strictly as JSON array of objects: [{"question": "...", "answer": "...", "topic": "...", "source": "..."}]. No markdown or preamble.';
+      } else if (toolType === 'quiz') {
+        instructions = 'Generate 3 challenging multiple choice questions based strictly on the material. Format strictly as JSON array of objects: [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "exact correct option string", "explanation": "detailed explanation", "source": "..."}]. No markdown or preamble.';
+      } else if (toolType === 'guide') {
+        instructions = 'Generate a Comprehensive Study Guide for this notebook. Include: 1) Learning Objectives, 2) Detailed Concept Breakdown, 3) Common Pitfalls & Exam Traps, 4) Quick Review Checklist.';
+      }
+
+      return sendJson(res, 200, {
+        tool: toolType,
+        notebookTitle,
+        contextLength: contextText.length,
+        contextText,
+        citations,
+        instructions,
+        systemPrompt: `You are PrepMind Notebook AI, an elite technical tutor. You are analyzing documents in the notebook "${notebookTitle}". Base your output strictly on the provided context. If the material does not cover a topic, do not fabricate facts.`,
       });
     }
 

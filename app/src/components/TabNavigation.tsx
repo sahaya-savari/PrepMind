@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Brain, MessageCircle, BookOpen, User } from 'lucide-react';
+import { Home, Brain, MessageCircle, Library, BookOpen, User } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const tabs = [
   { path: '/', label: 'Overview', icon: Home },
   { path: '/practice', label: 'Practice', icon: Brain },
   { path: '/chat', label: 'Tutor', icon: MessageCircle },
+  { path: '/notebooks', label: 'Notebooks', icon: Library },
   { path: '/materials', label: 'Materials', icon: BookOpen },
   { path: '/profile', label: 'Profile', icon: User },
 ];

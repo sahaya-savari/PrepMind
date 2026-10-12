@@ -93,7 +93,12 @@ export function getLocalQuestions(interviewId: string | number): QuestionRow[] {
   return questionsMap['1'] || [];
 }
 
-export function saveLocalResult(interviewId: string | number, score: number | null, feedback: string): ResultRow {
+export function saveLocalResult(
+  interviewId: string | number,
+  score: number | null,
+  feedback: string,
+  userId?: string
+): ResultRow {
   const idStr = String(interviewId || '1');
   const current = safeGet<ResultRow[]>(DB_RESULTS_KEY, []);
   const newRow: ResultRow = {
@@ -101,6 +106,7 @@ export function saveLocalResult(interviewId: string | number, score: number | nu
     interview_id: idStr,
     score,
     feedback: feedback || '',
+    user_id: userId || null,
     created_at: new Date().toISOString(),
   };
   const updated = [newRow, ...current].slice(0, 50);
@@ -108,8 +114,11 @@ export function saveLocalResult(interviewId: string | number, score: number | nu
   return newRow;
 }
 
-export function getLocalResults(limit = 20): (ResultRow & { role?: string })[] {
-  const results = safeGet<ResultRow[]>(DB_RESULTS_KEY, []);
+export function getLocalResults(limit = 20, userId?: string): (ResultRow & { role?: string })[] {
+  let results = safeGet<ResultRow[]>(DB_RESULTS_KEY, []);
+  if (userId) {
+    results = results.filter((r) => !r.user_id || r.user_id === userId);
+  }
   const interviews = getLocalInterviews();
   const interviewMap = new Map(interviews.map((i) => [String(i.id), i.role || i.title || 'Technical Drill']));
 
@@ -119,8 +128,8 @@ export function getLocalResults(limit = 20): (ResultRow & { role?: string })[] {
   }));
 }
 
-export function getLocalProgressInsights(): ProgressInsights {
-  const results = getLocalResults(20);
+export function getLocalProgressInsights(userId?: string): ProgressInsights {
+  const results = getLocalResults(20, userId);
   if (!results.length) {
     // Check if there are attempts stored in mcq_attempts
     const attempts = safeGet<{ topic: string; score: number; at: string }[]>('mcq_attempts', []);

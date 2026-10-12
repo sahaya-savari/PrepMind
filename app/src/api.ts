@@ -12,7 +12,7 @@ export type AIMessage = { role: 'user' | 'assistant' | 'system'; content: string
 export type ChatMessage = AIMessage;
 export type Interview = { id: string | number; title?: string; role?: string; created_at?: string | null; name?: string | null };
 export type QuestionRow = { id: string; interview_id: string; question: string; created_at?: string | null };
-export type ResultRow = { id: string; interview_id: string; score: number | null; feedback: string; created_at?: string | null };
+export type ResultRow = { id: string; interview_id: string; score: number | null; feedback: string; user_id?: string | null; created_at?: string | null };
 export type ProgressInsights = {
   accuracy: number;
   totalExams: number;
@@ -308,21 +308,27 @@ export async function fetchQuestions(interviewId: string | number): Promise<Ques
   return getLocalQuestions(idStr);
 }
 
-export async function saveResult(payload: { interviewId: string | number; score: number | null; feedback: string }): Promise<ResultRow> {
+export async function saveResult(payload: { interviewId: string | number; score: number | null; feedback: string; userId?: string }): Promise<ResultRow> {
   const idStr = String(payload?.interviewId || '').trim();
   if (!idStr) throw new Error('Interview id is required');
   if (payload.score !== null && !Number.isFinite(payload.score)) throw new Error('Score must be a number or null');
   if (payload.feedback && typeof payload.feedback !== 'string') throw new Error('Feedback must be a string');
 
   // Always mirror to local DB so offline metrics and instant feedback work
-  const localRow = saveLocalResult(idStr, payload.score, payload.feedback);
+  const localRow = saveLocalResult(idStr, payload.score, payload.feedback, payload.userId);
 
-  if (supabase) {
+  const canPersistRemote = /^\d+$/.test(idStr);
+  if (supabase && canPersistRemote) {
     try {
       const { data, error } = await supabase
         .from('results')
-        .insert({ interview_id: idStr, score: payload.score, feedback: payload.feedback })
-        .select('id, interview_id, score, feedback, created_at')
+        .insert({
+          interview_id: Number(idStr),
+          score: payload.score,
+          feedback: payload.feedback,
+          user_id: payload.userId || null,
+        })
+        .select('id, interview_id, score, feedback, user_id, created_at')
         .single();
       if (!error && data) {
         return data as ResultRow;
@@ -434,17 +440,21 @@ export async function fetchPracticeHistory(userId: string): Promise<PracticeHist
 
 // --- AI OPERATIONS ---
 export async function askStream(
-  question: string,
+  question: string | AIMessage[],
   _sessionId: string,
   onToken: (chunk: string) => void
 ): Promise<string> {
-  if (!question.trim()) throw new Error('Question is required');
+  const messages = Array.isArray(question)
+    ? question.filter((message) => message.content.trim())
+    : [{ role: 'user' as const, content: question.trim() }];
+
+  if (!messages.length) throw new Error('Question is required');
 
   const res = await postJSON<{ response?: string; choices?: { message?: { content?: string } }[] }>(
     '/api/ai',
     {
       action: 'chat',
-      messages: [{ role: 'user', content: question.trim() }],
+      messages,
     }
   );
 

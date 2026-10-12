@@ -5,6 +5,7 @@ import type { McqQuestionItem } from '../api';
 export interface StudyDocument {
   id: string;
   user_id: string;
+  notebook_id?: string | null;
   title: string;
   storage_path: string;
   mime_type: string;
@@ -21,6 +22,7 @@ export interface StudyDocument {
 export interface DocumentChunk {
   id: string;
   document_id: string;
+  notebook_id?: string | null;
   document_name?: string;
   user_id: string;
   chunk_index: number;
@@ -85,16 +87,21 @@ function saveLocalChunks(chunks: DocumentChunk[]): void {
 // ----------------------------------------------------------------------------
 // 1. FETCH DOCUMENTS FOR USER
 // ----------------------------------------------------------------------------
-export async function fetchUserDocuments(userId: string): Promise<StudyDocument[]> {
+export async function fetchUserDocuments(userId: string, notebookId?: string): Promise<StudyDocument[]> {
   if (!userId) return [];
 
   if (isSupabaseConfigured() && supabase) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('documents')
         .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .eq('user_id', userId);
+
+      if (notebookId) {
+        query = query.eq('notebook_id', notebookId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (!error && Array.isArray(data)) {
         return data as StudyDocument[];
@@ -104,7 +111,11 @@ export async function fetchUserDocuments(userId: string): Promise<StudyDocument[
     }
   }
 
-  return getLocalDocuments(userId);
+  const local = getLocalDocuments(userId);
+  if (notebookId) {
+    return local.filter((d) => d.notebook_id === notebookId);
+  }
+  return local;
 }
 
 // ----------------------------------------------------------------------------
@@ -113,7 +124,8 @@ export async function fetchUserDocuments(userId: string): Promise<StudyDocument[
 export async function uploadStudyDocument(
   file: File,
   userId: string,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  notebookId?: string
 ): Promise<StudyDocument> {
   if (!file) throw new Error('No file provided for upload.');
   if (!userId) throw new Error('User authentication required to upload study materials.');
@@ -143,6 +155,7 @@ export async function uploadStudyDocument(
   let initialDoc: StudyDocument = {
     id: docId,
     user_id: userId,
+    notebook_id: notebookId || null,
     title: file.name,
     storage_path: storagePath,
     mime_type: file.type || (ext === '.pdf' ? 'application/pdf' : 'text/plain'),
@@ -184,6 +197,7 @@ export async function uploadStudyDocument(
       await supabase.from('documents').insert({
         id: initialDoc.id,
         user_id: initialDoc.user_id,
+        notebook_id: initialDoc.notebook_id,
         title: initialDoc.title,
         storage_path: initialDoc.storage_path,
         mime_type: initialDoc.mime_type,
@@ -245,6 +259,7 @@ export async function uploadStudyDocument(
       text: fileText,
       fileBase64,
       userId,
+      notebookId: notebookId || null,
     });
 
     onProgress?.(90);
@@ -263,6 +278,7 @@ export async function uploadStudyDocument(
       const mappedChunks: DocumentChunk[] = (processRes.chunks || []).map((c) => ({
         id: c.id || `${docId}_${c.chunkIndex}`,
         document_id: docId,
+        notebook_id: notebookId || null,
         document_name: file.name,
         user_id: userId,
         chunk_index: c.chunkIndex,
@@ -470,7 +486,8 @@ export async function getStudyDocumentDownloadUrl(storagePath: string): Promise<
 export async function retrieveGroundedPassages(
   query: string,
   userId: string,
-  selectedDocIds?: string[]
+  selectedDocIds?: string[],
+  notebookId?: string
 ): Promise<{ passages: DocumentChunk[]; citations: Citation[] }> {
   const cleanQuery = query.trim();
   if (!cleanQuery) return { passages: [], citations: [] };
@@ -482,22 +499,27 @@ export async function retrieveGroundedPassages(
     try {
       let q = supabase
         .from('chunks')
-        .select('id, document_id, chunk_index, chunk_text, page_number, section_title, embedding')
+        .select('id, document_id, chunk_index, chunk_text, page_number, section_title, embedding, notebook_id')
         .eq('user_id', userId);
 
       if (selectedDocIds && selectedDocIds.length > 0) {
         q = q.in('document_id', selectedDocIds);
       }
 
+      if (notebookId) {
+        q = q.eq('notebook_id', notebookId);
+      }
+
       const { data, error } = await q.limit(50);
       if (!error && Array.isArray(data) && data.length > 0) {
         // Attach document title
-        const userDocs = await fetchUserDocuments(userId);
+        const userDocs = await fetchUserDocuments(userId, notebookId);
         const titleMap = new Map(userDocs.map((d) => [d.id, d.title]));
 
         candidateChunks = data.map((d: any) => ({
           ...d,
           document_name: titleMap.get(d.document_id) || 'Study Document',
+          notebook_id: notebookId || d.notebook_id || null,
         }));
       }
     } catch (err) {
@@ -507,6 +529,9 @@ export async function retrieveGroundedPassages(
 
   if (!candidateChunks.length) {
     let local = getLocalChunks(userId);
+    if (notebookId) {
+      local = local.filter((c) => !c.notebook_id || c.notebook_id === notebookId);
+    }
     if (selectedDocIds && selectedDocIds.length > 0) {
       local = local.filter((c) => selectedDocIds.includes(c.document_id));
     }
@@ -534,6 +559,7 @@ export async function retrieveGroundedPassages(
       chunks: candidateChunks,
       threshold: 0.15,
       limit: 4,
+      notebookId: notebookId || null,
     });
 
     const ranked = retrieveRes?.results || [];
@@ -580,4 +606,50 @@ export async function retrieveGroundedPassages(
 
     return { passages: matches, citations };
   }
+}
+
+export async function fetchNotebookChunks(
+  userId: string,
+  notebookId: string
+): Promise<DocumentChunk[]> {
+  if (!userId || !notebookId) return [];
+
+  const userDocs = await fetchUserDocuments(userId, notebookId);
+  const docIds = userDocs.map((d) => d.id);
+  const titleMap = new Map(userDocs.map((d) => [d.id, d.title]));
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      let q = supabase
+        .from('chunks')
+        .select('id, document_id, chunk_index, chunk_text, page_number, section_title, embedding, notebook_id')
+        .eq('user_id', userId);
+
+      if (docIds.length > 0) {
+        q = q.in('document_id', docIds);
+      } else {
+        q = q.eq('notebook_id', notebookId);
+      }
+
+      const { data, error } = await q.order('chunk_index', { ascending: true }).limit(60);
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return data.map((d: any) => ({
+          ...d,
+          document_name: titleMap.get(d.document_id) || 'Study Document',
+          notebook_id: notebookId,
+        }));
+      }
+    } catch (err) {
+      console.warn('[PrepMind] fetchNotebookChunks fallback:', err);
+    }
+  }
+
+  const local = getLocalChunks(userId).filter(
+    (c) => c.notebook_id === notebookId || docIds.includes(c.document_id)
+  );
+  return local.map((c) => ({
+    ...c,
+    document_name: titleMap.get(c.document_id) || c.document_name || 'Study Document',
+    notebook_id: notebookId,
+  }));
 }

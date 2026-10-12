@@ -1,5 +1,6 @@
 import http from 'http';
-import handler from '../api/ai.js';
+import aiHandler from '../api/ai.js';
+import ragHandler from '../api/rag.js';
 
 const PORT = 5000;
 
@@ -28,7 +29,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      await handler(req, res);
+      const url = new URL(req.url || '/', `http://localhost:${PORT}`);
+      if (url.pathname.startsWith('/api/rag')) {
+        await ragHandler(req, res);
+      } else {
+        await aiHandler(req, res);
+      }
     } catch (err) {
       console.error('[local-api-err]', err);
       res.statusCode = 500;

@@ -15,6 +15,7 @@ import { AnimatedList } from '../components/reactbits/AnimatedList';
 import { DodgeField } from '../components/reactbits/DodgeField';
 import { type ProgressInsights, getLocalProgressInsights } from '../api';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 const defaultInsights: ProgressInsights = {
   accuracy: 0,
@@ -44,6 +45,7 @@ const saveCache = (data: ProgressInsights) => {
 };
 
 function Progress() {
+  const { user } = useAuth();
   const [insights, setInsights] = useState<ProgressInsights>(defaultInsights);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -63,9 +65,15 @@ function Progress() {
     // If Supabase is configured, attempt remote query first
     if (isSupabaseConfigured() && supabase) {
       try {
-        const { data, error: supaError } = await supabase
+        let q = supabase
           .from('results')
-          .select('score, feedback, created_at, interview_id, interviews ( role )')
+          .select('score, feedback, created_at, interview_id, interviews ( role )');
+
+        if (user?.id) {
+          q = q.eq('user_id', user.id);
+        }
+
+        const { data, error: supaError } = await q
           .order('created_at', { ascending: false })
           .limit(20);
 
@@ -121,15 +129,15 @@ function Progress() {
       }
     }
 
-    // Resilient local database fallback (uses both local results and mcq attempts)
-    const localInsights = getLocalProgressInsights();
+    // Resilient local database fallback (uses both local results and mcq attempts scoped to user)
+    const localInsights = getLocalProgressInsights(user?.id);
     hydrate(localInsights);
     setLoading(false);
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [user?.id]);
 
   const uniqueTopics = Array.from(new Set(insights.trend.map((t) => t.topic)));
   const filteredTrend = insights.trend.filter(

@@ -1,6 +1,12 @@
-node_modules
-dist
-build
+node_modules/
+dist/
+build/
+coverage/
 .env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+!.env.*.example
 *.log
 *.tmp

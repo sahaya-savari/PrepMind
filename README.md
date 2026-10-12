@@ -270,6 +270,12 @@ create table if not exists public.results (
 - `POST /api/ai` with `action: "chat"` — Multi-turn Socratic study tutoring
 - `POST /api/ai` with `action: "evaluate"` — Deterministic scoring & feedback
 
+### Serverless RAG Engine (`/api/rag`)
+- `POST /api/rag` with `action: "process_document"` — Parses, chunks, and embeds documents scoped to notebook
+- `POST /api/rag` with `action: "retrieve"` — Vector similarity retrieval with strict user and notebook scoping
+- `POST /api/rag` with `action: "notebook_tool"` — Synthesizes 1-click learning tools (summary, notes, flashcards, quiz, guide)
+
+
 ### Express Server (`/server`)
 
 | Method | Endpoint | Auth Required | Description |
@@ -360,9 +366,14 @@ Run these from the repository root:
 | Command | Purpose |
 | :--- | :--- |
 | `npm test` | Run the AI provider orchestration and offline fallback test suite |
+| `npm run test:all` | Run all 5 automated test suites (API, DB, RAG, Notebooks, Real PDF) |
+| `npm run test:rag` | Run vector retrieval and RAG grounding test suite |
+| `npm run test:notebook` | Run private notebook scoping and 1-click tools test suite |
+| `npm run test:e2e-pdf` | Run end-to-end binary PDF parsing and cross-account isolation test |
 | `npm run build` | Build the production Vite bundle |
 | `npm run typecheck` | Run TypeScript typecheck across the frontend |
 | `npm run server:dev` | Run the lightweight local dev API harness (port 5000) |
+
 
 ---
 

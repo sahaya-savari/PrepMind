@@ -10,8 +10,14 @@ app/dist/
 # Local Environment Variables & Secrets
 .env
 .env.*
+.env.local
+.env.*.local
 !.env.example
-*.env.local
+!.env.*.example
+
+# Test Coverage
+coverage/
+
 
 # Serverless & Deployment Caches
 .vercel/
