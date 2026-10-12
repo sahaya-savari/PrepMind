@@ -1,12 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+const supabaseKey =
+  import.meta.env.VITE_SUPABASE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 function isValidHttpUrl(stringUrl) {
   if (!stringUrl || typeof stringUrl !== 'string') return false;
   const trimmed = stringUrl.trim();
-  if (!trimmed || trimmed.includes('placeholder') || trimmed.includes('your_supabase_url')) {
+  if (
+    !trimmed ||
+    trimmed.includes('placeholder') ||
+    trimmed.includes('your_supabase_url') ||
+    trimmed.includes('your-project')
+  ) {
     return false;
   }
   try {
@@ -17,10 +24,22 @@ function isValidHttpUrl(stringUrl) {
   }
 }
 
-let supabase = null;
+function isValidKey(key) {
+  if (!key || typeof key !== 'string') return false;
+  const trimmed = key.trim();
+  return Boolean(
+    trimmed &&
+    !trimmed.includes('placeholder') &&
+    !trimmed.includes('your_anon_key') &&
+    !trimmed.includes('your_supabase_anon_key')
+  );
+}
 
-if (!isValidHttpUrl(supabaseUrl) || !supabaseKey || supabaseKey.includes('placeholder')) {
-  console.info('[PrepMind] Supabase credentials not provided or placeholder; running in offline/local storage mode.');
+let supabase = null;
+const isConfigured = isValidHttpUrl(supabaseUrl) && isValidKey(supabaseKey);
+
+if (!isConfigured) {
+  console.info('[PrepMind] Supabase credentials not provided or placeholder; running in resilient local storage / database mode.');
 } else {
   try {
     supabase = createClient(supabaseUrl.trim(), supabaseKey.trim(), {
@@ -41,6 +60,14 @@ if (!isValidHttpUrl(supabaseUrl) || !supabaseKey || supabaseKey.includes('placeh
     console.warn('[PrepMind] Supabase client initialization failed:', err);
     supabase = null;
   }
+}
+
+export function isSupabaseConfigured() {
+  return Boolean(supabase && isConfigured);
+}
+
+export function getDatabaseMode() {
+  return isSupabaseConfigured() ? 'supabase' : 'local';
 }
 
 export { supabase };

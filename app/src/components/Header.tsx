@@ -1,7 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles } from 'lucide-react';
+import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles, LogIn } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useExam } from '../context/ExamContext';
+import { useAuth } from '../hooks/useAuth';
 import { PillNav, NavItem } from './reactbits/PillNav';
 
 const navItems: NavItem[] = [
@@ -15,6 +16,7 @@ const navItems: NavItem[] = [
 function Header() {
   const { theme, toggleTheme } = useTheme();
   const { exam } = useExam();
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -56,15 +58,35 @@ function Header() {
           />
         </div>
 
-        {/* Right: Selected Exam, Theme Switch & Quick Practice */}
+        {/* Right: Selected Exam, User Status, Theme Switch & Quick Practice */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {user ? (
+            <Link
+              to="/profile"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none max-w-[140px]"
+              title={`Logged in as ${user.name}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${user.isGuest ? 'bg-[var(--accent)]' : 'bg-[var(--positive)]'} animate-pulse shrink-0`} aria-hidden />
+              <span className="truncate">{user.name.split(' ')[0]}</span>
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--accent)] hover:border-[var(--accent)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none"
+              title="Candidate Sign In"
+            >
+              <LogIn size={13} />
+              <span className="hidden sm:inline">Sign In</span>
+            </Link>
+          )}
+
           {exam && (
             <Link
               to="/profile"
-              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none max-w-[160px]"
+              className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none max-w-[160px]"
               title="Target exam profile"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--positive)] animate-pulse shrink-0" aria-hidden />
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)] shrink-0" aria-hidden />
               <span className="truncate">{exam}</span>
             </Link>
           )}

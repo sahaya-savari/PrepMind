@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useExam } from '../context/ExamContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../hooks/useAuth';
+import { isSupabaseConfigured } from '../lib/supabase';
 import {
   User,
   Award,
@@ -10,8 +13,13 @@ import {
   Moon,
   Sparkles,
   CheckCircle2,
-  Layers,
+  Database,
   Save,
+  LogOut,
+  LogIn,
+  ShieldCheck,
+  HardDrive,
+  Cloud,
 } from 'lucide-react';
 
 const CANDIDATE_KEY = 'prepmind_candidate_profile';
@@ -19,13 +27,19 @@ const CANDIDATE_KEY = 'prepmind_candidate_profile';
 function Profile() {
   const { exam, setExam } = useExam();
   const { theme, toggleTheme } = useTheme();
+  const { user, logout, isConfigured } = useAuth();
+  const navigate = useNavigate();
 
   const [profile, setProfile] = useState(() => {
     try {
       const saved = localStorage.getItem(CANDIDATE_KEY);
-      return saved ? JSON.parse(saved) : { name: 'PrepMind Scholar', role: 'Software Engineer' };
+      if (saved) return JSON.parse(saved);
+      return {
+        name: user?.name || 'PrepMind Scholar',
+        role: 'Software Engineer',
+      };
     } catch {
-      return { name: 'PrepMind Scholar', role: 'Software Engineer' };
+      return { name: user?.name || 'PrepMind Scholar', role: 'Software Engineer' };
     }
   });
 
@@ -55,19 +69,132 @@ function Profile() {
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  const hasCloudAuth = isSupabaseConfigured() && user && !user.isGuest;
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       {/* 1. TOP HEADER */}
-      <header className="pb-4 border-b border-[var(--border)]">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-          Candidate Profile & System Preferences
-        </h1>
-        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-          Active target examination, verified practice summary, and interface preferences.
-        </p>
+      <header className="pb-4 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+            Candidate Profile & System Preferences
+          </h1>
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+            Active target examination, authentication credentials, and database synchronization.
+          </p>
+        </div>
+
+        {user ? (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--error)]/50 text-[var(--text-secondary)] hover:text-[var(--error)] text-xs font-mono transition-colors cursor-pointer self-start sm:self-auto"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm self-start sm:self-auto"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Sign In</span>
+          </Link>
+        )}
       </header>
 
-      {/* 2. PROFILE IDENTITY & TARGET CONFIGURATION */}
+      {/* 2. AUTHENTICATION & DATABASE ENGINE STATUS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Authentication Card */}
+        <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
+              <span>Authentication Status</span>
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                hasCloudAuth
+                  ? 'bg-[var(--positive)]/15 text-[var(--positive)] border border-[var(--positive)]/30'
+                  : user?.isGuest
+                  ? 'bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30'
+                  : 'bg-[var(--surface-elevated)] text-[var(--text-muted)] border border-[var(--border)]'
+              }`}
+            >
+              {hasCloudAuth ? 'Cloud Account' : user?.isGuest ? 'Guest Session' : user ? 'Local Account' : 'Not Signed In'}
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-sm font-semibold text-[var(--text-primary)]">
+              {user?.name || 'Guest Scholar'}
+            </div>
+            <div className="text-xs font-mono text-[var(--text-secondary)] truncate">
+              {user?.email || 'No email associated (guest mode)'}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between text-xs">
+            {user ? (
+              <span className="text-[11px] text-[var(--text-muted)]">
+                {user.isGuest ? 'Guest session active' : 'Session verified & active'}
+              </span>
+            ) : (
+              <span className="text-[11px] text-[var(--text-muted)]">Operating in unauthenticated state</span>
+            )}
+
+            {!hasCloudAuth && (
+              <Link to="/login" className="text-xs text-[var(--accent)] hover:underline font-mono">
+                Connect Cloud Account →
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Database Engine Card */}
+        <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5 text-[var(--accent)]" />
+              <span>Database Engine</span>
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold flex items-center gap-1 ${
+                isConfigured
+                  ? 'bg-[var(--positive)]/15 text-[var(--positive)] border border-[var(--positive)]/30'
+                  : 'bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30'
+              }`}
+            >
+              {isConfigured ? <Cloud className="w-3 h-3" /> : <HardDrive className="w-3 h-3" />}
+              <span>{isConfigured ? 'Supabase Connected' : 'Local Storage DB'}</span>
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-sm font-semibold text-[var(--text-primary)]">
+              {isConfigured ? 'PostgreSQL Cloud Storage (RLS Enabled)' : 'Resilient Client Database (Offline Safe)'}
+            </div>
+            <div className="text-xs text-[var(--text-secondary)]">
+              {isConfigured
+                ? 'Syncing interviews, questions, and evaluated results with Supabase.'
+                : 'Auto-seeded interview curriculum, question bank, and metrics persist locally.'}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between text-xs font-mono text-[var(--text-muted)]">
+            <span>Logged Attempts: {attempts.length}</span>
+            <span>Accuracy: {accuracy}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. PROFILE IDENTITY & TARGET CONFIGURATION */}
       <form onSubmit={handleSaveProfile} className="space-y-6">
         <div className="p-5 sm:p-7 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-[var(--border)]">
@@ -148,7 +275,7 @@ function Profile() {
           </div>
         </div>
 
-        {/* 3. INTERFACE THEME PREFERENCES (DARK / LIGHT TERMINAL THEME) */}
+        {/* 4. INTERFACE THEME PREFERENCES (DARK / LIGHT TERMINAL THEME) */}
         <div className="p-5 sm:p-7 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
             <div>
@@ -193,7 +320,7 @@ function Profile() {
         </div>
       </form>
 
-      {/* 4. VERIFIED DRILL PERFORMANCE SUMMARY */}
+      {/* 5. VERIFIED DRILL PERFORMANCE SUMMARY */}
       <div className="grid sm:grid-cols-3 gap-4">
         <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
           <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">

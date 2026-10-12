@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import { AnimatedList } from '../components/reactbits/AnimatedList';
 import { DodgeField } from '../components/reactbits/DodgeField';
-import { type ProgressInsights } from '../api';
-import { supabase } from '../lib/supabase';
+import { type ProgressInsights, getLocalProgressInsights } from '../api';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const defaultInsights: ProgressInsights = {
   accuracy: 0,
@@ -60,86 +60,71 @@ function Progress() {
     setLoading(true);
     setError('');
 
-    if (!supabase) {
-      const cached = loadCache();
-      if (cached) {
-        hydrate(cached);
-        setError('Database in guest session mode (showing cached metrics)');
-      } else {
-        setError('Database offline / guest session');
-        setInsights(defaultInsights);
-      }
-      setLoading(false);
-      return;
-    }
+    // If Supabase is configured, attempt remote query first
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data, error: supaError } = await supabase
+          .from('results')
+          .select('score, feedback, created_at, interview_id, interviews ( role )')
+          .order('created_at', { ascending: false })
+          .limit(20);
 
-    try {
-      const { data, error: supaError } = await supabase
-        .from('results')
-        .select('score, feedback, created_at, interview_id, interviews ( role )')
-        .order('created_at', { ascending: false })
-        .limit(20);
+        if (supaError) throw supaError;
 
-      if (supaError) throw supaError;
+        if (data && data.length > 0) {
+          const trend = (data as any[]).map((row: any) => ({
+            topic: row.interviews?.role || 'Drill Session',
+            accuracy: Number.isFinite(row.score) ? Number(row.score) : 0,
+            at: row.created_at || new Date().toISOString(),
+          }));
 
-      if (!data || data.length === 0) {
-        hydrate(defaultInsights);
-        return;
-      }
+          const validScores = trend
+            .map((t: any) => t.accuracy)
+            .filter((n: number) => Number.isFinite(n));
+          const accuracy =
+            validScores.length === 0
+              ? 0
+              : Math.round(
+                  validScores.reduce((sum: number, item: number) => sum + item, 0) / validScores.length
+                );
 
-      const trend = (data as any[]).map((row: any) => ({
-        topic: row.interviews?.role || 'Drill Session',
-        accuracy: Number.isFinite(row.score) ? Number(row.score) : 0,
-        at: row.created_at || new Date().toISOString(),
-      }));
+          const weakTopic = trend.reduce(
+            (worst: any, curr: any) => (curr.accuracy < worst.accuracy ? curr : worst),
+            trend[0]
+          );
 
-      const validScores = trend
-        .map((t: any) => t.accuracy)
-        .filter((n: number) => Number.isFinite(n));
-      const accuracy =
-        validScores.length === 0
-          ? 0
-          : Math.round(
-              validScores.reduce((sum: number, item: number) => sum + item, 0) / validScores.length
-            );
+          const topicCounts: Record<string, number> = {};
+          trend.forEach((t) => {
+            topicCounts[t.topic] = (topicCounts[t.topic] || 0) + 1;
+          });
+          let mostStudied = 'General';
+          let maxCount = 0;
+          Object.entries(topicCounts).forEach(([top, count]) => {
+            if (count > maxCount) {
+              maxCount = count;
+              mostStudied = top;
+            }
+          });
 
-      const weakTopic = trend.reduce(
-        (worst: any, curr: any) => (curr.accuracy < worst.accuracy ? curr : worst),
-        trend[0]
-      );
-
-      // Derive most studied topic
-      const topicCounts: Record<string, number> = {};
-      trend.forEach((t) => {
-        topicCounts[t.topic] = (topicCounts[t.topic] || 0) + 1;
-      });
-      let mostStudied = 'General';
-      let maxCount = 0;
-      Object.entries(topicCounts).forEach(([top, count]) => {
-        if (count > maxCount) {
-          maxCount = count;
-          mostStudied = top;
+          hydrate({
+            accuracy,
+            totalExams: trend.length,
+            weakTopic: weakTopic ? weakTopic.topic : 'None',
+            mostStudied,
+            trend,
+          });
+          setLoading(false);
+          return;
         }
-      });
-
-      hydrate({
-        accuracy,
-        totalExams: trend.length,
-        weakTopic: weakTopic ? weakTopic.topic : 'None',
-        mostStudied,
-        trend,
-      });
-    } catch (err: any) {
-      const cached = loadCache();
-      if (cached) {
-        hydrate(cached);
-        setError('Could not reach remote database. Displaying local cache.');
-      } else {
-        setError(err.message || 'Failed to fetch performance insights');
+      } catch (err: any) {
+        console.warn('[PrepMind] Remote database fetch failed, falling back to local database:', err?.message || err);
       }
-    } finally {
-      setLoading(false);
     }
+
+    // Resilient local database fallback (uses both local results and mcq attempts)
+    const localInsights = getLocalProgressInsights();
+    hydrate(localInsights);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -156,9 +141,20 @@ function Progress() {
       {/* 1. TOP HEADER & METRIC CONTROLS */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-            Performance & Mastery Overview
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+              Performance & Mastery Overview
+            </h1>
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                isSupabaseConfigured()
+                  ? 'bg-[var(--positive)]/15 text-[var(--positive)] border border-[var(--positive)]/30'
+                  : 'bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30'
+              }`}
+            >
+              {isSupabaseConfigured() ? 'Cloud Synced (Supabase)' : 'Local Storage DB (Offline Safe)'}
+            </span>
+          </div>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">
             Verified performance history, evaluation accuracy trends, and weak area diagnostics.
           </p>
@@ -187,16 +183,13 @@ function Progress() {
         </div>
       </header>
 
-      {/* Notice / Warning */}
+      {/* Notice / Warning if any */}
       {error && (
         <div className="text-xs p-3 rounded-lg bg-[var(--surface-elevated)] border border-[var(--warning)]/40 text-[var(--warning)] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertTriangle size={14} className="shrink-0" />
             <span>{error}</span>
           </div>
-          <span className="text-[10px] font-mono text-[var(--accent)] uppercase tracking-wider">
-            Cached Session Active
-          </span>
         </div>
       )}
 

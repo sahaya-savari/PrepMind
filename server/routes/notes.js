@@ -9,7 +9,13 @@ router.post('/notes', async (req, res) => {
 
   const notes = `Key points for ${topic}: stay focused, review summaries, practice examples.`;
 
-  await supabase.from('notes').insert({ topic, content: notes });
+  if (supabase) {
+    try {
+      await supabase.from('notes').insert({ topic, content: notes });
+    } catch (err) {
+      console.warn('[PrepMind Server] Failed to insert notes into Supabase:', err?.message || err);
+    }
+  }
 
   res.json({ notes });
 });

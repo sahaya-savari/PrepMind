@@ -1,4 +1,12 @@
 import { supabase } from './lib/supabase';
+import {
+  getLocalInterviews,
+  createLocalInterview,
+  getLocalQuestions,
+  saveLocalResult,
+  getLocalResults,
+  getLocalProgressInsights,
+} from './lib/localDb';
 
 export type AIMessage = { role: 'user' | 'assistant' | 'system'; content: string };
 export type ChatMessage = AIMessage;
@@ -241,54 +249,63 @@ export async function fetchHealth(): Promise<{ status: string; provider?: string
   }
 }
 
-// --- SUPABASE DATA HANDLERS ---
+
+// --- DATABASE HANDLERS (SUPABASE WITH RESILIENT LOCAL FALLBACK) ---
 export async function listInterviews(): Promise<Interview[]> {
-  if (!supabase) return [];
-  try {
-    const { data, error } = await supabase
-      .from('interviews')
-      .select('id, title, created_at')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return (data || []).map((i: any) => ({ ...i, role: i.title }));
-  } catch (err) {
-    console.warn('[PrepMind] listInterviews fallback', err);
-    return [];
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('interviews')
+        .select('id, title, role, created_at')
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return data.map((i: any) => ({ ...i, role: i.role || i.title }));
+      }
+    } catch (err) {
+      console.warn('[PrepMind] listInterviews remote fallback to local DB', err);
+    }
   }
+  return getLocalInterviews();
 }
 
-export async function createInterview(payload: { title: string }): Promise<{ interview: Interview }> {
+export async function createInterview(payload: { title: string; role?: string }): Promise<{ interview: Interview }> {
   if (!payload || typeof payload.title !== 'string' || !payload.title.trim()) throw new Error('Title is required');
-  if (!supabase) throw new Error('Supabase not configured');
-  try {
-    const { data, error } = await supabase
-      .from('interviews')
-      .insert({ title: payload.title.trim() })
-      .select('id, title, created_at')
-      .single();
-    if (error) throw error;
-    return { interview: { ...data, role: data.title } as Interview };
-  } catch (err: any) {
-    throw new Error(err?.message || 'Failed to create interview');
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('interviews')
+        .insert({ title: payload.title.trim(), role: (payload.role || payload.title).trim() })
+        .select('id, title, role, created_at')
+        .single();
+      if (!error && data) {
+        return { interview: { ...data, role: data.role || data.title } as Interview };
+      }
+    } catch (err: any) {
+      console.warn('[PrepMind] createInterview remote failed, persisting locally', err);
+    }
   }
+  const local = createLocalInterview(payload.title.trim(), payload.role);
+  return { interview: local };
 }
 
 export async function fetchQuestions(interviewId: string | number): Promise<QuestionRow[]> {
   const idStr = String(interviewId || '').trim();
   if (!idStr) throw new Error('Interview id is required');
-  if (!supabase) return [];
-  try {
-    const { data, error } = await supabase
-      .from('questions')
-      .select('id, interview_id, question, created_at')
-      .eq('interview_id', idStr)
-      .order('created_at', { ascending: true });
-    if (error) throw error;
-    return (data || []) as QuestionRow[];
-  } catch (err) {
-    console.warn('[PrepMind] fetchQuestions fallback', err);
-    return [];
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('id, interview_id, question, created_at')
+        .eq('interview_id', idStr)
+        .order('created_at', { ascending: true });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return data as QuestionRow[];
+      }
+    } catch (err) {
+      console.warn('[PrepMind] fetchQuestions remote fallback to local DB', err);
+    }
   }
+  return getLocalQuestions(idStr);
 }
 
 export async function saveResult(payload: { interviewId: string | number; score: number | null; feedback: string }): Promise<ResultRow> {
@@ -296,19 +313,28 @@ export async function saveResult(payload: { interviewId: string | number; score:
   if (!idStr) throw new Error('Interview id is required');
   if (payload.score !== null && !Number.isFinite(payload.score)) throw new Error('Score must be a number or null');
   if (payload.feedback && typeof payload.feedback !== 'string') throw new Error('Feedback must be a string');
-  if (!supabase) throw new Error('Supabase not configured');
-  try {
-    const { data, error } = await supabase
-      .from('results')
-      .insert({ interview_id: idStr, score: payload.score, feedback: payload.feedback })
-      .select('id, interview_id, score, feedback, created_at')
-      .single();
-    if (error) throw error;
-    return data as ResultRow;
-  } catch (err: any) {
-    throw new Error(err?.message || 'Failed to save result');
+
+  // Always mirror to local DB so offline metrics and instant feedback work
+  const localRow = saveLocalResult(idStr, payload.score, payload.feedback);
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('results')
+        .insert({ interview_id: idStr, score: payload.score, feedback: payload.feedback })
+        .select('id, interview_id, score, feedback, created_at')
+        .single();
+      if (!error && data) {
+        return data as ResultRow;
+      }
+    } catch (err: any) {
+      console.warn('[PrepMind] saveResult remote failed, stored in local database', err);
+    }
   }
+  return localRow;
 }
+
+export { getLocalResults, getLocalProgressInsights };
 
 // --- AI OPERATIONS ---
 export async function askStream(

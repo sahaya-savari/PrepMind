@@ -23,6 +23,7 @@ import {
   listInterviews,
   generateQuestions,
   evaluateAnswers,
+  saveResult,
   type Interview,
   type QuestionRow,
 } from '../api';
@@ -195,6 +196,19 @@ function Practice() {
       });
 
       mark(score > 0);
+
+      // Persist attempt to database (Supabase Cloud + Local Database mirror)
+      try {
+        saveResult({
+          interviewId: exam || '1',
+          score,
+          feedback: `Drill on ${mcqTopic.trim()} (${mcqDifficulty}): ${isCorrect ? 'Correct (+100%)' : 'Incorrect (0%)'}. ${explanation}`,
+        }).catch((err) => {
+          console.warn('[PrepMind] saveResult background error:', err);
+        });
+      } catch {
+        // Safe catch
+      }
 
       const next = [
         { topic: mcqTopic.trim(), score, at: new Date().toISOString() },

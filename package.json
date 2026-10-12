@@ -9,6 +9,8 @@
     "typecheck": "npm --prefix app run typecheck",
     "test": "node test/api-test.mjs",
     "test:api": "node test/api-test.mjs",
+    "test:db": "node test/db-auth-test.mjs",
+    "test:all": "node test/api-test.mjs && node test/db-auth-test.mjs",
     "server": "node server/server.js",
     "dev:server": "nodemon server/server.js",
     "server:dev": "node test/local-dev-api.mjs",

@@ -7,6 +7,8 @@ import Chat from './pages/Chat';
 import Practice from './pages/Practice';
 import Progress from './pages/Progress';
 import Profile from './pages/Profile';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 import { AuthProvider } from './context/AuthContext';
 import { ExamProvider } from './context/ExamContext';
 import './index.css';
@@ -26,6 +28,8 @@ if (root) {
                 <Route path="practice" element={<Practice />} />
                 <Route path="progress" element={<Progress />} />
                 <Route path="profile" element={<Profile />} />
+                <Route path="login" element={<Login />} />
+                <Route path="signup" element={<Signup />} />
               </Route>
             </Routes>
           </BrowserRouter>

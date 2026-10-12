@@ -9,7 +9,13 @@ router.post('/ask', async (req, res) => {
 
   const answer = `This is a helpful response about: ${question}`;
 
-  await supabase.from('chats').insert({ question, answer });
+  if (supabase) {
+    try {
+      await supabase.from('chats').insert({ question, answer });
+    } catch (err) {
+      console.warn('[PrepMind Server] Failed to insert chats into Supabase:', err?.message || err);
+    }
+  }
 
   res.json({ answer });
 });

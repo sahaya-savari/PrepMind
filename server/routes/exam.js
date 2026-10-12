@@ -23,7 +23,13 @@ router.post('/exam/evaluate', async (req, res) => {
   const score = Math.min(100, Math.max(0, Math.round((answers.length / 3) * 100)));
   const feedback = score > 70 ? 'Great job! Keep refining details.' : 'Review the material and try again.';
 
-  await supabase.from('progress').insert({ topic: 'general', score });
+  if (supabase) {
+    try {
+      await supabase.from('progress').insert({ topic: 'general', score });
+    } catch (err) {
+      console.warn('[PrepMind Server] Failed to insert progress into Supabase:', err?.message || err);
+    }
+  }
 
   res.json({ score, feedback });
 });
