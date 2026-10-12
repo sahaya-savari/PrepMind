@@ -277,3 +277,121 @@ create policy "Allow insert results" on public.results for insert with check (
 
 drop policy if exists "Allow update results" on public.results;
 create policy "Allow update results" on public.results for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ----------------------------------------------------------------------------
+-- 11. PGVECTOR EXTENSION & RAG RETRIEVAL PIPELINE
+-- ----------------------------------------------------------------------------
+create extension if not exists "vector";
+
+alter table public.documents add column if not exists storage_path text;
+alter table public.documents add column if not exists mime_type text;
+alter table public.documents add column if not exists file_size bigint default 0;
+alter table public.documents add column if not exists status text default 'uploaded';
+alter table public.documents add column if not exists error_message text;
+alter table public.documents add column if not exists page_count integer default 0;
+alter table public.documents add column if not exists character_count integer default 0;
+alter table public.documents add column if not exists content_hash text;
+alter table public.documents add column if not exists updated_at timestamptz default now();
+
+alter table public.chunks add column if not exists user_id uuid;
+alter table public.chunks add column if not exists chunk_index integer default 0;
+alter table public.chunks add column if not exists page_number integer default 1;
+alter table public.chunks add column if not exists embedding vector(768);
+
+create index if not exists idx_documents_status on public.documents(status);
+create index if not exists idx_chunks_user_id on public.chunks(user_id);
+
+do $$
+begin
+  if not exists (select 1 from pg_indexes where indexname = 'idx_chunks_embedding_hnsw') then
+    execute 'create index idx_chunks_embedding_hnsw on public.chunks using hnsw (embedding vector_cosine_ops)';
+  end if;
+exception when others then
+  if not exists (select 1 from pg_indexes where indexname = 'idx_chunks_embedding_ivfflat') then
+    execute 'create index idx_chunks_embedding_ivfflat on public.chunks using ivfflat (embedding vector_cosine_ops) with (lists = 100)';
+  end if;
+end $$;
+
+create or replace function public.match_document_chunks(
+  query_embedding vector(768),
+  match_threshold float default 0.25,
+  match_count int default 5,
+  filter_doc_ids uuid[] default null
+)
+returns table (
+  id uuid,
+  document_id uuid,
+  document_name text,
+  chunk_text text,
+  page_number int,
+  similarity float
+)
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  return query
+  select
+    c.id,
+    c.document_id,
+    d.name as document_name,
+    c.chunk_text,
+    c.page_number,
+    (1 - (c.embedding <=> query_embedding))::float as similarity
+  from public.chunks c
+  join public.documents d on d.id = c.document_id
+  where (c.user_id = auth.uid() or auth.role() = 'service_role')
+    and (filter_doc_ids is null or c.document_id = any(filter_doc_ids))
+    and (c.embedding is not null)
+    and (1 - (c.embedding <=> query_embedding)) > match_threshold
+  order by c.embedding <=> query_embedding
+  limit match_count;
+end;
+$$;
+
+revoke execute on function public.match_document_chunks(vector(768), float, int, uuid[]) from public, anon;
+grant execute on function public.match_document_chunks(vector(768), float, int, uuid[]) to authenticated, service_role;
+
+-- ----------------------------------------------------------------------------
+-- 12. SUPABASE STORAGE: study_materials BUCKET & POLICIES
+-- ----------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'study_materials',
+  'study_materials',
+  false,
+  10485760,
+  array['application/pdf', 'text/plain', 'text/markdown', 'application/octet-stream']
+)
+on conflict (id) do update set
+  public = false,
+  file_size_limit = 10485760,
+  allowed_mime_types = array['application/pdf', 'text/plain', 'text/markdown', 'application/octet-stream'];
+
+drop policy if exists "Authenticated users can upload own study materials" on storage.objects;
+create policy "Authenticated users can upload own study materials"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'study_materials'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Authenticated users can read own study materials" on storage.objects;
+create policy "Authenticated users can read own study materials"
+  on storage.objects for select
+  to authenticated
+  using (
+    bucket_id = 'study_materials'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Authenticated users can delete own study materials" on storage.objects;
+create policy "Authenticated users can delete own study materials"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'study_materials'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );

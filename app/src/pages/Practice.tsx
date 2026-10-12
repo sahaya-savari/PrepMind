@@ -29,6 +29,7 @@ import {
   type QuestionRow,
 } from '../api';
 import { getFallbackQuestions } from '../data/fallbackQuestions';
+import { fetchUserDocuments, retrieveGroundedPassages, StudyDocument } from '../lib/rag';
 
 const POPULAR_TOPICS = [
   'Loops & Arrays',
@@ -54,6 +55,7 @@ function Practice() {
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [promptError, setPromptError] = useState('');
 
+  const [userDocuments, setUserDocuments] = useState<StudyDocument[]>([]);
   const [mcqTopic, setMcqTopic] = useState('Loops & Arrays');
   const [mcqDifficulty, setMcqDifficulty] = useState('Intermediate');
   const [mcqLoading, setMcqLoading] = useState(false);
@@ -65,6 +67,7 @@ function Practice() {
     correct_answer?: string;
     explanation?: string;
     is_offline_fallback?: boolean;
+    citation?: string;
   } | null>(null);
   const [mcqChoice, setMcqChoice] = useState('');
   const [mcqResult, setMcqResult] = useState<{
@@ -84,7 +87,10 @@ function Practice() {
 
   useEffect(() => {
     loadInterviews();
-  }, []);
+    if (user?.id) {
+      fetchUserDocuments(user.id).then(setUserDocuments).catch(() => {});
+    }
+  }, [user?.id]);
 
   const loadInterviews = async () => {
     setLoadingPrompts(true);
@@ -131,8 +137,37 @@ function Practice() {
     setMcqResult(null);
     setMcqChoice('');
 
+    const isRagTopic = mcqTopic === 'My Study Notes (RAG)';
+    let ragPassages: any[] | undefined = undefined;
+    let questionCitation: string | undefined = undefined;
+
+    if (isRagTopic) {
+      const readyDocs = userDocuments.filter((d) => d.status === 'ready');
+      if (!user?.id || readyDocs.length === 0) {
+        setMcqError('No indexed study notes found. Please upload materials in the Knowledge Library first.');
+        setMcqLoading(false);
+        return;
+      }
+
+      try {
+        const { passages } = await retrieveGroundedPassages(exam || 'technical concepts', user.id);
+        if (passages.length > 0) {
+          ragPassages = passages;
+          questionCitation = `${passages[0].document_name || 'Study Notes'} (p.${passages[0].page_number || 1})`;
+        } else {
+          setMcqError('Could not retrieve relevant passages from notes. Please upload or re-index notes.');
+          setMcqLoading(false);
+          return;
+        }
+      } catch (err: any) {
+        setMcqError('Failed to retrieve note context: ' + (err?.message || 'unknown error'));
+        setMcqLoading(false);
+        return;
+      }
+    }
+
     try {
-      const data = await generateQuestions(mcqTopic.trim(), mcqDifficulty);
+      const data = await generateQuestions(mcqTopic.trim(), mcqDifficulty, ragPassages);
       const question =
         Array.isArray(data?.questions) && data.questions[0] ? data.questions[0] : null;
       if (!question || !Array.isArray(question.options) || question.options.length < 2) {
@@ -145,10 +180,14 @@ function Practice() {
         correct_answer: question.correct_answer || question.answer || question.options[0],
         explanation: question.explanation || 'No explanation provided.',
         is_offline_fallback: false,
+        citation: questionCitation,
       });
     } catch {
       const fallback = getFallbackQuestions(mcqTopic.trim(), mcqDifficulty);
-      setMcqQuestion(fallback);
+      setMcqQuestion({
+        ...fallback,
+        citation: questionCitation,
+      });
       setMcqError('AI engine rate-limited or offline. Loaded verified curriculum scenario.');
     } finally {
       setMcqLoading(false);
@@ -275,6 +314,24 @@ function Practice() {
       {/* 2. TOPIC QUICK SELECTOR RIBBON */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         <span className="text-[11px] font-mono text-[var(--text-muted)] shrink-0">Topics:</span>
+        {userDocuments.some((d) => d.status === 'ready') && (
+          <button
+            type="button"
+            onClick={() => {
+              setMcqTopic('My Study Notes (RAG)');
+              setMcqResult(null);
+              setMcqChoice('');
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap border transition-colors cursor-pointer flex items-center gap-1.5 ${
+              mcqTopic === 'My Study Notes (RAG)'
+                ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--accent)] font-semibold'
+                : 'border-[var(--accent)]/40 bg-[var(--surface)] text-[var(--accent)] hover:bg-[var(--surface-elevated)]'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>My Study Notes (RAG)</span>
+          </button>
+        )}
         {POPULAR_TOPICS.map((topic) => {
           const isActive = mcqTopic === topic;
           return (
@@ -332,13 +389,22 @@ function Practice() {
               </button>
             </div>
           ) : (
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-7 space-y-6">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-7 space-y-6">
               {/* Question Meta Header */}
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs pb-3 border-b border-[var(--border)]">
-                <div className="flex items-center gap-2 font-mono">
+                <div className="flex items-center gap-2 font-mono flex-wrap">
                   <span className="text-[var(--accent)] font-semibold">{mcqTopic}</span>
                   <span aria-hidden="true" className="text-[var(--border-strong)]">·</span>
                   <span className="text-[var(--text-secondary)]">{mcqDifficulty}</span>
+                  {mcqQuestion.citation && (
+                    <>
+                      <span aria-hidden="true" className="text-[var(--border-strong)]">·</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] text-[var(--accent)] font-mono border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-2 py-0.5 rounded">
+                        <BookOpen className="w-3 h-3" />
+                        <span>Grounded in: {mcqQuestion.citation}</span>
+                      </span>
+                    </>
+                  )}
                   {mcqQuestion.is_offline_fallback && (
                     <>
                       <span aria-hidden="true" className="text-[var(--border-strong)]">·</span>
@@ -453,7 +519,7 @@ function Practice() {
                     type="button"
                     onClick={handleEvaluate}
                     disabled={!mcqChoice}
-                    className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer shadow-sm min-h-[40px]"
+                    className="w-full py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer shadow-sm min-h-[44px]"
                   >
                     Validate Solution
                   </button>

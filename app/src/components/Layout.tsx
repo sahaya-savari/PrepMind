@@ -16,14 +16,14 @@ function Layout({ children }: PropsWithChildren) {
           Skip to main content
         </a>
 
-        <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 selection:text-[var(--text-primary)] transition-colors">
+        <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 selection:text-[var(--text-primary)] transition-colors overflow-x-hidden">
           <Header />
-          <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8" id="main-content">
+          <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-5 md:py-8" id="main-content">
             {children}
           </main>
           
-          {/* Subtle Terminal Footer */}
-          <footer className="w-full border-t border-[var(--border)] bg-[var(--surface)] py-6 mt-12 transition-colors">
+          {/* Subtle Terminal Footer (offset on mobile so it is not covered by TabNavigation) */}
+          <footer className="w-full border-t border-[var(--border)] bg-[var(--surface)] py-6 mb-16 md:mb-0 mt-12 transition-colors">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--text-muted)]">
               <div className="flex items-center gap-2">
                 <span className="font-semibold tracking-wide text-[var(--text-primary)]">

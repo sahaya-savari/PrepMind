@@ -347,10 +347,19 @@ export default async function handler(req, res) {
   try {
     // 1. MCQ GENERATION
     if (action === 'generate_mcq') {
-      const systemPrompt =
+      const ragPassages = Array.isArray(body.passages) ? body.passages : [];
+      let systemPrompt =
         'You are an expert exam question creator. Output ONLY a valid JSON object matching this schema: {"questions": [{"question": "string", "options": ["Option A", "Option B", "Option C", "Option D"], "answer": "Option A", "explanation": "string"}]}. Do not include markdown code ticks, conversational text, or preamble.';
 
-      const userPrompt = `Create exactly one ${difficulty} multiple-choice question on the topic "${topic}". Include 4 distinct, plausible options. Set the "answer" field to the exact string matching the correct option. Provide a clear, educational explanation.`;
+      let userPrompt = `Create exactly one ${difficulty} multiple-choice question on the topic "${topic}". Include 4 distinct, plausible options. Set the "answer" field to the exact string matching the correct option. Provide a clear, educational explanation.`;
+
+      if (ragPassages.length > 0) {
+        const materialContext = ragPassages
+          .slice(0, 3)
+          .map((p, i) => `[Material ${i + 1}: ${p.documentName || 'Notes'}, p.${p.pageNumber || 1}]:\n${p.chunkText || p.text}`)
+          .join('\n\n');
+        userPrompt = `Based strictly on the following uploaded study material passages:\n\n${materialContext}\n\nCreate exactly one ${difficulty} multiple-choice question testing understanding of these notes. Include 4 distinct plausible options, set the "answer" field to the exact string matching the correct option, and explain the correct solution referencing the source document.`;
+      }
 
       const result = await runWithCascade({
         messages: [{ role: 'user', content: userPrompt }],
@@ -367,6 +376,7 @@ export default async function handler(req, res) {
           ...result.validated,
           provider: result.provider,
           model: result.model,
+          isGroundedInRag: ragPassages.length > 0,
         });
       }
 
@@ -376,12 +386,31 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. STUDY CHAT / CONVERSATION
-    const systemPrompt =
+    // 2. STUDY CHAT / CONVERSATION (WITH OPTIONAL RAG GROUNDING & CITATIONS)
+    const ragPassages = Array.isArray(body.passages) ? body.passages : [];
+    let citations = [];
+    let ragGroundingPrompt = '';
+
+    if (body.useRag && ragPassages.length > 0) {
+      citations = ragPassages.slice(0, 4).map((p) => ({
+        documentName: p.documentName || p.name || 'Study Document',
+        pageNumber: p.pageNumber || 1,
+        textSnippet: (p.chunkText || p.text || '').slice(0, 220).trim(),
+      }));
+
+      const contextText = ragPassages
+        .slice(0, 4)
+        .map((p, idx) => `[Source ${idx + 1}: "${p.documentName || 'Study Notes'}", Page ${p.pageNumber || 1}]\n${p.chunkText || p.text}`)
+        .join('\n\n');
+
+      ragGroundingPrompt = `\n\n[VERIFIED USER STUDY MATERIAL CONTEXT]\n${contextText}\n\n[INSTRUCTIONS FOR GROUNDED RESPONSE]\n1. Base your answer primarily on the verified study material passages above.\n2. When stating facts from the material, cite the document name and page number.\n3. If the provided study material does not contain enough information to answer the question, state: "The uploaded study materials do not contain sufficient information to answer this question." You may then provide general knowledge only if explicitly helpful, noting it is from general training data.`;
+    }
+
+    const defaultSystem =
       "You are PrepMind AI, an elite technical exam coach and personalized AI study tutor. Your mission is to help students master concepts and ace their target technical exams (TCS NQT, GATE, JEE, CAT, technical coding and system design interviews). When the student specifies or references a target exam, tailor your guidance directly to that exam's specific syllabus, question patterns, and rigor. Format your answers clearly with concise bullet points, bold key terms, clean tables, and code snippets where relevant. Avoid asking generic questions about unrelated non-technical high-school subjects.";
 
     const systemMessage = sanitizedMessages.find((m) => m.role === 'system');
-    const finalSystem = systemMessage?.content || systemPrompt;
+    const finalSystem = (systemMessage?.content || defaultSystem) + ragGroundingPrompt;
     const conversation = sanitizedMessages.filter((m) => m.role !== 'system');
 
     const result = await runWithCascade({
@@ -394,6 +423,8 @@ export default async function handler(req, res) {
       choices: [{ message: { content: result.text } }],
       provider: result.provider,
       model: result.model,
+      citations,
+      isGroundedInRag: Boolean(body.useRag && citations.length > 0),
     });
   } catch (err) {
     console.error('[api/ai] error:', err?.message || err);

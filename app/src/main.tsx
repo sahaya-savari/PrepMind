@@ -9,6 +9,10 @@ import Progress from './pages/Progress';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ResetPassword from './pages/ResetPassword';
+import StudyMaterials from './pages/StudyMaterials';
+import NotFound from './pages/NotFound';
+import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { ExamProvider } from './context/ExamContext';
 import './index.css';
@@ -27,9 +31,18 @@ if (root) {
                 <Route path="chat" element={<Chat />} />
                 <Route path="practice" element={<Practice />} />
                 <Route path="progress" element={<Progress />} />
-                <Route path="profile" element={<Profile />} />
                 <Route path="login" element={<Login />} />
                 <Route path="signup" element={<Signup />} />
+                <Route path="reset-password" element={<ResetPassword />} />
+
+                {/* Protected Candidate Routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="materials" element={<StudyMaterials />} />
+                </Route>
+
+                {/* Catch-all 404 Route */}
+                <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
           </BrowserRouter>

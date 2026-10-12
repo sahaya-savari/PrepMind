@@ -1,6 +1,8 @@
 import React, { FormEvent, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useExam } from '../context/ExamContext';
+import { useAuth } from '../hooks/useAuth';
 import {
   MessageSquare,
   Sparkles,
@@ -11,12 +13,24 @@ import {
   Square,
   Terminal,
   User,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  CheckCircle2,
+  ExternalLink,
 } from 'lucide-react';
 import { ThoughtLine } from '../components/reactbits/ThoughtLine';
 import { SlingButton } from '../components/reactbits/SlingButton';
 import { CodeBlock } from '../components/shared/CodeBlock';
 import { MarkdownView } from '../components/shared/MarkdownView';
 import { askStream, ChatMessage } from '../api';
+import {
+  fetchUserDocuments,
+  retrieveGroundedPassages,
+  StudyDocument,
+  Citation,
+} from '../lib/rag';
 
 const STORAGE_KEY = 'prepmind_chat_v2';
 const MAX_HISTORY = 15;
@@ -27,6 +41,11 @@ const SUGGESTION_CHIPS = [
   'How does B-Tree indexing speed up relational database queries under the hood?',
   'Walk through consistent hashing with virtual nodes and rebalancing',
 ];
+
+export interface ChatMessageWithRag extends ChatMessage {
+  citations?: Citation[];
+  isGrounded?: boolean;
+}
 
 // Helper to split message content into text and code blocks
 interface ContentPart {
@@ -72,11 +91,14 @@ const parseMessageParts = (raw: string): ContentPart[] => {
 
 function Chat() {
   const { exam } = useExam();
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [messages, setMessages] = useState<ChatMessageWithRag[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return [];
     try {
-      return JSON.parse(saved) as ChatMessage[];
+      return JSON.parse(saved) as ChatMessageWithRag[];
     } catch {
       return [];
     }
@@ -87,11 +109,33 @@ function Chat() {
   const [trimmed, setTrimmed] = useState(false);
   const [lastPrompt, setLastPrompt] = useState('');
 
+  // RAG States
+  const [documents, setDocuments] = useState<StudyDocument[]>([]);
+  const [useRag, setUseRag] = useState(false);
+  const [selectedDocId, setSelectedDocId] = useState<string>('all');
+  const [retrievalNotice, setRetrievalNotice] = useState<string | null>(null);
+  const [expandedCitationKey, setExpandedCitationKey] = useState<string | null>(null);
+
   const cancelRef = useRef(false);
   const chatRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const trimHistory = (list: ChatMessage[]) => {
+  // Load study documents for user
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserDocuments(user.id)
+        .then((docs) => {
+          setDocuments(docs);
+          const hasReady = docs.some((d) => d.status === 'ready');
+          if (hasReady) {
+            setUseRag(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.id]);
+
+  const trimHistory = (list: ChatMessageWithRag[]) => {
     if (list.length <= MAX_HISTORY) return list;
     setTrimmed(true);
     return list.slice(list.length - MAX_HISTORY);
@@ -116,36 +160,91 @@ function Chat() {
     inputRef.current?.focus();
   };
 
+  const readyDocs = documents.filter((d) => d.status === 'ready');
+
   const sendMessage = async (e?: FormEvent) => {
     if (e) e.preventDefault();
     const content = input.trim();
     if (!content || loading) return;
 
     cancelRef.current = false;
-    const userMsg: ChatMessage = { role: 'user', content };
+    const userMsg: ChatMessageWithRag = { role: 'user', content };
     const next = trimHistory([...messages, userMsg]);
     setMessages(next);
     setInput('');
     setLoading(true);
     setError('');
+    setRetrievalNotice(null);
     setLastPrompt(content);
+
+    // 1. Perform RAG retrieval if enabled
+    let currentCitations: Citation[] = [];
+    let groundedPrompt = content;
+
+    if (useRag && user?.id && readyDocs.length > 0) {
+      try {
+        const docFilter = selectedDocId === 'all' ? undefined : [selectedDocId];
+        const { passages, citations } = await retrieveGroundedPassages(content, user.id, docFilter);
+
+        if (passages.length > 0) {
+          currentCitations = citations;
+          const contextBlock = passages
+            .map(
+              (p, i) =>
+                `[Retrieved Source ${i + 1} (${p.document_name || 'Study Notes'}, Page ${p.page_number || 1})]:\n${p.chunk_text}`
+            )
+            .join('\n\n');
+
+          groundedPrompt = `You are the PrepMind AI Technical Tutor. Answer the candidate's query using strictly the retrieved study passages below as ground truth.\n\n${contextBlock}\n\nCandidate Query: ${content}\n\nGrounding Rule: Cite the specific document name and page number when stating facts. If the retrieved material does not cover the answer, state that your uploaded study materials do not contain sufficient evidence to answer this query instead of speculating.`;
+        } else {
+          setRetrievalNotice(
+            'No direct matches found in your uploaded materials for this query. The AI tutor answered using general domain knowledge.'
+          );
+        }
+      } catch (ragErr: any) {
+        console.warn('[PrepMind] RAG retrieval error:', ragErr);
+      }
+    }
 
     try {
       let acc = '';
-      setMessages((prev) => trimHistory([...prev, { role: 'assistant', content: '...' }]));
-      const promptWithContext = exam && exam !== 'Target Syllabus'
-        ? `[Target Exam: ${exam}]\n${content}`
-        : content;
-      await askStream(promptWithContext, 'chat', (chunk) => {
+      setMessages((prev) =>
+        trimHistory([
+          ...prev,
+          {
+            role: 'assistant',
+            content: '...',
+            citations: currentCitations.length > 0 ? currentCitations : undefined,
+            isGrounded: currentCitations.length > 0,
+          },
+        ])
+      );
+
+      const promptWithExamContext =
+        exam && exam !== 'Target Syllabus'
+          ? `[Target Exam: ${exam}]\n${groundedPrompt}`
+          : groundedPrompt;
+
+      await askStream(promptWithExamContext, 'chat', (chunk) => {
         if (cancelRef.current) return;
         acc += chunk;
         setMessages((prev) => {
           const merged = trimHistory([...prev]);
           const existing = merged[merged.length - 1];
           if (existing?.role === 'assistant') {
-            merged[merged.length - 1] = { role: 'assistant', content: acc };
+            merged[merged.length - 1] = {
+              role: 'assistant',
+              content: acc,
+              citations: currentCitations.length > 0 ? currentCitations : undefined,
+              isGrounded: currentCitations.length > 0,
+            };
           } else {
-            merged.push({ role: 'assistant', content: acc });
+            merged.push({
+              role: 'assistant',
+              content: acc,
+              citations: currentCitations.length > 0 ? currentCitations : undefined,
+              isGrounded: currentCitations.length > 0,
+            });
           }
           return merged;
         });
@@ -173,6 +272,7 @@ function Chat() {
   const clearChat = () => {
     setMessages([]);
     setError('');
+    setRetrievalNotice(null);
     setTrimmed(false);
   };
 
@@ -194,9 +294,9 @@ function Chat() {
   };
 
   return (
-    <div className="space-y-5 max-w-5xl mx-auto">
+    <div className="space-y-4 max-w-5xl mx-auto">
       {/* 1. CHAT HEADER */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--border)]">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
@@ -207,7 +307,7 @@ function Chat() {
             </span>
           </div>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-            Real-time Socratic dialogue, conceptual proofs, and architectural trade-off analysis.
+            Real-time Socratic dialogue, conceptual proofs, and grounded study material retrieval (RAG).
           </p>
         </div>
 
@@ -238,7 +338,67 @@ function Chat() {
         </div>
       </header>
 
+      {/* 2. RAG CONTEXT CONTROL BAR */}
+      <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="flex items-center gap-2 cursor-pointer font-medium text-[var(--text-primary)] select-none">
+            <input
+              type="checkbox"
+              checked={useRag}
+              onChange={(e) => setUseRag(e.target.checked)}
+              className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] accent-[var(--accent)] cursor-pointer"
+            />
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-[var(--accent)]" />
+              <span>Ask My Study Materials (RAG)</span>
+            </span>
+          </label>
+
+          {useRag && readyDocs.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-mono text-[var(--text-muted)]">Source:</span>
+              <select
+                value={selectedDocId}
+                onChange={(e) => setSelectedDocId(e.target.value)}
+                className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-md px-2 py-1 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] font-mono max-w-[170px] sm:max-w-xs truncate"
+              >
+                <option value="all">All Indexed Materials ({readyDocs.length})</option>
+                {readyDocs.map((doc) => (
+                  <option key={doc.id} value={doc.id}>
+                    {doc.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {useRag && readyDocs.length === 0 && (
+            <span className="text-[11px] font-mono text-[var(--warning)] flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              <span>No indexed documents yet</span>
+            </span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/materials')}
+          className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[var(--accent)] hover:underline self-end sm:self-center"
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Knowledge Library ({documents.length})</span>
+          <ExternalLink className="w-2.5 h-2.5" />
+        </button>
+      </div>
+
       {/* Notifications */}
+      {retrievalNotice && (
+        <div className="text-xs p-3 rounded-lg bg-[var(--surface-elevated)] border border-[var(--accent)]/30 text-[var(--accent)] flex items-center gap-2">
+          <BookOpen size={14} className="shrink-0" />
+          <span>{retrievalNotice}</span>
+        </div>
+      )}
+
       {error && (
         <div className="text-xs p-3 rounded-lg bg-[var(--surface-elevated)] border border-[var(--warning)]/40 text-[var(--warning)] flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -264,7 +424,7 @@ function Chat() {
         </div>
       )}
 
-      {/* 2. MESSAGE STREAM CONTAINER */}
+      {/* 3. MESSAGE STREAM CONTAINER */}
       <div
         ref={chatRef}
         className="min-h-[420px] max-h-[64vh] overflow-y-auto p-4 sm:p-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-4"
@@ -279,7 +439,7 @@ function Chat() {
                 What concept would you like to explore today?
               </h2>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] max-w-md mx-auto">
-                Request algorithmic proofs, debug code snippets, or drill conceptual invariants.
+                Request algorithmic proofs, debug code snippets, or query your uploaded course materials.
               </p>
             </div>
 
@@ -315,16 +475,25 @@ function Chat() {
               className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[92%] sm:max-w-[84%] px-4 py-3.5 rounded-xl border text-xs sm:text-sm leading-relaxed ${
+                className={`max-w-[95%] sm:max-w-[84%] px-3.5 sm:px-4 py-3 sm:py-3.5 rounded-xl border text-xs sm:text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
                   isUser
                     ? 'bg-[var(--surface-elevated)] border-[var(--accent)]/40 text-[var(--text-primary)] rounded-br-sm'
                     : 'bg-[var(--surface-elevated)] border-[var(--border-strong)] text-[var(--text-primary)] rounded-bl-sm'
                 }`}
               >
                 {!isUser ? (
-                  <div className="flex items-center gap-2 pb-2 mb-2 border-b border-[var(--border)] text-[11px] font-semibold text-[var(--accent)] font-mono">
-                    <Terminal className="w-3.5 h-3.5 text-[var(--accent)]" />
-                    <span>PrepMind AI Tutor</span>
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border)] text-[11px] font-mono">
+                    <div className="flex items-center gap-2 font-semibold text-[var(--accent)]">
+                      <Terminal className="w-3.5 h-3.5 text-[var(--accent)]" />
+                      <span>PrepMind AI Tutor</span>
+                    </div>
+
+                    {m.isGrounded && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-[var(--positive)] font-mono border border-[var(--positive)]/30 bg-[var(--positive)]/10 px-1.5 py-0.5 rounded">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
+                        <span>RAG Grounded</span>
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 pb-1 mb-1 text-[11px] font-mono text-[var(--text-muted)]">
@@ -345,11 +514,48 @@ function Chat() {
                         />
                       );
                     }
-                    return (
-                      <MarkdownView key={pIdx} content={p.content} />
-                    );
+                    return <MarkdownView key={pIdx} content={p.content} />;
                   })}
                 </div>
+
+                {/* Grounded Citations Display */}
+                {!isUser && m.citations && m.citations.length > 0 && (
+                  <div className="mt-3 pt-2.5 border-t border-[var(--border)] space-y-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1">
+                      <BookOpen className="w-3 h-3 text-[var(--accent)]" />
+                      <span>Retrieved Source Citations ({m.citations.length}):</span>
+                    </span>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {m.citations.map((cite, cIdx) => {
+                        const citeKey = `${idx}_${cIdx}`;
+                        const isExpanded = expandedCitationKey === citeKey;
+
+                        return (
+                          <div key={cIdx} className="space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedCitationKey(isExpanded ? null : citeKey)}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)] text-[10px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors cursor-pointer"
+                            >
+                              <span>
+                                {cite.document_title} (p.{cite.page_number || 1})
+                              </span>
+                              {isExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                            </button>
+
+                            {isExpanded && (
+                              <div className="p-2 rounded bg-[var(--surface)] border border-[var(--accent)]/30 text-[11px] text-[var(--text-secondary)] font-mono leading-relaxed max-w-md">
+                                <span className="text-[var(--accent)] font-semibold">Passage Evidence:</span>{' '}
+                                &ldquo;{cite.snippet}&rdquo;
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {idx === messages.length - 1 && !isUser && loading && (
                   <span className="inline-block w-1.5 h-3.5 ml-1 bg-[var(--accent)] animate-pulse align-middle" />
@@ -363,10 +569,14 @@ function Chat() {
           <div className="pt-2">
             <ThoughtLine
               working={true}
-              label="Streaming Socratic response..."
+              label={
+                useRag && readyDocs.length > 0
+                  ? 'Retrieving study passages & formulating grounded answer...'
+                  : 'Streaming Socratic response...'
+              }
               steps={[
                 'Parsing technical query',
-                'Synthesizing architectural reasoning',
+                useRag && readyDocs.length > 0 ? 'Searching vector embeddings' : 'Synthesizing architectural reasoning',
                 'Streaming formulated explanation',
               ]}
             />
@@ -374,7 +584,7 @@ function Chat() {
         )}
       </div>
 
-      {/* 3. INPUT COMPOSER WITH SLINGBUTTON */}
+      {/* 4. INPUT COMPOSER WITH SLINGBUTTON */}
       <form
         onSubmit={sendMessage}
         className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-3"
@@ -391,14 +601,22 @@ function Chat() {
           }}
           rows={3}
           className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] text-xs sm:text-sm resize-none"
-          placeholder="Ask a conceptual derivation, algorithm trade-off, or proof (Ctrl + Enter to send)..."
+          placeholder={
+            useRag && readyDocs.length > 0
+              ? 'Ask anything from your uploaded study materials (Ctrl + Enter to send)...'
+              : 'Ask a conceptual derivation, algorithm trade-off, or proof (Ctrl + Enter to send)...'
+          }
           aria-label="Ask study tutor"
           disabled={loading}
         />
 
         <div className="flex items-center justify-between gap-3 pt-1">
           <span className="text-[11px] font-mono text-[var(--text-muted)] hidden sm:inline">
-            Press <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border)] text-[10px] text-[var(--text-secondary)]">Ctrl + Enter</kbd> to send
+            Press{' '}
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border)] text-[10px] text-[var(--text-secondary)]">
+              Ctrl + Enter
+            </kbd>{' '}
+            to send
           </span>
 
           <div className="flex items-center gap-2">

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles, LogIn } from 'lucide-react';
+import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles, LogIn, BookOpen } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useExam } from '../context/ExamContext';
 import { useAuth } from '../hooks/useAuth';
@@ -9,6 +9,7 @@ const navItems: NavItem[] = [
   { id: '/', path: '/', label: 'Overview', icon: <Home size={13} /> },
   { id: '/practice', path: '/practice', label: 'Practice', icon: <Brain size={13} /> },
   { id: '/chat', path: '/chat', label: 'AI Tutor', icon: <MessageCircle size={13} /> },
+  { id: '/materials', path: '/materials', label: 'Materials', icon: <BookOpen size={13} /> },
   { id: '/progress', path: '/progress', label: 'Progress', icon: <BarChart3 size={13} /> },
   { id: '/profile', path: '/profile', label: 'Profile', icon: <User size={13} /> },
 ];
@@ -25,11 +26,11 @@ function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--bg)]/95 backdrop-blur-md transition-colors">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-6 px-4 sm:px-6 py-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-6 px-3 sm:px-6 py-3">
         {/* Brand Link with verified brand mark */}
         <Link
           to="/"
-          className="flex items-center gap-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded-lg cursor-pointer shrink-0 group"
+          className="flex items-center gap-2 sm:gap-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded-lg cursor-pointer shrink-0 group"
           aria-label="PrepMind AI - Home"
         >
           <div className="w-8 h-8 rounded-md bg-[var(--surface)] border border-[var(--border-strong)] flex items-center justify-center overflow-hidden shadow-sm transition-colors group-hover:border-[var(--accent)] shrink-0">
@@ -59,11 +60,11 @@ function Header() {
         </div>
 
         {/* Right: Selected Exam, User Status, Theme Switch & Quick Practice */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {user ? (
             <Link
               to="/profile"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none max-w-[140px]"
+              className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none max-w-[105px] sm:max-w-[140px]"
               title={`Logged in as ${user.name}`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${user.isGuest ? 'bg-[var(--accent)]' : 'bg-[var(--positive)]'} animate-pulse shrink-0`} aria-hidden />

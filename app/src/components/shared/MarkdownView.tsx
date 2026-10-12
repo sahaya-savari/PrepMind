@@ -246,5 +246,5 @@ export function MarkdownView({ content, className = '' }: MarkdownViewProps) {
     i++;
   }
 
-  return <div className={`space-y-1 ${className}`}>{elements}</div>;
+  return <div className={`space-y-1 break-words [overflow-wrap:anywhere] ${className}`}>{elements}</div>;
 }

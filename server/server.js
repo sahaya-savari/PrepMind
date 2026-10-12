@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { supabase } from './db.js';
 import aiHandler from '../api/ai.js';
+import ragHandler from '../api/rag.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use((req, res, next) => {
 });
 
 app.all('/api/ai', (req, res) => aiHandler(req, res));
+app.all('/api/rag', (req, res) => ragHandler(req, res));
 
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization || '';
