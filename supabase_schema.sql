@@ -139,7 +139,7 @@ create index if not exists idx_questions_interview_id on public.questions(interv
 create index if not exists idx_results_interview_id on public.results(interview_id);
 
 -- ----------------------------------------------------------------------------
--- 7. ROLE PERMISSIONS (Resolves 'permission denied for table ...')
+-- 7. ROLE PERMISSIONS
 -- ----------------------------------------------------------------------------
 grant usage on schema public to postgres, anon, authenticated, service_role;
 grant all on all tables in schema public to postgres, anon, authenticated, service_role;
@@ -148,7 +148,38 @@ alter default privileges in schema public grant all on tables to postgres, anon,
 alter default privileges in schema public grant all on sequences to postgres, anon, authenticated, service_role;
 
 -- ----------------------------------------------------------------------------
--- 8. ROW LEVEL SECURITY (RLS) & POLICIES
+-- 8. SECURITY HARDENING: FUNCTIONS (Fixes search_path & RPC execution)
+-- ----------------------------------------------------------------------------
+do $$
+begin
+  if exists (select 1 from pg_proc where proname = 'handle_new_user' and pronamespace = 'public'::regnamespace) then
+    execute 'alter function public.handle_new_user() set search_path = public, pg_temp';
+    execute 'revoke execute on function public.handle_new_user() from public, anon, authenticated';
+    execute 'grant execute on function public.handle_new_user() to postgres, service_role';
+  end if;
+
+  if exists (select 1 from pg_proc where proname = 'rls_auto_enable' and pronamespace = 'public'::regnamespace) then
+    execute 'alter function public.rls_auto_enable() set search_path = public, pg_temp';
+    execute 'revoke execute on function public.rls_auto_enable() from public, anon, authenticated';
+    execute 'grant execute on function public.rls_auto_enable() to postgres, service_role';
+  end if;
+end $$;
+
+-- ----------------------------------------------------------------------------
+-- 9. GRAPHQL EXPOSURE SHIELD (Resolves pg_graphql exposure warnings)
+-- ----------------------------------------------------------------------------
+comment on schema public is e'@graphql({"enabled": false})';
+comment on table public.users is e'@graphql({"enabled": false})';
+comment on table public.profiles is e'@graphql({"enabled": false})';
+comment on table public.documents is e'@graphql({"enabled": false})';
+comment on table public.chunks is e'@graphql({"enabled": false})';
+comment on table public.practice_history is e'@graphql({"enabled": false})';
+comment on table public.interviews is e'@graphql({"enabled": false})';
+comment on table public.questions is e'@graphql({"enabled": false})';
+comment on table public.results is e'@graphql({"enabled": false})';
+
+-- ----------------------------------------------------------------------------
+-- 10. ROW LEVEL SECURITY (RLS) & HARDENED POLICIES
 -- ----------------------------------------------------------------------------
 alter table public.users enable row level security;
 alter table public.profiles enable row level security;
@@ -159,50 +190,90 @@ alter table public.interviews enable row level security;
 alter table public.questions enable row level security;
 alter table public.results enable row level security;
 
--- USERS Policies
+-- USERS Policies (Self-management or authenticated lookup)
 drop policy if exists "Allow read users" on public.users;
 create policy "Allow read users" on public.users for select using (true);
-drop policy if exists "Allow write users" on public.users;
-create policy "Allow write users" on public.users for all using (true) with check (true);
 
--- PROFILES Policies
+drop policy if exists "Allow write users" on public.users;
+drop policy if exists "Allow insert users" on public.users;
+create policy "Allow insert users" on public.users for insert with check (auth.uid() = id or auth.role() = 'authenticated');
+
+drop policy if exists "Allow update users" on public.users;
+create policy "Allow update users" on public.users for update using (auth.uid() = id) with check (auth.uid() = id);
+
+-- PROFILES Policies (Owner-restricted access)
 drop policy if exists "Allow read profiles" on public.profiles;
-create policy "Allow read profiles" on public.profiles for select using (true);
+create policy "Allow read profiles" on public.profiles for select using (auth.uid() = id or auth.role() = 'anon');
+
 drop policy if exists "Allow write profiles" on public.profiles;
-create policy "Allow write profiles" on public.profiles for all using (true) with check (true);
+drop policy if exists "Allow insert profiles" on public.profiles;
+create policy "Allow insert profiles" on public.profiles for insert with check (auth.uid() = id or auth.role() = 'authenticated');
+
+drop policy if exists "Allow update profiles" on public.profiles;
+create policy "Allow update profiles" on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
 
 -- DOCUMENTS Policies
 drop policy if exists "Allow read documents" on public.documents;
-create policy "Allow read documents" on public.documents for select using (true);
+create policy "Allow read documents" on public.documents for select using (auth.uid() = user_id or user_id is null);
+
 drop policy if exists "Allow write documents" on public.documents;
-create policy "Allow write documents" on public.documents for all using (true) with check (true);
+drop policy if exists "Allow insert documents" on public.documents;
+create policy "Allow insert documents" on public.documents for insert with check (auth.uid() = user_id or auth.role() = 'authenticated');
+
+drop policy if exists "Allow update documents" on public.documents;
+create policy "Allow update documents" on public.documents for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- CHUNKS Policies
 drop policy if exists "Allow read chunks" on public.chunks;
-create policy "Allow read chunks" on public.chunks for select using (true);
+create policy "Allow read chunks" on public.chunks for select using (
+  exists (select 1 from public.documents d where d.id = chunks.document_id and (d.user_id = auth.uid() or d.user_id is null))
+  or auth.role() = 'authenticated'
+);
+
 drop policy if exists "Allow write chunks" on public.chunks;
-create policy "Allow write chunks" on public.chunks for all using (true) with check (true);
+drop policy if exists "Allow insert chunks" on public.chunks;
+create policy "Allow insert chunks" on public.chunks for insert with check (auth.role() = 'authenticated');
 
 -- PRACTICE HISTORY Policies
 drop policy if exists "Allow read practice_history" on public.practice_history;
-create policy "Allow read practice_history" on public.practice_history for select using (true);
-drop policy if exists "Allow write practice_history" on public.practice_history;
-create policy "Allow write practice_history" on public.practice_history for all using (true) with check (true);
+create policy "Allow read practice_history" on public.practice_history for select using (auth.uid() = user_id or auth.role() = 'authenticated');
 
--- INTERVIEWS Policies
+drop policy if exists "Allow write practice_history" on public.practice_history;
+drop policy if exists "Allow insert practice_history" on public.practice_history;
+create policy "Allow insert practice_history" on public.practice_history for insert with check (auth.uid() = user_id or auth.role() = 'authenticated');
+
+-- INTERVIEWS Policies (Curriculum drills: public read, authenticated authoring)
 drop policy if exists "Allow read interviews" on public.interviews;
 create policy "Allow read interviews" on public.interviews for select using (true);
+
 drop policy if exists "Allow write interviews" on public.interviews;
-create policy "Allow write interviews" on public.interviews for all using (true) with check (true);
+drop policy if exists "Allow insert interviews" on public.interviews;
+create policy "Allow insert interviews" on public.interviews for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "Allow update interviews" on public.interviews;
+create policy "Allow update interviews" on public.interviews for update using (auth.role() = 'authenticated' and (user_id is null or auth.uid() = user_id)) with check (auth.role() = 'authenticated');
 
 -- QUESTIONS Policies
 drop policy if exists "Allow read questions" on public.questions;
 create policy "Allow read questions" on public.questions for select using (true);
+
 drop policy if exists "Allow write questions" on public.questions;
-create policy "Allow write questions" on public.questions for all using (true) with check (true);
+drop policy if exists "Allow insert questions" on public.questions;
+create policy "Allow insert questions" on public.questions for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "Allow update questions" on public.questions;
+create policy "Allow update questions" on public.questions for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- RESULTS Policies
 drop policy if exists "Allow read results" on public.results;
-create policy "Allow read results" on public.results for select using (true);
+create policy "Allow read results" on public.results for select using (auth.uid() = user_id or user_id is null);
+
 drop policy if exists "Allow write results" on public.results;
-create policy "Allow write results" on public.results for all using (true) with check (true);
+drop policy if exists "Allow insert results" on public.results;
+create policy "Allow insert results" on public.results for insert with check (
+  (auth.role() = 'authenticated' and (auth.uid() = user_id or user_id is null))
+  or (auth.role() = 'anon' and user_id is null and (score is null or (score >= 0 and score <= 100)))
+);
+
+drop policy if exists "Allow update results" on public.results;
+create policy "Allow update results" on public.results for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
