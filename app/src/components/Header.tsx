@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles, LogIn } from 'lucide-react';
+import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles, LogIn, BookOpen } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useExam } from '../context/ExamContext';
 import { useAuth } from '../hooks/useAuth';
@@ -9,6 +9,7 @@ const navItems: NavItem[] = [
   { id: '/', path: '/', label: 'Overview', icon: <Home size={13} /> },
   { id: '/practice', path: '/practice', label: 'Practice', icon: <Brain size={13} /> },
   { id: '/chat', path: '/chat', label: 'AI Tutor', icon: <MessageCircle size={13} /> },
+  { id: '/materials', path: '/materials', label: 'Materials', icon: <BookOpen size={13} /> },
   { id: '/progress', path: '/progress', label: 'Progress', icon: <BarChart3 size={13} /> },
   { id: '/profile', path: '/profile', label: 'Profile', icon: <User size={13} /> },
 ];

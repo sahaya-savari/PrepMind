@@ -25,6 +25,8 @@ export type AuthContextType = {
   isConfigured: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   signup: (name: string, email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   loginAsGuest: () => void;
   logout: () => Promise<void>;
   setExamOverview: (exam: string, overview: string) => void;
@@ -306,6 +308,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [isConfigured]
   );
 
+  const resetPassword = useCallback(
+    async (email: string): Promise<{ success: boolean; error?: string }> => {
+      const cleanEmail = email.trim();
+      if (!cleanEmail) return { success: false, error: 'Email is required.' };
+
+      if (isConfigured && supabase?.auth?.resetPasswordForEmail) {
+        try {
+          const redirectTo = typeof window !== 'undefined'
+            ? `${window.location.origin}/reset-password`
+            : undefined;
+          const { error: supaErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+            redirectTo,
+          });
+          if (supaErr) {
+            return { success: false, error: supaErr.message };
+          }
+          return { success: true };
+        } catch (err: any) {
+          return { success: false, error: err?.message || 'Password reset request failed.' };
+        }
+      }
+
+      return { success: true };
+    },
+    [isConfigured]
+  );
+
+  const updatePassword = useCallback(
+    async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+      if (!newPassword || newPassword.length < 6) {
+        return { success: false, error: 'Password must be at least 6 characters.' };
+      }
+
+      if (isConfigured && supabase?.auth?.updateUser) {
+        try {
+          const { error: supaErr } = await supabase.auth.updateUser({ password: newPassword });
+          if (supaErr) {
+            return { success: false, error: supaErr.message };
+          }
+          return { success: true };
+        } catch (err: any) {
+          return { success: false, error: err?.message || 'Password update failed.' };
+        }
+      }
+
+      return { success: true };
+    },
+    [isConfigured]
+  );
+
   const loginAsGuest = useCallback(() => {
     const guestId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
@@ -386,6 +438,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isConfigured,
       login,
       signup,
+      resetPassword,
+      updatePassword,
       loginAsGuest,
       logout,
       setExamOverview,
@@ -400,6 +454,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isConfigured,
       login,
       signup,
+      resetPassword,
+      updatePassword,
       loginAsGuest,
       logout,
       setExamOverview,

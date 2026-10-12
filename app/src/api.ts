@@ -469,7 +469,8 @@ export async function aiAPI(messages: AIMessage[]): Promise<string> {
 
 export async function generateQuestions(
   topic: string,
-  difficulty: string
+  difficulty: string,
+  passages?: any[]
 ): Promise<{ questions: McqQuestionItem[] }> {
   if (!topic || !difficulty) throw new Error('Topic and difficulty are required');
 
@@ -479,6 +480,7 @@ export async function generateQuestions(
       action: 'generate_mcq',
       topic: topic.trim(),
       difficulty: difficulty.trim(),
+      ...(Array.isArray(passages) && passages.length > 0 ? { passages, useRag: true } : {}),
     }
   );
 }

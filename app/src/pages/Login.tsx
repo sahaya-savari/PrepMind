@@ -1,11 +1,13 @@
 import React, { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LogIn, KeyRound, Mail, Sparkles, UserCheck, AlertCircle, ShieldCheck } from 'lucide-react';
+import { LogIn, KeyRound, Mail, UserCheck, AlertCircle, ShieldCheck } from 'lucide-react';
 
 function Login() {
   const { login, loginAsGuest, isConfigured } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname || '/practice';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +31,7 @@ function Login() {
     try {
       const res = await login(email.trim(), password);
       if (res.success) {
-        navigate('/practice');
+        navigate(from, { replace: true });
       } else {
         setError(res.error || 'Authentication failed. Please verify your credentials.');
       }
@@ -42,7 +44,7 @@ function Login() {
 
   const handleGuestAccess = () => {
     loginAsGuest();
-    navigate('/practice');
+    navigate(from, { replace: true });
   };
 
   return (
@@ -118,6 +120,14 @@ function Login() {
                 placeholder={isConfigured ? '••••••••' : 'Password (optional in local mode)'}
                 className="w-full text-xs sm:text-sm bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors placeholder:text-[var(--text-muted)]"
               />
+              <div className="flex justify-end pt-0.5">
+                <Link
+                  to="/reset-password"
+                  className="text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
 
             <button
