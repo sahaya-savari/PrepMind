@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { AIMessage, fetchUserProfile, syncUserProfile } from '../api';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { clearByokConfig } from '../lib/byok';
 import {
   User,
   UserData,
@@ -28,7 +29,8 @@ export type AuthContextType = {
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   loginAsGuest: () => void;
-  logout: () => Promise<void>;
+  exitGuestMode: () => void;
+  logout: () => Promise<{ success: boolean; error?: string }>;
   setExamOverview: (exam: string, overview: string) => void;
   updateProgress: (correct: boolean) => void;
   saveChatHistory: (messages: AIMessage[]) => void;
@@ -374,18 +376,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setData(loadUserData(guestUser.id));
   }, []);
 
-  const logout = useCallback(async () => {
-    if (isConfigured && supabase?.auth?.signOut) {
+  const exitGuestMode = useCallback(() => {
+    if (user?.isGuest) {
       try {
-        await supabase.auth.signOut();
-      } catch (err) {
-        console.warn('[PrepMind] Sign out error:', err);
+        localStorage.removeItem(`prepmind_${user.id}`);
+      } catch {
+        // ignore storage errors
       }
     }
+    clearByokConfig();
     setUser(null);
     clearUser();
     setData(defaultData);
-  }, [isConfigured]);
+  }, [user]);
+
+  const logout = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    // If user is a guest, exit guest mode cleanly without calling Supabase
+    if (user?.isGuest) {
+      exitGuestMode();
+      return { success: true };
+    }
+
+    if (isConfigured && supabase?.auth?.signOut) {
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('[PrepMind Auth] Supabase signOut error:', error);
+          return { success: false, error: error.message || 'Failed to sign out from Supabase.' };
+        }
+      } catch (err: any) {
+        console.error('[PrepMind Auth] Supabase signOut exception:', err);
+        return {
+          success: false,
+          error: err?.message || 'Network error occurred while signing out from Supabase.',
+        };
+      }
+    }
+
+    // Sign-out succeeded
+    clearByokConfig();
+    setUser(null);
+    clearUser();
+    setData(defaultData);
+    return { success: true };
+  }, [isConfigured, user, exitGuestMode]);
 
   const setExamOverview = useCallback(
     (exam: string, overview: string) => {
@@ -441,6 +475,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resetPassword,
       updatePassword,
       loginAsGuest,
+      exitGuestMode,
       logout,
       setExamOverview,
       updateProgress,
@@ -457,6 +492,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resetPassword,
       updatePassword,
       loginAsGuest,
+      exitGuestMode,
       logout,
       setExamOverview,
       updateProgress,
