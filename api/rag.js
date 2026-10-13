@@ -25,8 +25,12 @@ function sendJson(res, status, payload) {
 // ----------------------------------------------------------------------------
 export async function extractTextFromContent({ buffer, text, mimeType, filename }) {
   if (text && typeof text === 'string') {
+    const cleaned = cleanRawText(text);
+    if (!cleaned || cleaned.length < 5) {
+      throw new Error('Document is empty or contains unreadable text.');
+    }
     return {
-      text: cleanRawText(text),
+      text: cleaned,
       pageCount: 1,
     };
   }
@@ -323,6 +327,9 @@ export default async function handler(req, res) {
       let buffer = null;
       if (fileBase64 && typeof fileBase64 === 'string') {
         buffer = Buffer.from(fileBase64.replace(/^data:[^;]+;base64,/, ''), 'base64');
+        if (buffer.length > 10 * 1024 * 1024) {
+          return sendJson(res, 413, { error: 'Document exceeds maximum allowed size of 10 MB.' });
+        }
       }
 
       const extracted = await extractTextFromContent({

@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dual Serverless Parity**: Reconciled `app/api/ai.js` with root `api/ai.js` via forwarding re-export to eliminate code drift.
 - **Client Security Hardening**: Added explicit service-role key detection in `app/src/lib/supabase.js` to prevent privileged keys from ever initializing in browser clients.
 - **Environment Template Parity**: Reconciled `server/.env.example` with `GEMINI_MODEL` for complete provider configuration consistency.
+- **Upload Size Limits**: Enforced 10MB document buffer limit in `/api/rag` returning HTTP 413 when exceeded, and expanded Express parser body limits in `server/server.js` to 15MB to prevent upload truncation.
+- **Extraction Validation**: Rejection of empty and whitespace-only text payloads in `/api/rag` with explicit automated test assertions.
+- **Tenant Scoping Alignment**: Bound authenticated `userId` to semantic retrieval requests in `app/src/lib/rag.ts`.
 
 ---
 

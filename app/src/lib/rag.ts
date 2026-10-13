@@ -560,6 +560,7 @@ export async function retrieveGroundedPassages(
       threshold: 0.15,
       limit: 4,
       notebookId: notebookId || null,
+      userId,
     });
 
     const ranked = retrieveRes?.results || [];
