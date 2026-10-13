@@ -36,12 +36,31 @@ function isValidHttpUrl(stringUrl) {
 function isValidKey(key) {
   if (!key || typeof key !== 'string') return false;
   const trimmed = key.trim();
-  return Boolean(
-    trimmed &&
-    !trimmed.includes('placeholder') &&
-    !trimmed.includes('your_anon_key') &&
-    !trimmed.includes('your_supabase_anon_key')
-  );
+  if (
+    !trimmed ||
+    trimmed.includes('placeholder') ||
+    trimmed.includes('your_anon_key') ||
+    trimmed.includes('your_supabase_anon_key') ||
+    trimmed.toLowerCase().includes('service_role')
+  ) {
+    return false;
+  }
+
+  // Safeguard: Ensure a privileged service_role JWT is never initialized in browser client
+  try {
+    const parts = trimmed.split('.');
+    if (parts.length === 3 && typeof atob === 'function') {
+      const payload = JSON.parse(atob(parts[1]));
+      if (payload?.role === 'service_role') {
+        console.error('[PrepMind Security] Refusing to initialize client Supabase with privileged service_role key.');
+        return false;
+      }
+    }
+  } catch {
+    // Continue if JWT decode fails
+  }
+
+  return true;
 }
 
 let supabase = null;

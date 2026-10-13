@@ -155,7 +155,76 @@ Computes scores and returns detailed solution analysis without invoking upstream
 
 ---
 
-## 2. Express Server Endpoints (`/server`)
+## 2. Serverless RAG Engine (`/api/rag`)
+
+### Base URL
+- Production: `https://prep-weblearning.vercel.app/api/rag`
+- Local Development: `http://localhost:5000/api/rag`
+
+---
+
+### Endpoint: RAG Health & Service Info
+- **Method**: `GET`
+- **Path**: `/api/rag`
+
+#### Success Response (`200 OK`)
+```json
+{
+  "status": "ok",
+  "service": "PrepMind RAG Pipeline",
+  "embeddingModel": "models/text-embedding-004",
+  "dimensions": 768,
+  "supportedMimeTypes": ["application/pdf", "text/plain", "text/markdown"],
+  "timestamp": "2026-10-13T12:00:00.000Z"
+}
+```
+
+---
+
+### Endpoint: Process & Ingest Document
+Extracts text from PDF/TXT/MD, generates boundary-aware chunks, and computes 768-dimensional vector embeddings via Gemini `text-embedding-004`.
+
+- **Method**: `POST`
+- **Path**: `/api/rag`
+- **Headers**: `Content-Type: application/json`
+
+#### Request Body
+```json
+{
+  "action": "process_document",
+  "documentId": "doc_123",
+  "name": "Operating_Systems.pdf",
+  "mimeType": "application/pdf",
+  "fileBase64": "<base64_encoded_pdf>",
+  "userId": "usr_uuid",
+  "notebookId": "nb_uuid"
+}
+```
+
+---
+
+### Endpoint: Vector Semantic Retrieval
+Performs 768-dim cosine similarity ranking against candidate chunks with strict owner and notebook scoping.
+
+- **Method**: `POST`
+- **Path**: `/api/rag`
+- **Headers**: `Content-Type: application/json`
+
+#### Request Body
+```json
+{
+  "action": "retrieve",
+  "query": "Explain virtual memory paging",
+  "chunks": [],
+  "threshold": 0.15,
+  "limit": 4,
+  "notebookId": "nb_uuid"
+}
+```
+
+---
+
+## 3. Express Server Endpoints (`/server`)
 
 The standalone backend provides protected administrative and storage endpoints:
 

@@ -16,6 +16,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-10-13
+
+### Added
+- **Private AI Notebook Workspace**: 3-column NotebookLM-style workspace at `/notebooks` featuring document uploads, grounded Q&A with interactive citation pills, and a 1-click Learning Studio (Summary, Notes, Flashcards, Quiz, Study Guide).
+- **Document-Grounded RAG Engine (`/api/rag`)**: Boundary-aware document ingestion, 768-dimensional Gemini `text-embedding-004` vector embeddings, owner-filtered semantic retrieval, and anti-hallucination refusal grounding.
+- **Node 20+ PDF Parsing Compatibility**: Persistent `scripts/patch-pdf-parse.js` postinstall patch resolving shared buffer pool offsets in `pdf-parse` / `pdf.worker.js`.
+- **Supabase Migrations Standardized**: Timestamped forward-only migrations `20261012000000_rag_storage_schema.sql` and `20261012010000_private_notebooks_schema.sql` with pgvector, RLS, and secure `match_document_chunks` RPC.
+- **Automated Test Suite Expansion**: 5 test suites (29 passing assertions) covering multi-tenant isolation, 768-dim vector math, notebook scoping, and binary PDF parsing.
+
+### Fixed
+- **Dual Serverless Parity**: Reconciled `app/api/ai.js` with root `api/ai.js` via forwarding re-export to eliminate code drift.
+- **Client Security Hardening**: Added explicit service-role key detection in `app/src/lib/supabase.js` to prevent privileged keys from ever initializing in browser clients.
+- **Environment Template Parity**: Reconciled `server/.env.example` with `GEMINI_MODEL` for complete provider configuration consistency.
+
+---
+
 ## [1.0.0] - 2026-10-11
 
 ### Added
