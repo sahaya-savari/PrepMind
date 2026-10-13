@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-10-13
+
+### Fixed
+- **PostgREST Query Builder Exception**: Replaced invalid `.catch()` call on `supabase.from('documents').update(...).eq(...)` in `app/src/lib/rag.ts` with standard `try/catch` and `{ error }` inspection, eliminating runtime `L.from(...).update(...).eq(...).catch is not a function` error during document processing failures.
+- **Gemini Embedding Model Modernization**: Upgraded `/api/rag` embedding model from deprecated `models/text-embedding-004` to `models/gemini-embedding-001` with `outputDimensionality: 768`, resolving Google Gemini 404 API errors while preserving exact 768-dimensional compatibility with Supabase pgvector schema.
+- **Duplicate Upload Concurrency Guard**: Added `uploadingDoc` and `uploading` state guards in `Notebook.tsx` and `StudyMaterials.tsx` to prevent accidental duplicate file submissions on double-clicks or double-taps.
+- **Mobile Touch Target & Action Accessibility**: Enhanced upload button touch targets and ensured document deletion controls are permanently accessible on touch viewports (`min-w-[32px] min-h-[32px]`) without requiring desktop hover.
+
+### Added
+- **Upload & Embedding Regression Suite**: Added `test/upload-regression-test.mjs` (4 tests) covering model metadata, 768-dim vector generation, thenable query builder handling, and real Gemini API execution.
+
+---
+
 ## [1.1.0] - 2026-10-13
 
 ### Added

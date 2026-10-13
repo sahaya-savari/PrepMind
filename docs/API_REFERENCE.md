@@ -207,7 +207,7 @@ Computes scores and returns detailed solution analysis without invoking upstream
 {
   "status": "ok",
   "service": "PrepMind RAG Pipeline",
-  "embeddingModel": "models/text-embedding-004",
+  "embeddingModel": "models/gemini-embedding-001",
   "dimensions": 768,
   "supportedMimeTypes": ["application/pdf", "text/plain", "text/markdown"],
   "timestamp": "2026-10-13T12:00:00.000Z"
@@ -217,7 +217,7 @@ Computes scores and returns detailed solution analysis without invoking upstream
 ---
 
 ### Endpoint: Process & Ingest Document
-Extracts text from PDF/TXT/MD, generates boundary-aware chunks, and computes 768-dimensional vector embeddings via Gemini `text-embedding-004`.
+Extracts text from PDF/TXT/MD, generates boundary-aware chunks, and computes 768-dimensional vector embeddings via Gemini `gemini-embedding-001` with `outputDimensionality: 768`.
 
 - **Method**: `POST`
 - **Path**: `/api/rag`

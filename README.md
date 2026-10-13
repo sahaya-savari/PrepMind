@@ -163,7 +163,7 @@ PrepMind/
 │   │   ├── data/               # Deterministic fallback question bank
 │   │   ├── hooks/              # useAuth and custom application hooks
 │   │   ├── lib/                # Supabase client initialization & Tailwind cn utils
-│   │   ├── pages/              # Home, Practice, Chat, Progress, Profile
+│   │   ├── pages/              # Home, Practice, Chat, Notebook, StudyMaterials, Progress, Profile
 │   │   ├── api.ts              # Protected centralized API & database integration layer
 │   │   ├── config.ts           # Runtime environment & feature flag constants
 │   │   ├── storage.ts          # LocalStorage caching & fallback engine
@@ -185,10 +185,14 @@ PrepMind/
 │   └── .env.example            # Backend environment variables template
 │
 ├── api/                        # Vercel Serverless Functions
-│   └── ai.js                   # Secure proxy discovered when Vercel root is repository root
+│   ├── ai.js                   # Secure proxy discovered when Vercel root is repository root
+│   └── rag.js                  # Document processing, chunking & vector embedding service
 │
 ├── test/                       # Automated test suites
 │   ├── api-test.mjs            # AI provider orchestration & validation tests
+│   ├── byok-test.mjs           # BYOK header & provider preference verification
+│   ├── rag-test.mjs            # RAG chunking, vector embeddings, & user isolation tests
+│   ├── upload-regression-test.mjs # Upload query builder & Gemini embedding regression tests
 │   └── local-dev-api.mjs       # Local developer API mock harness
 │
 ├── docs/                       # Production readiness & QA specifications
