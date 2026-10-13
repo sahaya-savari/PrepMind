@@ -65,7 +65,7 @@ function StudyMaterials() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || uploading) return;
     if (!user) {
       setError('Please sign in to upload and index study materials.');
       if (fileInputRef.current) {

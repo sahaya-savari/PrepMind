@@ -37,6 +37,7 @@ Thumbs.db
 
 # Local Tooling & Scratch Artifacts
 .agents/
+artifacts/
 *.tmp
 api-review.txt
 supabase/.temp/

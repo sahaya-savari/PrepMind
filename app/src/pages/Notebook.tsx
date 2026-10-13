@@ -242,7 +242,7 @@ export default function NotebookPage() {
   // --------------------------------------------------------------------------
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user || !currentNotebook) return;
+    if (!file || !user || !currentNotebook || uploadingDoc) return;
 
     setUploadError(null);
     setUploadingDoc(true);
@@ -712,10 +712,10 @@ RULES:
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingDoc}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--accent)] text-white text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-opacity min-h-[36px] sm:min-h-[32px] cursor-pointer"
             >
-              {uploadingDoc ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-              Upload
+              {uploadingDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              <span>Upload</span>
             </button>
             <input
               ref={fileInputRef}
@@ -799,8 +799,9 @@ RULES:
                     <button
                       type="button"
                       onClick={() => handleDeleteDocument(doc)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-rose-400 hover:bg-rose-500/10 rounded transition-opacity"
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-2 sm:p-1 text-rose-400 hover:bg-rose-500/10 rounded transition-opacity min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
                       title="Remove Document"
+                      aria-label={`Remove ${doc.title}`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

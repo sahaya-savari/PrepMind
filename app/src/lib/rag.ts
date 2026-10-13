@@ -291,7 +291,7 @@ export async function uploadStudyDocument(
       // Persist to Supabase if available
       if (isSupabaseConfigured() && supabase) {
         try {
-          await supabase
+          const { error: docUpdateErr } = await supabase
             .from('documents')
             .update({
               status: 'ready',
@@ -301,6 +301,10 @@ export async function uploadStudyDocument(
               updated_at: readyDoc.updated_at,
             })
             .eq('id', docId);
+
+          if (docUpdateErr) {
+            console.warn('[PrepMind] Documents table ready update warning:', docUpdateErr);
+          }
 
           if (mappedChunks.length > 0) {
             // Insert chunks into pgvector table
@@ -344,11 +348,18 @@ export async function uploadStudyDocument(
     };
 
     if (isSupabaseConfigured() && supabase) {
-      await supabase
-        .from('documents')
-        .update({ status: 'failed', error_message: errorMsg, updated_at: failedDoc.updated_at })
-        .eq('id', docId)
-        .catch(() => {});
+      try {
+        const { error: updateErr } = await supabase
+          .from('documents')
+          .update({ status: 'failed', error_message: errorMsg, updated_at: failedDoc.updated_at })
+          .eq('id', docId);
+
+        if (updateErr) {
+          console.warn('[PrepMind] Documents table status update warning:', updateErr);
+        }
+      } catch (e) {
+        console.warn('[PrepMind] Documents table status update exception:', e);
+      }
     }
 
     const updatedLocal = getLocalDocuments().map((d) => (d.id === docId ? failedDoc : d));
@@ -440,10 +451,18 @@ export async function reprocessStudyDocument(
       };
 
       if (isSupabaseConfigured() && supabase) {
-        await supabase
-          .from('documents')
-          .update({ status: 'ready', error_message: null, updated_at: readyDoc.updated_at })
-          .eq('id', doc.id);
+        try {
+          const { error: readyErr } = await supabase
+            .from('documents')
+            .update({ status: 'ready', error_message: null, updated_at: readyDoc.updated_at })
+            .eq('id', doc.id);
+
+          if (readyErr) {
+            console.warn('[PrepMind] Reprocess document ready update warning:', readyErr);
+          }
+        } catch (err) {
+          console.warn('[PrepMind] Reprocess document update exception:', err);
+        }
       }
 
       const updated = getLocalDocuments().map((d) => (d.id === doc.id ? readyDoc : d));
