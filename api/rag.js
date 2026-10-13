@@ -1,10 +1,10 @@
 // Vercel Serverless Function: /api/rag
 // End-to-end RAG Engine: Text Extraction (PDF/TXT/MD), Boundary-Aware Chunking,
-// Gemini text-embedding-004 Vector Generation, Owner-Filtered Retrieval, and Grounded Citations.
+// Gemini gemini-embedding-001 Vector Generation (768-dim), Owner-Filtered Retrieval, and Grounded Citations.
 
 import crypto from 'node:crypto';
 
-const GEMINI_EMBEDDING_MODEL = 'models/text-embedding-004';
+const GEMINI_EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || 'models/gemini-embedding-001';
 const EMBEDDING_DIMENSIONS = 768;
 const DEFAULT_CHUNK_SIZE = 800;
 const DEFAULT_CHUNK_OVERLAP = 120;
@@ -173,7 +173,7 @@ export function chunkDocumentText(
 }
 
 // ----------------------------------------------------------------------------
-// 3. 768-DIMENSION EMBEDDING GENERATOR (Gemini text-embedding-004)
+// 3. 768-DIMENSION EMBEDDING GENERATOR (Gemini gemini-embedding-001)
 // ----------------------------------------------------------------------------
 export async function generateSingleEmbedding(text, apiKey, { allowSyntheticFallback = false } = {}) {
   const clean = text.slice(0, 2048).trim();
@@ -187,6 +187,7 @@ export async function generateSingleEmbedding(text, apiKey, { allowSyntheticFall
       body: JSON.stringify({
         model: GEMINI_EMBEDDING_MODEL,
         content: { parts: [{ text: clean }] },
+        outputDimensionality: EMBEDDING_DIMENSIONS,
       }),
     });
 

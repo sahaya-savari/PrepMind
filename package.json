@@ -13,7 +13,7 @@
     "test:rag": "node test/rag-test.mjs",
     "test:notebook": "node test/notebook-rag-test.mjs",
     "test:e2e-pdf": "node test/e2e-real-pdf-test.mjs",
-    "test:all": "node test/api-test.mjs && node test/db-auth-test.mjs && node test/rag-test.mjs && node test/notebook-rag-test.mjs && node test/e2e-real-pdf-test.mjs",
+    "test:all": "node test/api-test.mjs && node test/db-auth-test.mjs && node test/rag-test.mjs && node test/notebook-rag-test.mjs && node test/e2e-real-pdf-test.mjs && node test/upload-regression-test.mjs",
     "server": "node server/server.js",
     "dev:server": "nodemon server/server.js",
     "server:dev": "node test/local-dev-api.mjs",
