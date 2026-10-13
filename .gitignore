@@ -10,8 +10,14 @@ app/dist/
 # Local Environment Variables & Secrets
 .env
 .env.*
+.env.local
+.env.*.local
 !.env.example
-*.env.local
+!.env.*.example
+
+# Test Coverage
+coverage/
+
 
 # Serverless & Deployment Caches
 .vercel/
@@ -34,6 +40,16 @@ Thumbs.db
 *.tmp
 api-review.txt
 supabase/.temp/
+
+# Local-Only Notes & Handoffs (Private)
+AGENTS.md
+docs/PREPMIND_HANDOFF_2026-10-12.md
+docs/PREPMIND_HANDOFF_*.md
+docs/*_HANDOFF_*.md
+docs/PRODUCTION_READINESS_CHECKLIST.md
+docs/PRODUCTION_READINESS_PRD.md
+docs/PRODUCTION_UPGRADE_PLAN.md
+supabase/README.md
 
 # Python Bytecode & Cache
 __pycache__/

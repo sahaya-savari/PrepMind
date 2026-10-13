@@ -270,6 +270,12 @@ create table if not exists public.results (
 - `POST /api/ai` with `action: "chat"` — Multi-turn Socratic study tutoring
 - `POST /api/ai` with `action: "evaluate"` — Deterministic scoring & feedback
 
+### Serverless RAG Engine (`/api/rag`)
+- `POST /api/rag` with `action: "process_document"` — Parses, chunks, and embeds documents scoped to notebook
+- `POST /api/rag` with `action: "retrieve"` — Vector similarity retrieval with strict user and notebook scoping
+- `POST /api/rag` with `action: "notebook_tool"` — Synthesizes 1-click learning tools (summary, notes, flashcards, quiz, guide)
+
+
 ### Express Server (`/server`)
 
 | Method | Endpoint | Auth Required | Description |
@@ -360,45 +366,79 @@ Run these from the repository root:
 | Command | Purpose |
 | :--- | :--- |
 | `npm test` | Run the AI provider orchestration and offline fallback test suite |
+| `npm run test:all` | Run all 5 automated test suites (API, DB, RAG, Notebooks, Real PDF) |
+| `npm run test:rag` | Run vector retrieval and RAG grounding test suite |
+| `npm run test:notebook` | Run private notebook scoping and 1-click tools test suite |
+| `npm run test:e2e-pdf` | Run end-to-end binary PDF parsing and cross-account isolation test |
 | `npm run build` | Build the production Vite bundle |
 | `npm run typecheck` | Run TypeScript typecheck across the frontend |
 | `npm run server:dev` | Run the lightweight local dev API harness (port 5000) |
+
+
+---
+
+## Hosted BYOK (Bring Your Own Key)
+
+On the hosted production application, candidates can bring their own AI credentials to avoid platform rate limits:
+
+1. Navigate to **Candidate Profile & System Preferences** (`/profile`).
+2. In the **AI Provider & Bring Your Own Key (BYOK)** panel, select your preferred provider:
+   - **Groq Cloud** (`openai/gpt-oss-120b`, `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`)
+   - **NVIDIA NIM** (`nvidia/nemotron-3.5-lightning-30b-a3b`, `meta/llama-3.1-70b-instruct`)
+   - **Google Gemini** (`models/gemini-2.5-flash`, `models/gemini-1.5-flash`)
+3. Enter your API key and click **Test Connection** to verify credentials.
+4. Click **Save in Session**.
+
+> [!IMPORTANT]
+> **Non-Persistent Credential Boundary**: Personal API keys are held strictly in transient browser session memory and transmitted over encrypted HTTPS headers. They are **never stored in server databases or written to disk**. Refreshing or closing the tab clears the key.
 
 ---
 
 ## Running Without API Keys
 
-Both the Gemini key and Supabase are optional for local development. If they are missing or a quota is exhausted, PrepMind AI switches to its fallback mode:
+Both the AI provider keys and Supabase are optional for local exploration. If credentials are unset or quotas exhaust, PrepMind AI switches to its resilient fallback mode:
 
-| Missing | What happens |
+| Missing Component | Degraded Behavior |
 |---|---|
-| Gemini API key / quota exhausted | Deterministic synthetic question generators are used |
-| Supabase credentials | Progress and results are saved in browser `localStorage` |
-
-This lets you explore and develop the app without setting up any external service.
+| AI API keys / quota exhausted | Deterministic synthetic question bank and Socratic prompts activate |
+| Supabase credentials | Candidate progress and drill results persist securely in browser `localStorage` |
 
 ---
 
-## Deployment
+## Self-Hosting Guide
 
-### Deploying to Vercel
+PrepMind AI is fully open source (MIT licensed) and designed for independent self-hosting without dependencies on the maintainer's infrastructure:
 
-1. Push your repository to GitHub.
-2. Import the project into your **Vercel Dashboard**.
-3. Set the **Root Directory** to `app` (for the React application) or deploy the root repository.
-4. Add the following **Environment Variables** in Vercel Project Settings:
-   - `GEMINI_API_KEY`: Your Google Gemini API key
-   - `VITE_SUPABASE_URL`: *(Optional)* Your Supabase URL
-   - `VITE_SUPABASE_KEY`: *(Optional)* Your Supabase anon key
-5. Deploy! Vercel will automatically provision the application and edge endpoints.
+### 1. Database Setup (Supabase)
+1. Create a free project at [supabase.com](https://supabase.com/).
+2. In the **SQL Editor**, run the initial schema in [`supabase_schema.sql`](supabase_schema.sql).
+3. To enable the private notebook workspace and document vector search, run the forward-only migration [`supabase/migrations/20261012010000_private_notebooks_schema.sql`](supabase/migrations/20261012010000_private_notebooks_schema.sql).
+4. Retrieve your **Project URL** and public **anon key** from Project Settings -> API.
 
-### Deploying the Express Backend (`/server`)
+### 2. Environment Configuration
+Copy `.env.example` to `.env` in the project root:
+```bash
+# Public Frontend Variables
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_KEY=your_supabase_anon_key
 
-The Express server is deployed separately from the Vercel frontend, on any Node.js host.
+# Server-Side Provider Credentials (Never exposed to browser)
+GROQ_API_KEY=your_groq_api_key
+NVIDIA_API_KEY=your_nvidia_api_key
+GEMINI_API_KEY=your_gemini_api_key
+```
 
-1. Set the server's environment variables on your host: `API_TOKEN`, `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`.
-2. Point the frontend's `VITE_API_URL` to your deployed server URL.
-3. Check that `GET /api/health` responds before connecting the frontend.
+### 3. Deploying to Vercel
+1. Import your forked repository into the **Vercel Dashboard**.
+2. Configure your environment variables (`GROQ_API_KEY`, `NVIDIA_API_KEY`, `GEMINI_API_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`).
+3. Deploy! Vercel automatically deploys the React SPA and serverless API endpoints at `/api/ai` and `/api/rag`.
+
+### 4. Deploying the Standalone Express Backend (`/server`)
+The Express backend is optional and provides standalone REST endpoints on any Node.js host:
+1. Set environment variables on your host: `PORT=5000`, `API_TOKEN=your_token`, `GEMINI_API_KEY=your_key`, `SUPABASE_URL`, `SUPABASE_KEY`.
+2. Start via `node server/server.js`.
+3. Check `GET /api/health` before pointing `VITE_API_URL` to your backend.
+
 
 ---
 

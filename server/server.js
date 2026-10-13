@@ -25,7 +25,8 @@ if (isSupabaseMissing) {
 const app = express();
 
 app.use(cors({ origin: '*', credentials: true }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
 const recentCalls = new Map();
 const RATE_LIMIT = 60;

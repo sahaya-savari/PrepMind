@@ -94,8 +94,11 @@ function Chat() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const getChatStorageKey = (uid?: string) => (uid ? `${STORAGE_KEY}_${uid}` : `${STORAGE_KEY}_guest`);
+
   const [messages, setMessages] = useState<ChatMessageWithRag[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const key = typeof window !== 'undefined' ? getChatStorageKey(user?.id) : STORAGE_KEY;
+    const saved = localStorage.getItem(key);
     if (!saved) return [];
     try {
       return JSON.parse(saved) as ChatMessageWithRag[];
@@ -151,9 +154,25 @@ function Chat() {
     inputRef.current?.focus();
   }, []);
 
+  // Rehydrate messages when user changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  }, [messages]);
+    const key = getChatStorageKey(user?.id);
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch {
+        setMessages([]);
+      }
+    } else {
+      setMessages([]);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    const key = getChatStorageKey(user?.id);
+    localStorage.setItem(key, JSON.stringify(messages));
+  }, [messages, user?.id]);
 
   const handlePromptClick = (promptText: string) => {
     setInput(promptText);
@@ -225,7 +244,16 @@ function Chat() {
           ? `[Target Exam: ${exam}]\n${groundedPrompt}`
           : groundedPrompt;
 
-      await askStream(promptWithExamContext, 'chat', (chunk) => {
+      const apiMessages = next.map((message): ChatMessage => ({
+        role: message.role,
+        content: message.content,
+      }));
+      apiMessages[apiMessages.length - 1] = {
+        role: 'user',
+        content: promptWithExamContext,
+      };
+
+      await askStream(apiMessages, 'chat', (chunk) => {
         if (cancelRef.current) return;
         acc += chunk;
         setMessages((prev) => {
@@ -270,6 +298,7 @@ function Chat() {
   };
 
   const clearChat = () => {
+    localStorage.removeItem(getChatStorageKey(user?.id));
     setMessages([]);
     setError('');
     setRetrievalNotice(null);

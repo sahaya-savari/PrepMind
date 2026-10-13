@@ -1,6 +1,7 @@
 import React, { FormEvent, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 import { KeyRound, Mail, AlertCircle, CheckCircle2, ArrowLeft, ShieldCheck, Lock } from 'lucide-react';
 
 function ResetPassword() {
@@ -15,11 +16,26 @@ function ResetPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
-  // Check if URL contains recovery token or hash from Supabase email link
+  // Check if URL contains recovery token, code, or hash from Supabase email link
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash && (hash.includes('type=recovery') || hash.includes('access_token'))) {
+    const search = window.location.search;
+    if (
+      (hash && (hash.includes('type=recovery') || hash.includes('access_token'))) ||
+      (search && (search.includes('code=') || search.includes('type=recovery')))
+    ) {
       setIsRecoveryMode(true);
+    }
+
+    if (supabase?.auth?.onAuthStateChange) {
+      const { data: sub } = supabase.auth.onAuthStateChange((event: string) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsRecoveryMode(true);
+        }
+      });
+      return () => {
+        sub?.subscription?.unsubscribe?.();
+      };
     }
   }, []);
 

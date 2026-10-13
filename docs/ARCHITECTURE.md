@@ -58,10 +58,13 @@ graph TD
    - When upstream API quotas are exhausted, credentials are missing, or network conditions drop, the app does not crash or present an error wall.
    - It seamlessly serves deterministic, syllabus-accurate practice questions from [`app/src/data/fallbackQuestions.ts`](../app/src/data/fallbackQuestions.ts) and logs progress to `localStorage`.
 3. **Dual-Discovery Serverless Architecture**:
-   - To accommodate Vercel configurations whether root directory is set to `.` (root) or `app/`, the serverless function is maintained identically at:
-     - [`api/ai.js`](../api/ai.js) (Root discovery)
-     - [`app/api/ai.js`](../app/api/ai.js) (`app/` root discovery)
-   - Both files have identical SHA-256 signatures and validation logic.
+   - To accommodate Vercel configurations whether root directory is set to `.` (root) or `app/`, serverless functions are maintained in both locations:
+     - [`api/ai.js`](../api/ai.js) & [`api/rag.js`](../api/rag.js) (Root discovery)
+     - [`app/api/ai.js`](../app/api/ai.js) & [`app/api/rag.js`](../app/api/rag.js) (`app/` root forwarding shims)
+4. **Hosted BYOK & Non-Persistent Credential Boundary**:
+   - Candidates can supply personal Groq, NVIDIA NIM, or Google Gemini API keys in Settings (`/profile`).
+   - Credentials reside strictly in transient session memory, are transmitted over HTTPS headers (`x-byok-provider`, `x-byok-api-key`, `x-byok-model`), and are never written to database tables or server disks.
+   - When BYOK is active, requests route directly to the user's selected provider without consuming maintainer quotas.
 
 ---
 
@@ -79,6 +82,8 @@ The primary production application is built on:
   - `/` — Homepage, exam syllabus onboarding, and syllabus navigation.
   - `/practice` — Interactive MCQ drilling engine with solution explanations.
   - `/chat` — Socratic AI study tutor with rich Markdown rendering.
+  - `/notebooks` — Private AI notebooks workspace with document-grounded RAG, interactive citations, and learning studio.
+  - `/materials` — Study materials, document uploads, and vector status.
   - `/progress` — Performance analytics, question history, and drill stats.
   - `/profile` — User settings, guest mode status, and theme preferences.
 

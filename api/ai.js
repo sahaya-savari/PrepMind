@@ -205,6 +205,43 @@ export default async function handler(req, res) {
   const body = req.body || {};
   const action = body.action || (body.topic ? 'generate_mcq' : 'chat');
 
+  // Parse Bring Your Own Key (BYOK) parameters from headers or request payload
+  const byokProvider = (req.headers?.['x-byok-provider'] || body.byok?.provider || '').toString().toLowerCase().trim();
+  const byokApiKey = (req.headers?.['x-byok-api-key'] || body.byok?.apiKey || '').toString().trim();
+  const byokModel = (req.headers?.['x-byok-model'] || body.byok?.model || '').toString().trim();
+  const isByok = Boolean(byokApiKey && byokProvider);
+
+  // Fast check: Connection test for BYOK verification
+  if (action === 'test_connection') {
+    if (!isByok) {
+      return sendJson(res, 400, { error: 'Missing BYOK credentials for connection test.' });
+    }
+    if (!['groq', 'nvidia', 'gemini'].includes(byokProvider)) {
+      return sendJson(res, 400, { error: `Unsupported BYOK provider: ${byokProvider}. Supported: groq, nvidia, gemini.` });
+    }
+    const testModel = byokModel || (byokProvider === 'groq' ? groqModel : byokProvider === 'nvidia' ? nvidiaModel : geminiModel);
+    try {
+      const testMsg = [{ role: 'user', content: 'Respond with the word: READY' }];
+      if (byokProvider === 'groq') {
+        await callGroq({ apiKey: byokApiKey, model: testModel, messages: testMsg, maxTokens: 20 });
+      } else if (byokProvider === 'nvidia') {
+        await callNvidia({ apiKey: byokApiKey, model: testModel, messages: testMsg, maxTokens: 20 });
+      } else if (byokProvider === 'gemini') {
+        await callGemini({ apiKey: byokApiKey, messages: testMsg, maxTokens: 20 });
+      }
+      return sendJson(res, 200, {
+        status: 'ok',
+        provider: byokProvider,
+        model: testModel,
+        message: `Connected successfully to ${byokProvider} (${testModel})!`,
+      });
+    } catch (err) {
+      return sendJson(res, 400, {
+        error: `Connection test failed for ${byokProvider}: ${err?.message || 'Authentication error'}`,
+      });
+    }
+  }
+
   // Fast check: Evaluation action doesn't require upstream LLM
   if (action === 'evaluate') {
     const answers = Array.isArray(body.answers) ? body.answers : [];
@@ -268,15 +305,38 @@ export default async function handler(req, res) {
     return sendJson(res, 400, { error: `Unsupported action: ${action}` });
   }
 
-  if (!hasProvider) {
+  if (!isByok && !hasProvider) {
     return sendJson(res, 503, {
-      error: 'AI service unconfigured: Neither GROQ_API_KEY, NVIDIA_API_KEY, nor GEMINI_API_KEY is configured in environment.',
+      error: 'AI service unconfigured: Neither server credentials (GROQ_API_KEY, NVIDIA_API_KEY, GEMINI_API_KEY) are configured nor user BYOK credentials provided.',
       provider: 'none',
     });
   }
 
   // Resilient cascade execution helper
   const runWithCascade = async ({ messages, systemPrompt, jsonMode = false, maxTokens = 1200, validate = null }) => {
+    // Dedicated BYOK user execution path
+    if (isByok) {
+      if (!['groq', 'nvidia', 'gemini'].includes(byokProvider)) {
+        throw new Error(`Unsupported BYOK provider: ${byokProvider}`);
+      }
+      const model = byokModel || (byokProvider === 'groq' ? groqModel : byokProvider === 'nvidia' ? nvidiaModel : geminiModel);
+      const full = systemPrompt ? [{ role: 'system', content: systemPrompt }, ...messages] : messages;
+      let text = '';
+      if (byokProvider === 'groq') {
+        text = await callGroq({ apiKey: byokApiKey, model, messages: full, jsonMode, maxTokens });
+      } else if (byokProvider === 'nvidia') {
+        text = await callNvidia({ apiKey: byokApiKey, model, messages: full, maxTokens });
+      } else if (byokProvider === 'gemini') {
+        text = await callGemini({ apiKey: byokApiKey, messages, systemInstruction: systemPrompt, maxTokens });
+      }
+      if (validate) {
+        const validated = validate(text);
+        if (!validated) throw new Error(`${byokProvider} output failed validation schema`);
+        return { text, validated, provider: byokProvider, model, isByok: true };
+      }
+      return { text, provider: byokProvider, model, isByok: true };
+    }
+
     const attempts = [];
     if (groqKey) {
       attempts.push(async () => {

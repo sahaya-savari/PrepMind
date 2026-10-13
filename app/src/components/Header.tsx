@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles, LogIn, BookOpen } from 'lucide-react';
+import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles, LogIn, LogOut, BookOpen, Library } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useExam } from '../context/ExamContext';
 import { useAuth } from '../hooks/useAuth';
@@ -9,6 +9,7 @@ const navItems: NavItem[] = [
   { id: '/', path: '/', label: 'Overview', icon: <Home size={13} /> },
   { id: '/practice', path: '/practice', label: 'Practice', icon: <Brain size={13} /> },
   { id: '/chat', path: '/chat', label: 'AI Tutor', icon: <MessageCircle size={13} /> },
+  { id: '/notebooks', path: '/notebooks', label: 'Notebooks', icon: <Library size={13} /> },
   { id: '/materials', path: '/materials', label: 'Materials', icon: <BookOpen size={13} /> },
   { id: '/progress', path: '/progress', label: 'Progress', icon: <BarChart3 size={13} /> },
   { id: '/profile', path: '/profile', label: 'Profile', icon: <User size={13} /> },
@@ -17,7 +18,7 @@ const navItems: NavItem[] = [
 function Header() {
   const { theme, toggleTheme } = useTheme();
   const { exam } = useExam();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -62,14 +63,29 @@ function Header() {
         {/* Right: Selected Exam, User Status, Theme Switch & Quick Practice */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {user ? (
-            <Link
-              to="/profile"
-              className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none max-w-[105px] sm:max-w-[140px]"
-              title={`Logged in as ${user.name}`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${user.isGuest ? 'bg-[var(--accent)]' : 'bg-[var(--positive)]'} animate-pulse shrink-0`} aria-hidden />
-              <span className="truncate">{user.name.split(' ')[0]}</span>
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <Link
+                to="/profile"
+                className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none max-w-[105px] sm:max-w-[140px]"
+                title={`Logged in as ${user.name}`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${user.isGuest ? 'bg-[var(--accent)]' : 'bg-[var(--positive)]'} animate-pulse shrink-0`} aria-hidden />
+                <span className="truncate">{user.name.split(' ')[0]}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={async () => {
+                  await logout();
+                  navigate('/login');
+                }}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--error)] hover:border-[var(--error)]/40 transition-colors focus-visible:ring-1 focus-visible:ring-[var(--error)] outline-none cursor-pointer"
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut size={13} />
+                <span className="hidden lg:inline">Logout</span>
+              </button>
+            </div>
           ) : (
             <Link
               to="/login"

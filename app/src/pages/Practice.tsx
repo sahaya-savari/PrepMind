@@ -48,9 +48,10 @@ const DIFFICULTY_OPTIONS: GlideOption<string>[] = [
 
 function Practice() {
   const { user, updateProgress } = useAuth();
-  const { exam, setExam } = useExam();
+  const { exam } = useExam();
 
   const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [activeInterviewId, setActiveInterviewId] = useState<string>('');
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [promptError, setPromptError] = useState('');
@@ -98,7 +99,7 @@ function Practice() {
     try {
       const data = await listInterviews();
       setInterviews(data);
-      if (!exam && data.length) setExam(String(data[0].id));
+      if (!activeInterviewId && data.length) setActiveInterviewId(String(data[0].id));
     } catch (e: any) {
       setPromptError(e.message || 'Failed to load interviews');
     } finally {
@@ -107,14 +108,14 @@ function Practice() {
   };
 
   const loadQuestions = async () => {
-    if (!exam) {
+    if (!activeInterviewId) {
       setPromptError('Select an interview target first');
       return;
     }
     setLoadingPrompts(true);
     setPromptError('');
     try {
-      const data = await fetchQuestions(exam);
+      const data = await fetchQuestions(activeInterviewId);
       setQuestions(data);
     } catch (e: any) {
       setPromptError(e.message || 'Failed to fetch questions');
@@ -239,13 +240,16 @@ function Practice() {
 
       // Persist attempt to database (Supabase Cloud + Local Database mirror)
       try {
-        saveResult({
-          interviewId: exam || '1',
-          score,
-          feedback: `Drill on ${mcqTopic.trim()} (${mcqDifficulty}): ${isCorrect ? 'Correct (+100%)' : 'Incorrect (0%)'}. ${explanation}`,
-        }).catch((err) => {
-          console.warn('[PrepMind] saveResult background error:', err);
-        });
+        if (activeInterviewId) {
+          saveResult({
+            interviewId: activeInterviewId,
+            score,
+            feedback: `Drill on ${mcqTopic.trim()} (${mcqDifficulty}): ${isCorrect ? 'Correct (+100%)' : 'Incorrect (0%)'}. ${explanation}`,
+            userId: user?.id,
+          }).catch((err) => {
+            console.warn('[PrepMind] saveResult background error:', err);
+          });
+        }
 
         if (user?.id) {
           recordPracticeHistory({
@@ -666,7 +670,7 @@ function Practice() {
               <button
                 type="button"
                 onClick={loadQuestions}
-                disabled={loadingPrompts || !exam}
+                disabled={loadingPrompts || !activeInterviewId}
                 className="px-2.5 py-1 rounded text-xs font-mono border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors cursor-pointer disabled:opacity-50"
               >
                 {loadingPrompts ? 'Loading...' : 'Load'}
@@ -679,8 +683,8 @@ function Practice() {
               </label>
               <select
                 className="w-full px-3 py-2 text-xs rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                value={exam}
-                onChange={(e) => setExam(e.target.value)}
+                value={activeInterviewId}
+                onChange={(e) => setActiveInterviewId(e.target.value)}
               >
                 {interviews.map((i) => (
                   <option key={i.id} value={i.id}>

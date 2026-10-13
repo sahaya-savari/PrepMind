@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExam } from '../context/ExamContext';
+import { useAuth } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -15,6 +16,7 @@ import {
   Database,
   ShieldCheck,
   AlertTriangle,
+  Library,
 } from 'lucide-react';
 import { TextType } from '../components/reactbits/TextType';
 import { RotatingText } from '../components/reactbits/RotatingText';
@@ -78,6 +80,7 @@ const CORE_PILLARS = [
 function Home() {
   const navigate = useNavigate();
   const { exam, setExam } = useExam();
+  const { user } = useAuth();
 
   const [apiStatus, setApiStatus] = useState<Status>('idle');
   const [supabaseStatus, setSupabaseStatus] = useState<Status>('idle');
@@ -90,6 +93,7 @@ function Home() {
   const [errorMessage, setErrorMessage] = useState('');
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const [activeInterviewId, setActiveInterviewId] = useState<string>('');
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -131,8 +135,8 @@ function Home() {
     try {
       const data = await listInterviews();
       setInterviews(data);
-      if (data.length && !exam) {
-        setExam(String(data[0].id));
+      if (data.length && !activeInterviewId) {
+        setActiveInterviewId(String(data[0].id));
       }
     } catch (err: any) {
       setErrorMessage('Could not load sessions: ' + (err?.message || 'unknown error'));
@@ -153,7 +157,7 @@ function Home() {
       const res = await createInterview({ title: targetTitle });
       setStatusMessage(`Session "${res.interview.title}" initialized.`);
       await loadInterviews();
-      setExam(String(res.interview.id));
+      setActiveInterviewId(String(res.interview.id));
       setStepIndex(2);
     } catch (err: any) {
       setErrorMessage('Failed to initialize session: ' + (err?.message || 'unknown error'));
@@ -163,11 +167,11 @@ function Home() {
   };
 
   const handleLoadQuestions = async () => {
-    if (!exam) return;
+    if (!activeInterviewId) return;
     setBusy('questions', true);
     setErrorMessage('');
     try {
-      const data = await fetchQuestions(exam);
+      const data = await fetchQuestions(activeInterviewId);
       setQuestions(data);
       if (data.length) {
         setStatusMessage(`Loaded ${data.length} prompts for this session.`);
@@ -182,7 +186,7 @@ function Home() {
   };
 
   const handleSaveResult = async () => {
-    if (!exam) return;
+    if (!activeInterviewId) return;
     const scoreNum = Number(resultForm.score);
     if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 100) {
       setErrorMessage('Score must be a number between 0 and 100.');
@@ -192,9 +196,10 @@ function Home() {
     setErrorMessage('');
     try {
       await saveResult({
-        interviewId: exam,
+        interviewId: activeInterviewId,
         score: scoreNum,
         feedback: resultForm.feedback,
+        userId: user?.id,
       });
       setStatusMessage('Performance evaluation successfully persisted.');
       setResultForm({ score: '', feedback: '' });
@@ -205,7 +210,7 @@ function Home() {
     }
   };
 
-  const activeInterview = interviews.find((i) => String(i.id) === exam);
+  const activeInterview = interviews.find((i) => String(i.id) === activeInterviewId);
 
   const stepperItems: StepItem[] = [
     {
@@ -321,7 +326,7 @@ function Home() {
                 {activeInterview?.title || `${exam || 'Target'} - ${form.role}`}
               </div>
               <div className="text-[11px] font-mono text-[var(--text-muted)] mt-0.5">
-                Session ID: {exam || 'Active'} · {activeInterview?.name || form.name || 'Candidate'}
+                Session ID: {activeInterviewId || 'Active'} · {activeInterview?.name || form.name || 'Candidate'}
               </div>
             </div>
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--positive)]">
@@ -431,6 +436,15 @@ function Home() {
             >
               <TrendingUp className="w-4 h-4 text-[var(--positive)]" />
               <span>Review Progress</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/notebooks')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] bg-transparent text-xs sm:text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
+            >
+              <Library className="w-4 h-4 text-[var(--accent)]" />
+              <span>Research Notebooks</span>
             </button>
           </div>
         </div>
@@ -590,12 +604,12 @@ function Home() {
 
           <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
             {interviews.map((item) => {
-              const isSelected = exam === String(item.id);
+              const isSelected = activeInterviewId === String(item.id);
               return (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setExam(String(item.id))}
+                  onClick={() => setActiveInterviewId(String(item.id))}
                   className={`w-full text-left p-3 rounded-lg border transition-all text-xs cursor-pointer ${
                     isSelected
                       ? 'border-[var(--accent)] bg-[var(--surface-elevated)] ring-1 ring-[var(--accent)]/40'
@@ -669,7 +683,7 @@ function Home() {
             <button
               type="button"
               onClick={handleSaveResult}
-              disabled={loading.saveResult || !exam}
+              disabled={loading.saveResult || !activeInterviewId}
               className="w-full py-2 px-4 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-strong)] text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors disabled:opacity-50 cursor-pointer"
             >
               {loading.saveResult ? 'Saving...' : 'Save Evaluation to Database'}

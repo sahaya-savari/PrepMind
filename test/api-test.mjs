@@ -183,11 +183,50 @@ assert.strictEqual(mockStatus, 503, 'Should return 503 when no AI providers are 
 assert(mockResponse?.error?.includes('unconfigured'), 'Error message should clearly state unconfigured');
 console.log('✓ Test 6 Passed: Unconfigured credentials gracefully yield clean 503 response.\n');
 
+// ----------------------------------------------------
+// Test 7: Bring Your Own Key (BYOK) Validation & Safety
+// ----------------------------------------------------
+console.log('[Test 7] Verifying Bring Your Own Key (BYOK) validation & safety...');
+
+// 7a: Missing BYOK credentials for test_connection
+await handler({
+  method: 'POST',
+  body: { action: 'test_connection' },
+}, createMockRes());
+assert.strictEqual(mockStatus, 400, 'test_connection without BYOK credentials must yield 400');
+assert(mockResponse?.error?.includes('Missing BYOK'), 'Should return clear error for missing BYOK credentials');
+
+// 7b: Unsupported BYOK provider
+await handler({
+  method: 'POST',
+  headers: {
+    'x-byok-provider': 'unsupported_provider',
+    'x-byok-api-key': 'test-key',
+  },
+  body: { action: 'test_connection' },
+}, createMockRes());
+assert.strictEqual(mockStatus, 400, 'Unsupported BYOK provider must yield 400');
+assert(mockResponse?.error?.includes('Unsupported BYOK provider'), 'Should list supported providers');
+
+// 7c: BYOK simulated invalid credentials rejection (does not leak key in response)
+await handler({
+  method: 'POST',
+  headers: {
+    'x-byok-provider': 'groq',
+    'x-byok-api-key': 'invalid_secret_key_12345',
+  },
+  body: { action: 'test_connection' },
+}, createMockRes());
+assert.strictEqual(mockStatus, 400, 'Invalid credentials must return 400');
+assert(!JSON.stringify(mockResponse).includes('invalid_secret_key_12345'), 'Response must never leak raw API key');
+
+console.log('✓ Test 7 Passed: BYOK credentials validation and leak-prevention verified.\n');
+
 // Restore keys for subsequent operations
 if (savedGroq) process.env.GROQ_API_KEY = savedGroq;
 if (savedNvidia) process.env.NVIDIA_API_KEY = savedNvidia;
 if (savedGemini) process.env.GEMINI_API_KEY = savedGemini;
 
 console.log('====================================================');
-console.log('     All 6 Test Suites Passed Successfully!         ');
+console.log('     All 7 Test Suites Passed Successfully!         ');
 console.log('====================================================\n');

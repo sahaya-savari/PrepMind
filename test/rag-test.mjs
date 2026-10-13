@@ -324,6 +324,17 @@ assert.strictEqual(mockStatus, 400, 'Empty question should return 400');
 // 8c: Unsupported RAG action
 await ragHandler({ method: 'POST', body: { action: 'unknown_magic' } }, createMockRes());
 assert.strictEqual(mockStatus, 400, 'Unknown action should return 400');
+
+// 8d: Whitespace-only text payload
+await ragHandler({ method: 'POST', body: { action: 'process_document', documentId: 'doc_empty', text: '    ' } }, createMockRes());
+assert.strictEqual(mockStatus, 500, 'Whitespace-only text should reject with error');
+assert(mockResponse?.error?.includes('empty or contains unreadable text'), 'Error must note empty/unreadable text');
+
+// 8e: Oversized buffer payload (>10MB)
+const oversizedBase64 = Buffer.alloc(11 * 1024 * 1024, 'a').toString('base64');
+await ragHandler({ method: 'POST', body: { action: 'process_document', documentId: 'doc_huge', fileBase64: oversizedBase64 } }, createMockRes());
+assert.strictEqual(mockStatus, 413, 'Oversized buffer should reject with 413');
+
 console.log('✓ Test 8 Passed: Error handling and payload rejection verified.\n');
 
 // ----------------------------------------------------------------------------
