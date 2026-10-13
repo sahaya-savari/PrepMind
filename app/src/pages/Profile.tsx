@@ -28,8 +28,11 @@ const CANDIDATE_KEY = 'prepmind_candidate_profile';
 function Profile() {
   const { exam, setExam } = useExam();
   const { theme, toggleTheme } = useTheme();
-  const { user, logout, isConfigured } = useAuth();
+  const { user, logout, exitGuestMode, isConfigured } = useAuth();
   const navigate = useNavigate();
+
+  const [authActionLoading, setAuthActionLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const [profile, setProfile] = useState(() => {
     try {
@@ -70,8 +73,26 @@ function Profile() {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
+  const handleSignOut = async () => {
+    setAuthError(null);
+    setAuthActionLoading(true);
+    try {
+      const res = await logout();
+      if (!res.success) {
+        setAuthError(res.error || 'Failed to sign out from Supabase.');
+        setAuthActionLoading(false);
+        return;
+      }
+      navigate('/login');
+    } catch (err: any) {
+      setAuthError(err?.message || 'Network error occurred while signing out.');
+      setAuthActionLoading(false);
+    }
+  };
+
+  const handleExitGuest = () => {
+    setAuthError(null);
+    exitGuestMode();
     navigate('/login');
   };
 
@@ -91,14 +112,28 @@ function Profile() {
         </div>
 
         {user ? (
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--error)]/50 text-[var(--text-secondary)] hover:text-[var(--error)] text-xs font-mono transition-colors cursor-pointer self-start sm:self-auto"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Sign Out</span>
-          </button>
+          user.isGuest ? (
+            <button
+              type="button"
+              onClick={handleExitGuest}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--accent)] hover:bg-[var(--accent)]/25 text-xs font-mono font-medium transition-colors cursor-pointer self-start sm:self-auto"
+              title="Exit guest mode and return to sign in"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Exit Guest Mode</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={authActionLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--error)]/40 bg-[var(--error)]/10 text-[var(--error)] hover:bg-[var(--error)]/20 text-xs font-mono font-medium transition-colors cursor-pointer self-start sm:self-auto disabled:opacity-50"
+              title="Sign out of your account"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>{authActionLoading ? 'Signing Out...' : 'Sign Out'}</span>
+            </button>
+          )
         ) : (
           <Link
             to="/login"
@@ -109,6 +144,20 @@ function Profile() {
           </Link>
         )}
       </header>
+
+      {/* ERROR ALERT IF SIGN OUT FAILS */}
+      {authError && (
+        <div className="p-3.5 rounded-xl border border-[var(--error)]/40 bg-[var(--error)]/10 text-[var(--error)] text-xs font-mono flex items-center justify-between gap-3 shadow-sm">
+          <span>Authentication Error: {authError}</span>
+          <button
+            type="button"
+            onClick={() => setAuthError(null)}
+            className="text-[var(--error)] underline text-xs cursor-pointer hover:opacity-80"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* 2. AUTHENTICATION & DATABASE ENGINE STATUS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -156,6 +205,42 @@ function Profile() {
               </Link>
             )}
           </div>
+
+          {user && (
+            <div className="pt-3 border-t border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div>
+                <span className="text-xs font-semibold text-[var(--text-primary)] block">
+                  {user.isGuest ? 'Guest Mode Session' : 'Account Security'}
+                </span>
+                <span className="text-[11px] text-[var(--text-secondary)]">
+                  {user.isGuest
+                    ? 'Clear temporary guest session and return to sign in.'
+                    : 'Safely terminate Supabase cloud session.'}
+                </span>
+              </div>
+
+              {user.isGuest ? (
+                <button
+                  type="button"
+                  onClick={handleExitGuest}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--accent)] hover:bg-[var(--accent)]/25 text-xs font-mono font-medium transition-colors cursor-pointer shrink-0"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Exit Guest Mode</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={authActionLoading}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--error)]/40 bg-[var(--error)]/10 text-[var(--error)] hover:bg-[var(--error)]/20 text-xs font-mono font-medium transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>{authActionLoading ? 'Signing Out...' : 'Sign Out'}</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Database Engine Card */}

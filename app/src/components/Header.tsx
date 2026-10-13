@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, Brain, BarChart3, Home, User, Sun, Moon, Sparkles, LogIn, LogOut, BookOpen, Library } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -18,9 +19,11 @@ const navItems: NavItem[] = [
 function Header() {
   const { theme, toggleTheme } = useTheme();
   const { exam } = useExam();
-  const { user, logout } = useAuth();
+  const { user, logout, exitGuestMode } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [signingOut, setSigningOut] = useState(false);
 
   // Normalize current path for active pill matching
   const currentPath = location.pathname === '' ? '/' : location.pathname;
@@ -72,19 +75,47 @@ function Header() {
                 <span className={`h-1.5 w-1.5 rounded-full ${user.isGuest ? 'bg-[var(--accent)]' : 'bg-[var(--positive)]'} animate-pulse shrink-0`} aria-hidden />
                 <span className="truncate">{user.name.split(' ')[0]}</span>
               </Link>
-              <button
-                type="button"
-                onClick={async () => {
-                  await logout();
-                  navigate('/login');
-                }}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--error)] hover:border-[var(--error)]/40 transition-colors focus-visible:ring-1 focus-visible:ring-[var(--error)] outline-none cursor-pointer"
-                title="Sign Out"
-                aria-label="Sign Out"
-              >
-                <LogOut size={13} />
-                <span className="hidden lg:inline">Logout</span>
-              </button>
+              {user.isGuest ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    exitGuestMode();
+                    navigate('/login');
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors focus-visible:ring-1 focus-visible:ring-[var(--accent)] outline-none cursor-pointer"
+                  title="Exit Guest Mode"
+                  aria-label="Exit Guest Mode"
+                >
+                  <LogOut size={13} />
+                  <span className="hidden sm:inline">Exit Guest</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={signingOut}
+                  onClick={async () => {
+                    setSigningOut(true);
+                    try {
+                      const res = await logout();
+                      if (!res.success) {
+                        alert(res.error || 'Failed to sign out from Supabase.');
+                        setSigningOut(false);
+                        return;
+                      }
+                      navigate('/login');
+                    } catch (err: any) {
+                      alert(err?.message || 'Error occurred while signing out.');
+                      setSigningOut(false);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-mono bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--error)] hover:border-[var(--error)]/40 transition-colors focus-visible:ring-1 focus-visible:ring-[var(--error)] outline-none cursor-pointer disabled:opacity-50"
+                  title="Sign Out"
+                  aria-label="Sign Out"
+                >
+                  <LogOut size={13} />
+                  <span className="hidden sm:inline">{signingOut ? 'Signing Out...' : 'Sign Out'}</span>
+                </button>
+              )}
             </div>
           ) : (
             <Link
