@@ -41,6 +41,41 @@ Checks provider availability, health status, and configured fallback cascades.
 
 ---
 
+### Endpoint: BYOK Connection Test
+Tests candidate-supplied personal AI credentials without persisting keys or charging platform quotas.
+
+- **Method**: `POST`
+- **Path**: `/api/ai`
+- **Headers**:
+  - `Content-Type: application/json`
+  - `x-byok-provider`: `"groq"` | `"nvidia"` | `"gemini"` *(optional if in body)*
+  - `x-byok-api-key`: `<user_api_key>` *(optional if in body)*
+  - `x-byok-model`: `<optional_model_name>`
+
+#### Request Body
+```json
+{
+  "action": "test_connection",
+  "byok": {
+    "provider": "groq",
+    "apiKey": "gsk_...",
+    "model": "openai/gpt-oss-120b"
+  }
+}
+```
+
+#### Success Response (`200 OK`)
+```json
+{
+  "status": "ok",
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b",
+  "message": "Connected successfully to groq (openai/gpt-oss-120b)!"
+}
+```
+
+---
+
 ### Endpoint: Generate Practice MCQ
 Generates an exam-ready multiple-choice question tailored to a topic and difficulty level.
 

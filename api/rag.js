@@ -299,7 +299,9 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const action = body.action || 'retrieve';
-  const geminiKey = process.env.GEMINI_API_KEY || '';
+  const byokApiKey = (req.headers?.['x-byok-api-key'] || body.byok?.apiKey || '').toString().trim();
+  const byokProvider = (req.headers?.['x-byok-provider'] || body.byok?.provider || '').toString().toLowerCase().trim();
+  const geminiKey = (byokProvider === 'gemini' && byokApiKey) ? byokApiKey : (process.env.GEMINI_API_KEY || '');
 
   const isTestEnvironment = process.env.NODE_ENV === 'test' || Boolean(req.headers?.['x-prepmind-test-mode']);
   const allowSyntheticFallback = isTestEnvironment && !process.env.VERCEL && !process.env.PRODUCTION;

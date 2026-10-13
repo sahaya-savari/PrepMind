@@ -4,6 +4,7 @@ import { useExam } from '../context/ExamContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { isSupabaseConfigured } from '../lib/supabase';
+import ByokSettings from '../components/ByokSettings';
 import {
   User,
   Award,
@@ -319,6 +320,9 @@ function Profile() {
           </div>
         </div>
       </form>
+
+      {/* 4. AI PROVIDER & BRING YOUR OWN KEY (BYOK) */}
+      <ByokSettings />
 
       {/* 5. VERIFIED DRILL PERFORMANCE SUMMARY */}
       <div className="grid sm:grid-cols-3 gap-4">

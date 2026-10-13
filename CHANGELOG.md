@@ -23,7 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Document-Grounded RAG Engine (`/api/rag`)**: Boundary-aware document ingestion, 768-dimensional Gemini `text-embedding-004` vector embeddings, owner-filtered semantic retrieval, and anti-hallucination refusal grounding.
 - **Node 20+ PDF Parsing Compatibility**: Persistent `scripts/patch-pdf-parse.js` postinstall patch resolving shared buffer pool offsets in `pdf-parse` / `pdf.worker.js`.
 - **Supabase Migrations Standardized**: Timestamped forward-only migrations `20261012000000_rag_storage_schema.sql` and `20261012010000_private_notebooks_schema.sql` with pgvector, RLS, and secure `match_document_chunks` RPC.
-- **Automated Test Suite Expansion**: 5 test suites (29 passing assertions) covering multi-tenant isolation, 768-dim vector math, notebook scoping, and binary PDF parsing.
+- **Hosted Bring Your Own Key (BYOK)**: Introduced transient in-memory and session-scoped AI provider key configuration in Candidate Profile (`/profile`) supporting Groq, NVIDIA NIM, and Google Gemini with live connection testing and dedicated backend execution without quota sharing.
+- **Open-Source & Self-Hosting Guide**: Full MIT license compliance, documented self-hosting architecture, and independent Supabase deployment instructions.
+- **Automated Test Suite Expansion**: 5 test suites (32 passing assertions) covering multi-tenant isolation, 768-dim vector math, notebook scoping, binary PDF parsing, and BYOK credential validation.
 
 ### Fixed
 - **Dual Serverless Parity**: Reconciled `app/api/ai.js` with root `api/ai.js` via forwarding re-export to eliminate code drift.
@@ -32,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Upload Size Limits**: Enforced 10MB document buffer limit in `/api/rag` returning HTTP 413 when exceeded, and expanded Express parser body limits in `server/server.js` to 15MB to prevent upload truncation.
 - **Extraction Validation**: Rejection of empty and whitespace-only text payloads in `/api/rag` with explicit automated test assertions.
 - **Tenant Scoping Alignment**: Bound authenticated `userId` to semantic retrieval requests in `app/src/lib/rag.ts`.
+- **Technical SEO & Privacy Directives**: Added `Disallow: /notebooks` and `/notebooks/` across root and app `robots.txt`, synchronized `/materials` and `/reset-password` disallows, updated canonical sitemap timestamps, and wired dynamic `<meta name="robots" content="noindex, nofollow" />` directives for private candidate routes in `useDocumentTitle.ts`.
 
 ---
 

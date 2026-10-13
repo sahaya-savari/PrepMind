@@ -5,6 +5,10 @@ Allow: /practice
 Allow: /chat
 Disallow: /progress
 Disallow: /profile
+Disallow: /materials
+Disallow: /notebooks
+Disallow: /notebooks/
+Disallow: /reset-password
 Disallow: /api/
 
 # AI Training Crawlers Management (preserve search indexing)

@@ -109,8 +109,8 @@ Before starting, ensure your system meets the following requirements:
 Run all quality checks directly from the repository root before submitting code:
 
 ```bash
-# 1. Run automated AI provider & fallback unit test suite
-npm test
+# 1. Run automated AI provider, RAG, notebook, and BYOK test suites
+npm run test:all
 
 # 2. Run TypeScript strict typecheck across the frontend
 npm run typecheck

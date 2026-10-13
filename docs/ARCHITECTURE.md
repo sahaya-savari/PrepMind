@@ -61,6 +61,10 @@ graph TD
    - To accommodate Vercel configurations whether root directory is set to `.` (root) or `app/`, serverless functions are maintained in both locations:
      - [`api/ai.js`](../api/ai.js) & [`api/rag.js`](../api/rag.js) (Root discovery)
      - [`app/api/ai.js`](../app/api/ai.js) & [`app/api/rag.js`](../app/api/rag.js) (`app/` root forwarding shims)
+4. **Hosted BYOK & Non-Persistent Credential Boundary**:
+   - Candidates can supply personal Groq, NVIDIA NIM, or Google Gemini API keys in Settings (`/profile`).
+   - Credentials reside strictly in transient session memory, are transmitted over HTTPS headers (`x-byok-provider`, `x-byok-api-key`, `x-byok-model`), and are never written to database tables or server disks.
+   - When BYOK is active, requests route directly to the user's selected provider without consuming maintainer quotas.
 
 ---
 
