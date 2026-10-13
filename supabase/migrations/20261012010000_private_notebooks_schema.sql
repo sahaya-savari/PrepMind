@@ -95,39 +95,80 @@ create policy "Users can delete own notebooks"
   on public.notebooks for delete
   using (auth.uid() = user_id or auth.role() = 'service_role');
 
--- Notebook Messages RLS
+-- Notebook Messages RLS: Strict user and notebook ownership isolation
 drop policy if exists "Users can read own notebook messages" on public.notebook_messages;
 create policy "Users can read own notebook messages"
   on public.notebook_messages for select
-  using (auth.uid() = user_id or auth.role() = 'service_role');
+  using (
+    (auth.uid() = user_id and exists (
+      select 1 from public.notebooks n where n.id = notebook_id and (n.user_id = auth.uid() or auth.role() = 'service_role')
+    )) or auth.role() = 'service_role'
+  );
 
 drop policy if exists "Users can insert own notebook messages" on public.notebook_messages;
 create policy "Users can insert own notebook messages"
   on public.notebook_messages for insert
-  with check (auth.uid() = user_id or auth.role() = 'service_role');
+  with check (
+    (auth.uid() = user_id and exists (
+      select 1 from public.notebooks n where n.id = notebook_id and (n.user_id = auth.uid() or auth.role() = 'service_role')
+    )) or auth.role() = 'service_role'
+  );
 
 drop policy if exists "Users can delete own notebook messages" on public.notebook_messages;
 create policy "Users can delete own notebook messages"
   on public.notebook_messages for delete
-  using (auth.uid() = user_id or auth.role() = 'service_role');
+  using (
+    (auth.uid() = user_id and exists (
+      select 1 from public.notebooks n where n.id = notebook_id and (n.user_id = auth.uid() or auth.role() = 'service_role')
+    )) or auth.role() = 'service_role'
+  );
 
--- Notebook Artifacts RLS
+-- Notebook Artifacts RLS: Strict user and notebook ownership isolation
 drop policy if exists "Users can read own notebook artifacts" on public.notebook_artifacts;
 create policy "Users can read own notebook artifacts"
   on public.notebook_artifacts for select
-  using (auth.uid() = user_id or auth.role() = 'service_role');
+  using (
+    (auth.uid() = user_id and exists (
+      select 1 from public.notebooks n where n.id = notebook_id and (n.user_id = auth.uid() or auth.role() = 'service_role')
+    )) or auth.role() = 'service_role'
+  );
 
 drop policy if exists "Users can insert own notebook artifacts" on public.notebook_artifacts;
 create policy "Users can insert own notebook artifacts"
   on public.notebook_artifacts for insert
-  with check (auth.uid() = user_id or auth.role() = 'service_role');
+  with check (
+    (auth.uid() = user_id and exists (
+      select 1 from public.notebooks n where n.id = notebook_id and (n.user_id = auth.uid() or auth.role() = 'service_role')
+    )) or auth.role() = 'service_role'
+  );
 
 drop policy if exists "Users can delete own notebook artifacts" on public.notebook_artifacts;
 create policy "Users can delete own notebook artifacts"
   on public.notebook_artifacts for delete
-  using (auth.uid() = user_id or auth.role() = 'service_role');
+  using (
+    (auth.uid() = user_id and exists (
+      select 1 from public.notebooks n where n.id = notebook_id and (n.user_id = auth.uid() or auth.role() = 'service_role')
+    )) or auth.role() = 'service_role'
+  );
 
--- 6. EXTENDED VECTOR SEARCH RPC WITH NOTEBOOK FILTERING
+-- Documents RLS update: Ensure attached notebook_id belongs to the caller
+drop policy if exists "Users can update own documents" on public.documents;
+create policy "Users can update own documents"
+  on public.documents for update
+  using (auth.uid() = user_id or auth.role() = 'service_role')
+  with check (
+    (auth.uid() = user_id and (
+      notebook_id is null or exists (
+        select 1 from public.notebooks n where n.id = notebook_id and (n.user_id = auth.uid() or auth.role() = 'service_role')
+      )
+    )) or auth.role() = 'service_role'
+  );
+
+-- 6. EXTENDED VECTOR SEARCH RPC WITH NOTEBOOK FILTERING & OWNERSHIP VERIFICATION
+-- Drop prior 4-argument and 5-argument signatures to avoid overload conflicts in PostgreSQL
+drop function if exists public.match_document_chunks(vector(768), float, int, uuid[]);
+drop function if exists public.match_document_chunks(vector(768), float, int, uuid[], uuid);
+
 create or replace function public.match_document_chunks(
   query_embedding vector(768),
   match_threshold float default 0.25,
@@ -158,11 +199,25 @@ begin
     (1 - (c.embedding <=> query_embedding))::float as similarity
   from public.chunks c
   join public.documents d on d.id = c.document_id
-  where (c.user_id = auth.uid() or auth.role() = 'service_role')
+  where (
+    -- 1. Chunk and document must BOTH belong to the caller (or service role)
+    ((c.user_id = auth.uid() and d.user_id = auth.uid()) or auth.role() = 'service_role')
+    -- 2. Optional document ID list filter
     and (filter_doc_ids is null or c.document_id = any(filter_doc_ids))
-    and (filter_notebook_id is null or d.notebook_id = filter_notebook_id)
+    -- 3. Strict notebook ownership: document is in notebook AND caller owns the notebook
+    and (
+      filter_notebook_id is null or (
+        d.notebook_id = filter_notebook_id
+        and exists (
+          select 1 from public.notebooks n
+          where n.id = filter_notebook_id
+            and (n.user_id = auth.uid() or auth.role() = 'service_role')
+        )
+      )
+    )
     and (c.embedding is not null)
     and (1 - (c.embedding <=> query_embedding)) > match_threshold
+  )
   order by c.embedding <=> query_embedding
   limit match_count;
 end;
